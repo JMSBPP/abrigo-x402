@@ -85,7 +85,9 @@ Acknowledged but deferred. Not in Iteration 1 or Iteration 2 scope.
 ### Multi-iteration synthesis
 
 - **SYNTH-V2-01**: Per-protocol-vs-per-vault granularity retrospective with cross-iteration evidence (resolves CANDIDATES §6 Q4)
-- **SYNTH-V2-02**: Updated `notes/methodological-refinements.md` documenting empirical findings on cost-leg lower bounds, sample-thinness thresholds, USDT depeg parameter ranges
+- **SYNTH-V2-02**: Updated `notes/methodological_refinements.md` documenting empirical findings on cost-leg lower bounds, sample-thinness thresholds, USDT depeg parameter ranges
+
+**Note on Phase 7:** ROADMAP.md Phase 7 ("Cross-Iteration Synthesis") fires these two v2 requirements but is explicitly marked **PROCEDURAL — non-gating on v1**. v1 is complete when Phases 0–6 ship (REPORT-01..04 + REPRO-01..04 are the v1 closing requirements). Phase 7 may be deferred to a follow-on milestone without violating the v1 contract; running it in this milestone is optional substrate for the next iteration cycle.
 
 ## Out of Scope
 
@@ -106,49 +108,50 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Each requirement maps to exactly one phase in the proposed 8-phase roadmap (per `research/SUMMARY.md §Implications for Roadmap`).
+Each v1 requirement is mapped to exactly one phase as its primary phase (the phase where the requirement's deliverable artifact is produced). Some requirements have noted secondary fire/enforcement scope, but the primary phase assignment is the authoritative roadmap mapping per `.planning/ROADMAP.md`.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| GOV-01 | Phase 0 | Pending |
-| GOV-02 | Phase 0 | Pending |
-| GOV-03 | Phase 0 (setup) + ongoing | Pending |
-| DEMAND-01 | Phase 0 (verify), Phase 2 (enforce) | Pending |
-| FETCH-01 | Phase 1 | Pending |
-| FETCH-02 | Phase 1 | Pending |
-| FETCH-03 | Phase 1 | Pending |
-| FETCH-04 | Phase 1 | Pending |
-| PANEL-01 | Phase 2 | Pending |
-| PANEL-02 | Phase 2 | Pending |
-| PANEL-03 | Phase 2 | Pending |
-| PANEL-04 | Phase 2 | Pending |
-| DGP-01 | Phase 3 | Pending |
-| DGP-02 | Phase 3 | Pending |
-| DGP-03 | Phase 3 | Pending |
-| DGP-04 | Phase 3 | Pending |
-| DGP-05 | Phase 3 | Pending |
-| DGP-06 | Phase 3 | Pending |
-| DEPEND-01 | Phase 4 | Pending |
-| DEPEND-02 | Phase 4 | Pending |
-| HEDGE-01 | Phase 4 | Pending |
-| HEDGE-02 | Phase 4 | Pending |
-| HEDGE-03 | Phase 4 | Pending |
-| HEDGE-04 | Phase 4 | Pending |
-| HEDGE-05 | Phase 4 (template), Phases 0+3+4+6 (firing) | Pending |
-| REPORT-01 | Phase 5 | Pending |
-| REPORT-02 | Phase 5 | Pending |
-| REPORT-03 | Phase 5 | Pending |
-| REPORT-04 | Phase 5 | Pending |
-| REPRO-01 | Phase 6 (gate) | Pending |
-| REPRO-02 | Phase 6 | Pending |
-| REPRO-03 | Phase 6 (first step) | Pending |
-| REPRO-04 | Phase 0 (decision) + Phase 6 (enforcement) | Pending |
+| Requirement | Primary Phase | Secondary Scope | Status |
+|-------------|---------------|------------------|--------|
+| GOV-01 | Phase 0 | — | Pending |
+| GOV-02 | Phase 0 | Re-fires per candidate in Phase 6 | Pending |
+| GOV-03 | Phase 0 | CI gate active in all phases | Pending |
+| DEMAND-01 | Phase 0 | Enforce-component in Phase 2 | Pending |
+| FETCH-01 | Phase 1 | — | Pending |
+| FETCH-02 | Phase 1 | — | Pending |
+| FETCH-03 | Phase 1 | — | Pending |
+| FETCH-04 | Phase 1 | — | Pending |
+| PANEL-01 | Phase 2 | — | Pending |
+| PANEL-02 | Phase 2 | Headers required in all downstream artifact phases | Pending |
+| PANEL-03 | Phase 2 | — | Pending |
+| PANEL-04 | Phase 2 | — | Pending |
+| DGP-01 | Phase 3 | — | Pending |
+| DGP-02 | Phase 3 | — | Pending |
+| DGP-03 | Phase 3 | LR test result feeds HEDGE-05 firing in Phase 4 | Pending |
+| DGP-04 | Phase 3 | — | Pending |
+| DGP-05 | Phase 3 | — | Pending |
+| DGP-06 | Phase 3 | — | Pending |
+| DEPEND-01 | Phase 4 | — | Pending |
+| DEPEND-02 | Phase 4 | Enforced in Phase 5 report build | Pending |
+| HEDGE-01 | Phase 4 | — | Pending |
+| HEDGE-02 | Phase 4 | — | Pending |
+| HEDGE-03 | Phase 4 | — | Pending |
+| HEDGE-04 | Phase 4 | — | Pending |
+| HEDGE-05 | Phase 4 (template built) | Firing conditions active in Phases 0, 3, 4, 6 | Pending |
+| REPORT-01 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
+| REPORT-02 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
+| REPORT-03 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
+| REPORT-04 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
+| REPRO-01 | Phase 6 | Leak-check CI gate active continuously after Phase 1 | Pending |
+| REPRO-02 | Phase 6 | — | Pending |
+| REPRO-03 | Phase 6 (first step) | HEDGE-05 firing condition on failure | Pending |
+| REPRO-04 | Phase 0 (decision artifact) | Enforcement in Phase 6 (panel construction follows the lock) | Pending |
 
 **Coverage:**
 - v1 requirements: 32 total
-- Mapped to phases: 32
+- Mapped to phases: 32 (REPRO-04 split across Phase 0 *decision component* + Phase 6 *enforcement component* per ROADMAP.md; counted once in the 32, not double-counted)
 - Unmapped: 0 ✓
+- Phase distribution: Phase 0 (5) + Phase 1 (4) + Phase 2 (4) + Phase 3 (6) + Phase 4 (7) + Phase 5 (4) + Phase 6 (3) + Phase 7 (0; consumes prior results, fires deferred v2 SYNTH reqs)
 
 ---
 *Requirements defined: 2026-05-25*
-*Last updated: 2026-05-25 after initial definition (post scope-correction)*
+*Last updated: 2026-05-25 after roadmap creation — Traceability section updated with final phase assignments per `.planning/ROADMAP.md`*

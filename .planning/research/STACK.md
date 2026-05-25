@@ -97,6 +97,7 @@
 | `direnv` | Auto-load `.env` and venv on `cd` | Avoids wrong-python footgun |
 | `pre-commit` | Git hook runner | Runs `ruff`, `biome`, `vitest --run` on staged files |
 | `gh` | GitHub CLI | Required by `CLAUDE.md` (PRs to `upstream:master`) |
+| `make` (GNU Make 4.x) | Cross-workspace build orchestrator (TS + Python + Quarto) | Phase orchestration targets (`make lint-artifacts`, `make report-ichi`, `make verify-reproducibility`, `make leak-check`, `make iteration-2-full`, `make schema-frozen-check`) per ROADMAP.md success criteria |
 | Node 22 LTS | JS runtime | `pnpm@11` engine requirement |
 
 ---
