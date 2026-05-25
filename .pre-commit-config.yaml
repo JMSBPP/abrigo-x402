@@ -22,7 +22,7 @@ repos:
         entry: bash scripts/pre-commit/review_trail.sh
         language: system
         pass_filenames: false
-        files: '^\.planning/(.*/)?PLAN\.md$|^\.planning/ROADMAP\.md$'
+        files: '^\.planning/.*PLAN\.md$|^\.planning/ROADMAP\.md$'
 
       - id: schema-frozen
         name: "Schema-frozen check (reject diff to protocols/_schema.toml after Phase-0 baseline)"

@@ -29,10 +29,23 @@ set -euo pipefail
 EXIT_CODE=0
 FAILURES=()
 
-# AF-01: mock / synthetic-data validation in production paths
+# AF-01: mock / synthetic-data validation in production paths.
+# Two-pronged check: (a) text-content references in production code,
+# (b) filenames matching mock/synthetic/fake patterns under production paths.
+# Filename check catches binary fixtures (e.g. fake_panel.parquet) that the
+# content-grep cannot see because parquet is a non-text format.
 if grep -rEl "mock[_-]data|synthetic[_-]events|fake[_-]panel" fetch/src analysis/src 2>/dev/null | grep -v "/tests/" >/dev/null 2>&1; then
-  FAILURES+=("AF-01: mock/synthetic data detected in production paths (fetch/src or analysis/src outside tests/)")
+  FAILURES+=("AF-01: mock/synthetic data text reference detected in production paths (fetch/src or analysis/src outside tests/)")
   EXIT_CODE=1
+fi
+AF01_DIRS=""
+[ -d fetch/src ] && AF01_DIRS="$AF01_DIRS fetch/src"
+[ -d analysis/src ] && AF01_DIRS="$AF01_DIRS analysis/src"
+if [ -n "$AF01_DIRS" ]; then
+  if find $AF01_DIRS -type f \( -name "*mock_data*" -o -name "*mock-data*" -o -name "*synthetic_events*" -o -name "*synthetic-events*" -o -name "*fake_panel*" -o -name "*fake-panel*" \) ! -path "*/tests/*" 2>/dev/null | grep -q .; then
+    FAILURES+=("AF-01: mock/synthetic data file detected in production paths (fetch/src or analysis/src outside tests/)")
+    EXIT_CODE=1
+  fi
 fi
 
 # AF-02: hand-tuned p-values — Phase-3+ DEFERRED (no analysis/src yet)
@@ -48,6 +61,9 @@ fi
 if [ -f notes/PRE_REGISTRATION.md ] && [ -d analysis/src ]; then
   PRE_REG_TS=$(git log -1 --format=%ct -- notes/PRE_REGISTRATION.md 2>/dev/null || echo 0)
   ANALYSIS_FIRST_TS=$(git log --reverse --format=%ct -- analysis/src 2>/dev/null | head -1 || echo 0)
+  # Default empty results to 0 so the numeric comparison never receives an empty operand
+  PRE_REG_TS=${PRE_REG_TS:-0}
+  ANALYSIS_FIRST_TS=${ANALYSIS_FIRST_TS:-0}
   if [ "$PRE_REG_TS" != "0" ] && [ "$ANALYSIS_FIRST_TS" != "0" ] && [ "$PRE_REG_TS" -gt "$ANALYSIS_FIRST_TS" ]; then
     FAILURES+=("AF-03: notes/PRE_REGISTRATION.md commit-timestamp is LATER than first analysis/src/ commit — spec-swap violation")
     EXIT_CODE=1

@@ -13,7 +13,9 @@ ALLOW_REVISION=0
 [ "${1:-}" = "--allow-revision" ] && ALLOW_REVISION=1
 
 STAGED=$(git diff --cached --name-only 2>/dev/null || true)
-NEED_REVIEW=$(echo "$STAGED" | grep -E "^\.planning/(.*/)?PLAN\.md$|^\.planning/ROADMAP\.md$" || true)
+# Match any markdown file under .planning/ whose basename ends in PLAN.md
+# (covers GSD convention 00-07-PLAN.md AND bare PLAN.md), plus ROADMAP.md
+NEED_REVIEW=$(echo "$STAGED" | grep -E "^\.planning/.*PLAN\.md$|^\.planning/ROADMAP\.md$" || true)
 
 if [ -z "$NEED_REVIEW" ]; then
   echo "review-trail: PASS (no PLAN.md or ROADMAP.md changes staged)"
