@@ -1,0 +1,126 @@
+# protocols/_schema.toml
+#
+# Schema for protocol-spec TOML files (L0 layer per research/ARCHITECTURE.md).
+#
+# DEMAND-WINDOW DEFINITION (DEMAND-01 — locked at Phase 0)
+# =========================================================
+# The data-cost leg this project hedges is defined narrowly as:
+#   INDEXER-BACKED ANALYTICS/UI QUERIES ONLY
+#   (Graph subgraphs + Dune analytics)
+#
+# Canonical phrasing (lowercase, for downstream grep audits):
+#   scope = indexer-backed analytics/UI queries
+#
+# Lower bound: Graph free-tier ceiling = 100,000 queries/mo
+# Upper bound: Dune Plus subscription   = $390/mo
+#
+# EXPLICITLY EXCLUDED from the cost-leg scope:
+#   - Forno RPC eth_call keeper polling (free at any volume on Forno SLA;
+#     $0/mo for arbitrarily high volumes → below the demand window's
+#     lower bound at any scale → wrong demand class)
+#   - x402 settlement gas (modeled, not paid, in v1 per CLAUDE.md
+#     non-negotiable: no Celo facilitator in x402-foundation monorepo
+#     as of 2026-05-25)
+#
+# This scope decision is the falsification gate of the project's hedge
+# thesis: a protocol whose actual data spend falls outside [100k Graph
+# queries/mo, $390/mo Dune Plus] does not have an x402-vs-Dune-Plus
+# demand. HEDGE-05 firing condition (a) per FEATURES.md TS-15.
+#
+# SCHEMA-FROZEN CONTRACT (GOV-03 + AF-12 silent re-scope defense)
+# =========================================================
+# This file is the FROZEN BASELINE for `make schema-frozen-check`.
+# Its Phase-0 commit hash is recorded in `notes/PHASE_0_GATE.md`
+# (`## Schema-Frozen Baseline` section). Any diff against this baseline
+# after Phase 0 is REJECTED by the pre-commit hook (c). Iterations 1+,
+# Iteration 2, and v2 add `protocols/<name>.toml` rows; they never edit
+# this file.
+#
+# This contract enforces AF-12 silent re-scope: substrate expansion
+# (e.g. adding a new mixing class, a new cost class, or a new vault
+# field) requires an explicit re-planning loop with a new schema commit,
+# rather than being smuggled in via a config-file edit.
+
+# ----------------------------------------------------------------------
+# data_cost_class enum
+# ----------------------------------------------------------------------
+# All anticipated v1 + v2 cost-class identifiers MUST be enumerated here
+# at Phase 0 so that adding a new protocol does not require a schema
+# diff. Adding a new value is a schema-frozen-check violation.
+
+[enums]
+data_cost_class = [
+  "indexer-analytics-queries",   # v1: Graph subgraph reads for analytics/UI (ICHI, Steer cost leg)
+  "per-event-oracle-stretch",    # v2 anticipated: per-event on-chain oracle reads (prediction markets, Reality.eth)
+  "per-scan-ocr-stretch",        # v2 anticipated: per-document OCR backend calls (Halo-class receipt OCR — historical class kept for v2)
+  "v3-test-class",               # SYNTHETIC TEST VALUE — schema-frozen-diff fixture
+]
+
+# ----------------------------------------------------------------------
+# mixing_class enum
+# ----------------------------------------------------------------------
+# Stablecoin issuance / backing class for the Mento *local* substrate
+# (Mento-native cKES/cCOP/cNGN/cGHS/cZAR/cXOF/BRLm) vs adjacent fintech
+# stables (Minteo COPM) vs bridged Mento stables (anticipated v2).
+
+mixing_class = [
+  "mento-native",        # v1 active: Mento Reserve-backed local stables (cKES, cCOP, cNGN, cGHS, cZAR, cXOF, BRLm)
+  "minteo-fintech",      # v1 deferred / v2 candidate: Minteo COPM and similar fintech-issued local-stable clones (0xC92E8Fc...)
+  "mento-bridged",       # v2 anticipated: bridged variants of Mento stables (e.g. cross-chain BRLm if ever issued)
+]
+
+# ----------------------------------------------------------------------
+# Per-protocol schema (L0 protocol-spec TOMLs)
+# ----------------------------------------------------------------------
+# Every `protocols/<name>.toml` file follows this top-level schema:
+#
+#   [protocol]
+#   name                                  string         e.g. "ichi", "steer"
+#   chain_id                              integer        Celo mainnet = 42220
+#   factory_address                       address        Aggregator factory contract (Blockscout-verified)
+#   data_cost_class                       enum           One of [enums.data_cost_class]
+#   cost_leg_lower_bound_verified         boolean        True only after primary-source check
+#                                                        (Steer Iter-2 = result of REPRO-03 pre-validation
+#                                                         in PHASE_0_GATE.md, or false until Phase-6 first-step
+#                                                         check if INDETERMINATE)
+#   panel_construction                    string         "v3-anchor-only" | "unified" | "single-vault"
+#                                                        (matches notes/Q9_DECISION.md primary or fallback)
+#
+#   [protocol.anchor_pool]
+#   address                               address        Uniswap V3 pool address (the headline LP venue)
+#   token0                                address        Pool token0 address
+#   token1                                address        Pool token1 address
+#   fee_tier                              integer        Uniswap V3 fee tier in basis points (100, 500, 3000, 10000)
+#   mixing_class                          enum           One of [enums.mixing_class]
+#
+#   [protocol.vaults.<vault_id>]
+#   address                               address        Vault contract address (Blockscout-verified) OR
+#                                                        zero-address (0x000...000) placeholder if address_resolution_status = "pending"
+#   address_resolution_status             enum           "verified" | "pending" — "verified" = on-chain enumerated;
+#                                                        "pending" = placeholder used because the Phase-0 Blockscout
+#                                                        enumeration did not resolve this vault. Phase 2+ code MUST
+#                                                        assert all `active = true` vaults have status = "verified"
+#                                                        before any fetch operation against that address. (M12)
+#   active                                boolean        true = in active panel; false = deferred substrate
+#   mixing_class                          enum           One of [enums.mixing_class]
+#   pool_address                          address        Underlying Uniswap V3 pool the vault deposits into
+#   reason                                string         Required if active = false; documents v2-deferral rationale
+#                                                        (e.g. "v2-deferred", "below-q7-floor", "minteo-fintech-v2")
+#
+# AF-12 silent re-scope defense: substrate moves are ALWAYS expressed as
+# `active` boolean toggles on existing vault rows, NEVER as row
+# additions. Adding a vault row to an active iteration requires a new
+# schema commit (which fails schema-frozen-check) — forcing an explicit
+# re-planning loop.
+
+[schema_documentation]
+version = "1.0.0"
+locked_at_phase = "00-candidate-eligibility-pre-registration"
+last_modified = "2026-05-25"
+contract_addresses_verified_via = "https://celo.blockscout.com/api/v2/"
+demand_window_lower_bound = "100000 Graph queries per month (free-tier ceiling)"
+demand_window_upper_bound = "390 USD per month (Dune Plus subscription)"
+canonical_celo_chain_id = 42220
+canonical_celo_usdt = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"
+celo_block_time_seconds = 1.0
+celo_block_time_source = "Forno eth_getBlockByNumber primary-source verification 2026-05-25 (CANDIDATES.md §7.1)"

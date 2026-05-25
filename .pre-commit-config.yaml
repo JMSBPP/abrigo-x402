@@ -1,0 +1,32 @@
+# .pre-commit-config.yaml — abrigo-x402
+#
+# Three-layer GOV-03 enforcement per Phase 0 SC-4:
+#   (a) AF-01..AF-12 anti-feature lint
+#   (b) 2-way review-trail enforcement (paired _reality_checker.md + _code_reviewer.md with ## VERDICT)
+#   (c) make schema-frozen-check (rejects protocols/_schema.toml diff after Phase-0 baseline)
+#
+# Deploy via: `pre-commit install` (Plan 07).
+
+repos:
+  - repo: local
+    hooks:
+      - id: af-lint
+        name: "AF-01..AF-12 anti-feature lint gate (GOV-03)"
+        entry: bash scripts/pre-commit/af_lint.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: review-trail
+        name: "2-way review-trail enforcement (PLAN.md + ROADMAP.md require paired reviews with ## VERDICT)"
+        entry: bash scripts/pre-commit/review_trail.sh
+        language: system
+        pass_filenames: false
+        files: '^\.planning/(.*/)?PLAN\.md$|^\.planning/ROADMAP\.md$'
+
+      - id: schema-frozen
+        name: "Schema-frozen check (reject diff to protocols/_schema.toml after Phase-0 baseline)"
+        entry: bash scripts/pre-commit/schema_frozen.sh
+        language: system
+        pass_filenames: false
+        files: '^protocols/_schema\.toml$'
