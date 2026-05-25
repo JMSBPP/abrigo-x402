@@ -1,0 +1,166 @@
+# protocols/steer.toml
+#
+# Iteration 2 swap surface: Steer Protocol on cCOP/USDT.
+#
+# Phase-0 REPRO-03 pre-validation verdict (per notes/PHASE_0_GATE.md @ a669d37):
+#   STRADDLE — 30k-100k Celo-attributable Graph queries/mo
+#
+# Implication: this file is a stub. Iteration 2 fires HEDGE-05 memo-only
+# null at Phase 0 with `marginal-demand` flag per ROADMAP HEDGE-05 firing
+# scope. Iter-2 does NOT run a full Phase 1-5 cycle; the Phase-0 pre-
+# validation already proves the cost leg cannot reliably clear the
+# 100k/mo PASS threshold.
+#
+# Q-9 panel construction (per notes/Q9_DECISION.md @ 5782527):
+#   Primary  = v3-anchor-only
+#   Fallback = unified (V3+V4+Broker) — pre-registered, NOT a Phase-6
+#              ad-hoc decision
+#
+# Schema baseline: protocols/_schema.toml @ e9b214d (Plan 00-04).
+# Every vault row carries address_resolution_status per M12 invariant.
+
+[protocol]
+name = "steer"
+chain_id = 42220
+factory_address = "0x116Dba5DcE9CcDA828218b7eB46406810632014C"
+factory_blockscout_url = "https://celo.blockscout.com/address/0x116Dba5DcE9CcDA828218b7eB46406810632014C"
+implementation_address = "0xC1Ecd10398A6D7036CceE1f50551ff169715081c"  # Per CANDIDATES §4.2 — BeaconProxy impl
+data_cost_class = "indexer-analytics-queries"
+cost_leg_lower_bound_verified = false  # STRADDLE verdict — bound includes the 100k/mo line; not above it
+phase_0_repro_03_verdict = "STRADDLE"
+phase_0_repro_03_flag = "marginal-demand"
+phase_0_repro_03_resolved_at_commit = "a669d37"  # notes/PHASE_0_GATE.md commit hash (Plan 00-02)
+phase_0_repro_03_resolved_at_phase = "00-candidate-eligibility-pre-registration"
+hedge_05_fires = true  # memo-only null at Phase 0; no Phase 1-5 cycle for Iter-2
+panel_construction = "v3-anchor-only"  # Per notes/Q9_DECISION.md primary decision (@ 5782527)
+iteration = 2
+
+[protocol.repro_03_verdict]
+# Structured record of the Phase-0 REPRO-03 pre-validation outcome.
+# Phase 6 (if ever launched) reads this section to confirm the
+# pre-validation result; deviation from this verdict requires a 2-way
+# review BLOCKER per AF-03 spec-swap discipline.
+result = "STRADDLE"
+flag = "marginal-demand"
+resolved_at_phase = 0
+resolved_at_commit = "a669d37"
+celo_attributable_queries_per_mo_lower_bound = 30000
+celo_attributable_queries_per_mo_upper_bound = 100000
+demand_window_lower_bound_queries_per_mo = 100000  # Graph free-tier ceiling (canonical DEMAND-01)
+demand_window_upper_bound_usd_per_mo = 390  # Dune Plus subscription
+channel_a_source = "Blockscout factory enumeration: 6 active in-scope vaults (cCOP/USDT x3, cKES/USDT x1, cNGN/USDT x2)"
+channel_b_source = "Steer architecture: Gelato keeper-RPC class dominates; Graph subgraph reads are small analytics tail per DEMAND-01 keeper-RPC exclusion"
+channel_c_source = "DefiLlama TVL extrapolation: Steer-on-Celo TVL=$855.65 = 0.0041% of $20.64M multi-chain across 42 chains; TVL-proportional 8k-40k/mo; vault-count-proportional 48k-240k/mo; convergent best estimate in 30k-100k STRADDLE band"
+synthesis = "Two extrapolation channels disagree by ~6x (40k vs 240k upper bounds) — within 1 order of magnitude, not indeterminate. TVL-proportional is the more defensible default; convergent verdict is 30k-50k/mo (lower-leaning STRADDLE)."
+
+[protocol.anchor_pool]
+# cCOP/USDT Uniswap V3 anchor pool (Iter-2 headline)
+address = "0x2AC5baA668A8A58FD0e302B9896717484fd217B0"
+token0 = "0x8A567e2aE79CA692Bd748aB832081C45de4041eA"  # COPm (cCOP) per CANDIDATES.md §1
+token1 = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"  # Canonical Celo USDT
+fee_tier = 100  # 0.01% per CANDIDATES.md §2
+mixing_class = "mento-native"
+blockscout_url = "https://celo.blockscout.com/address/0x2AC5baA668A8A58FD0e302B9896717484fd217B0"
+swaps_per_30d_observed = 600  # Per CANDIDATES §7.3: ~580-625 swaps/30d V3-only
+above_hawkes_floor = true     # 600 / 300 = 2.0x above Hawkes floor (V3-only)
+
+# ----------------------------------------------------------------------
+# Q-9 fallback metadata (per notes/Q9_DECISION.md primary + fallback)
+# ----------------------------------------------------------------------
+# If panel_construction switches to "unified" per the pre-registered
+# fallback trigger, Phase 6 reads these additional event-class sources.
+# Trigger logic is pre-registered (NOT a Phase-6 ad-hoc decision); Phase
+# 6 only OBSERVES whether the conditions hold, never DECIDES.
+
+[protocol.q9_fallback]
+unified_panel_event_classes = [
+  "v3-swap",
+  "v4-poolmanager-cCOP-touching",
+  "mento-v2-broker-cCOP-mintburn",
+]
+v4_pool_manager_address = "0x288dc841A52FCA2707c6947B3A777c5E56cd87BC"  # Canonical Uniswap V4 PoolManager on Celo
+mento_v2_broker_proxy = "0x777A8255cA72412f0d706dc03C9D1987306B4CaD"   # Mento V2 BrokerProxy
+v4_swap_equivalents_per_30d = 90      # Per CANDIDATES §7.3
+broker_swap_equivalents_per_30d = 185 # Per CANDIDATES §7.3
+unified_total_per_30d = 900           # Approximate per CANDIDATES §7.3
+# Numeric trigger thresholds (verbatim from notes/Q9_DECISION.md @ 5782527)
+trigger_condition_1_sample_floor = 300         # V3-only sample floor
+trigger_condition_1_ci_width_floor = 0.4       # Hawkes branching-ratio profile-likelihood CI width
+trigger_condition_2_permutation_reps = 1000    # Cross-class permutation test
+trigger_condition_2_p_value_threshold = 0.05   # p > 0.05 fails to reject pooling
+trigger_logic = "BOTH conditions must hold: (sample<300 OR CI>0.4) AND (permutation p>0.05)"
+
+# ----------------------------------------------------------------------
+# Steer Celo vault enumeration (CANDIDATES §3 primary-source LP-holder reads)
+# ----------------------------------------------------------------------
+
+[protocol.vaults.cCOP_USDT_1]
+# Per CANDIDATES §3 cCOP/USDT pool top LP holder (34 Mints observed)
+address = "0x71d69f8eaA11b293EC9de8C56550d57Dcd372202"  # BeaconProxy impl 0xC1Ec...081c
+address_resolution_status = "verified"
+active = true
+mixing_class = "mento-native"
+pool_address = "0x2AC5baA668A8A58FD0e302B9896717484fd217B0"
+blockscout_url = "https://celo.blockscout.com/address/0x71d69f8eaA11b293EC9de8C56550d57Dcd372202"
+mints_observed = 34  # Per CANDIDATES §3
+
+[protocol.vaults.cCOP_USDT_2]
+address = "0x94E4728eCfd3E1B73D67d687eED8B8C4C6814439"  # Per CANDIDATES §3 cCOP/USDT pool LP holder #2 (15 Mints)
+address_resolution_status = "verified"
+active = true
+mixing_class = "mento-native"
+pool_address = "0x2AC5baA668A8A58FD0e302B9896717484fd217B0"
+blockscout_url = "https://celo.blockscout.com/address/0x94E4728eCfd3E1B73D67d687eED8B8C4C6814439"
+mints_observed = 15
+
+[protocol.vaults.cCOP_USDT_3]
+address = "0x95F02276b5656b79bE2F5Ca89618B70214165C1d"  # Per CANDIDATES §3 — STEER_UNIV3_VAULT_52
+address_resolution_status = "verified"
+active = true
+mixing_class = "mento-native"
+pool_address = "0x2AC5baA668A8A58FD0e302B9896717484fd217B0"
+blockscout_url = "https://celo.blockscout.com/address/0x95F02276b5656b79bE2F5Ca89618B70214165C1d"
+mints_observed = 1
+
+# ----------------------------------------------------------------------
+# Steer's non-cCOP Celo vaults — deferred per Q-9 V3-only primary decision
+# and Iter-2 cCOP-only scope per CONTEXT.md
+# ----------------------------------------------------------------------
+
+[protocol.vaults.cKES_USDT_steer]
+address = "0xce2e58630C76f76C355109fff1E2976a2C409bd2"  # Per CANDIDATES §3 — STEER_UNIV3_VAULT_12
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F"
+reason = "iteration-2-cCOP-scope: Iter-2 is locked to cCOP per CONTEXT.md; cKES is Iter-1 scope (ICHI anchor); Steer's cKES vault is v2-or-later"
+blockscout_url = "https://celo.blockscout.com/address/0xce2e58630C76f76C355109fff1E2976a2C409bd2"
+mints_observed = 42
+
+[protocol.vaults.cNGN_USDT_steer_1]
+address = "0xF7eAef3a41Dc6b1ce129994e05D085658C63D1bC"  # Per CANDIDATES §3 — STEER_UNIV3_VAULT_93
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318"
+reason = "iteration-2-cCOP-scope; cNGN thinness flagged per CANDIDATES §7.5 Q10"
+blockscout_url = "https://celo.blockscout.com/address/0xF7eAef3a41Dc6b1ce129994e05D085658C63D1bC"
+mints_observed = 1
+
+[protocol.vaults.cNGN_USDT_steer_2]
+address = "0x62cCf2a34db6Bd68C74c85f996f4566c12e64732"  # Per CANDIDATES §3 cNGN/USDT pool LP holder (BeaconProxy)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318"
+reason = "iteration-2-cCOP-scope; cNGN thinness flagged"
+blockscout_url = "https://celo.blockscout.com/address/0x62cCf2a34db6Bd68C74c85f996f4566c12e64732"
+mints_observed = 15
+
+[enumeration_status]
+total_vaults_enumerated_in_toml = 6  # All 6 Steer-on-Celo in-scope vaults from CANDIDATES §3
+verified_count = 6
+pending_count = 0
+steer_factory_event_log_url = "https://celo.blockscout.com/address/0x116Dba5DcE9CcDA828218b7eB46406810632014C/logs"
+enumeration_complete = true  # All 6 active in-scope Steer-on-Celo vaults from CANDIDATES §3 LP-holder enumeration are listed
+enumeration_note = "CANDIDATES §3 enumerates 6 active Steer vaults on in-scope Mento local-stable pairs (cCOP/USDT x3, cKES/USDT x1, cNGN/USDT x2). Steer factory VaultCreated log shows >=50 lifetime deployments across all Steer-on-Celo (most pairs are out-of-scope, e.g. CELO/USDC, USDC/USDT)."
