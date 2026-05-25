@@ -1,0 +1,12 @@
+# Synthetic baseline fixture for AF-12 initial-commit + row-addition test
+[protocol]
+name = "test_fixture"
+chain_id = 42220
+data_cost_class = "indexer-analytics-queries"
+
+[protocol.vaults.EXISTING_ROW]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+reason = "fixture-baseline-row"
