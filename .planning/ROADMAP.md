@@ -51,7 +51,14 @@
   3. `notes/Q9_DECISION.md` exists documenting the cCOP panel construction decision (V3-anchor-only OR V3+V4+Broker unified, with the pooling-assumption argument if unified); decision is committed BEFORE Phase 6 fetch starts. **If unified mode is selected, the V3+V4+Broker pooling code must live in `analysis/src/` from Phase 2 onwards (dead-code-exercised by synthetic unit tests in Iteration 1), not deferred to Phase 6** — otherwise REPRO-02's `git diff fetch/src analysis/src` empty-set invariant is violated.
   4. A pre-commit hook in `.pre-commit-config.yaml` enforces three layers: (a) the 12 anti-features from FEATURES.md AF-01..AF-12 (running it on a synthetic violating fixture exits non-zero); (b) the 2-way review-trail contract — rejects commits to `.planning/**/PLAN.md` or `.planning/ROADMAP.md` unless paired `.planning/_reviews/<basename>_{reality_checker,code_reviewer}.md` exist with `## VERDICT` headers and no unresolved BLOCKER, override flag `--allow-revision`; (c) `make schema-frozen-check` rejects any diff to `protocols/_schema.toml` after the Phase-0 commit hash recorded in `notes/PHASE_0_GATE.md`.
   5. The demand-window definition (indexer-backed analytics/UI queries only; Forno RPC keeper polling explicitly excluded) is reflected in `protocols/_schema.toml` as a comment + the `data_cost_class` enum. **The enum MUST be pre-populated at Phase 0 with all values anticipated across Iteration 1 + Iteration 2 + COPM mixing-class** (e.g. `["indexer-analytics-queries", "per-event-oracle-stretch", "per-scan-ocr-stretch"]`), so that Iteration 2 adds *only* `protocols/steer.toml`, never edits `_schema.toml` — enforced by the schema-frozen check in SC-4.
-**Plans**: TBD
+**Plans**: 7 plans (Wave 1: 01 PRE_REGISTRATION + 02 PHASE_0_GATE + 03 Q9_DECISION + 04 _schema.toml; Wave 2: 05 ichi.toml + steer.toml + 06 pre-commit hooks + Makefile + AF fixtures; Wave 3: 07 install hooks + record baseline + validate)
+- [ ] 00-01-PLAN.md — Author notes/PRE_REGISTRATION.md (GOV-01 + REPRO-04 decision)
+- [ ] 00-02-PLAN.md — Author notes/PHASE_0_GATE.md + Steer REPRO-03 primary-source pre-validation (GOV-02 + DEMAND-01)
+- [ ] 00-03-PLAN.md — Author notes/Q9_DECISION.md (REPRO-04 + REPRO-02 dead-code-exercise obligation)
+- [ ] 00-04-PLAN.md — Author protocols/_schema.toml frozen baseline with demand-window comment + enums (DEMAND-01 + GOV-03 / AF-12)
+- [ ] 00-05-PLAN.md — Author protocols/ichi.toml (full ~40-vault enumeration) + protocols/steer.toml (Iter-2 stub with Q-9 lock)
+- [ ] 00-06-PLAN.md — Pre-commit hook config + Makefile + 3 hook scripts + AF violation fixtures (GOV-03)
+- [ ] 00-07-PLAN.md — Install pre-commit hooks + substitute schema baseline hash + validate each hook against fixture
 
 ### Phase 1: L1 Data-Fetch Skeleton + Free-Tier Discipline
 **Goal**: Stand up the TypeScript data-fetch workspace with the paid-step-is-idempotent invariant (ARCHITECTURE.md Pattern 2), cost-ledger budget gate, and subgraph-freshness wrapper — all before any bulk pull touches the 100k/mo Graph budget.
