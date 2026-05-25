@@ -1,0 +1,36 @@
+# Node
+node_modules/
+.pnpm-store/
+.turbo/
+
+# Foundry / forge
+out/
+cache/
+broadcast/
+
+# Hardhat
+artifacts/
+cache_hardhat/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.python-version
+.uv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# Build
+dist/
+build/
+*.log
