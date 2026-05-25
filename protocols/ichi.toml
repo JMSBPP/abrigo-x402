@@ -1,0 +1,299 @@
+# protocols/ichi.toml
+#
+# Iteration 1 swap surface: ICHI on cKES/USDT (single-vault microcosm).
+#
+# Q-4 granularity decision (per CONTEXT.md): primary panel is the cKES/USDT
+# ANCHOR VAULT ONLY. No per-protocol aggregate is built in v1. Full ICHI
+# Celo footprint is enumerated below with per-vault `active` boolean +
+# `reason` fields to defend AF-12 silent re-scope; substrate expansion
+# in future iterations is a toggle change, not a row addition (forbidden
+# by schema-frozen check).
+#
+# address_resolution_status (per protocols/_schema.toml schema):
+#   "verified" = address enumerated from Blockscout (CANDIDATES.md §3 + §5.5
+#                primary-source LP-holder enumeration), ready for Phase 2+ fetch
+#   "pending"  = zero-address placeholder, Phase 0 governance-only; Phase 2+
+#                code MUST refuse to fetch against pending addresses (M12)
+
+[protocol]
+name = "ichi"
+chain_id = 42220
+factory_address = "0x9FAb4bdD4E05f5C023CCC85D2071b49791D7418F"
+factory_blockscout_url = "https://celo.blockscout.com/address/0x9FAb4bdD4E05f5C023CCC85D2071b49791D7418F"
+data_cost_class = "indexer-analytics-queries"
+cost_leg_lower_bound_verified = false  # v1: cost leg is modeled, not paid (no Celo facilitator in x402-foundation monorepo as of 2026-05-25 per CLAUDE.md)
+panel_construction = "single-vault"     # Q-4 per CONTEXT.md: single-vault microcosm only in v1
+iteration = 1
+
+[protocol.anchor_pool]
+# cKES/USDT Uniswap V3 anchor pool (Iter-1 headline)
+address = "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F"
+token0 = "0x456a3D042C0DbD3db53D5489e98dFb038553B0d0"  # KESm (cKES) per CANDIDATES.md §1
+token1 = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"  # Canonical Celo USDT per CANDIDATES.md §1
+fee_tier = 100  # 0.01% per CANDIDATES.md §2
+mixing_class = "mento-native"
+blockscout_url = "https://celo.blockscout.com/address/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F"
+swaps_per_30d_observed = 4440  # Per CANDIDATES §7.3 corrected count (post-block-time recalibration)
+above_hawkes_floor = true       # 4440 / 300 = 14.8x above Hawkes floor
+
+# ======================================================================
+# ICHI Celo vault enumeration (Task 1 output)
+# ======================================================================
+# Per CONTEXT.md AF-12 defense: every known vault enumerated here, even
+# if inactive in v1. Substrate moves are `active` toggles, never row
+# additions. The planning-level review trail catches any new
+# [protocol.vaults.NEW] additions outside an explicit re-planning loop.
+#
+# Source: CANDIDATES.md §3 (per-pool LP holder enumeration) + §4.1
+# (ICHI factory) + §5.5 (COPM Minteo vaults). Verified addresses come
+# from primary-source Blockscout LP-holder reads; pending addresses are
+# placeholders for vault positions known from §3 LP-count data but not
+# yet on-chain-enumerated to a specific contract address.
+
+[protocol.vaults.cKES_USDT_anchor]
+# THE ANCHOR — only active vault in Iter-1
+address = "0xe304b980535c29869983BC58d129F984Fec4176F"  # Per CANDIDATES §3 cKES/USDT pool LP holder
+address_resolution_status = "verified"
+active = true
+mixing_class = "mento-native"
+pool_address = "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F"
+blockscout_url = "https://celo.blockscout.com/address/0xe304b980535c29869983BC58d129F984Fec4176F"
+
+[protocol.vaults.COPM_minteo_vault_1]
+# COPM (Minteo) cCOP-clone vault #1 — v2-deferred per CONTEXT.md
+address = "0x9F2bB8B7dFF141e1e35d05D6B8215BA8634fFce8"  # Per CANDIDATES §5.5
+address_resolution_status = "verified"
+active = false
+mixing_class = "minteo-fintech"
+underlying_token = "0xC92E8Fc2947E32F2B574CCA9F2F12097A71d5606"  # COPM Minteo
+reason = "v2-deferred: Minteo controlled-broadening flag retained but not active in v1; reconsideration trigger = v2 substrate expansion to minteo-fintech mixing class per notes/PRE_REGISTRATION.md Deferred Substrate"
+blockscout_url = "https://celo.blockscout.com/address/0x9F2bB8B7dFF141e1e35d05D6B8215BA8634fFce8"
+
+[protocol.vaults.COPM_minteo_vault_2]
+# COPM (Minteo) cCOP-clone vault #2 — v2-deferred per CONTEXT.md
+address = "0xB52CfF57Cf94717193C63fbcdd50d09EdEe3FBF5"  # Per CANDIDATES §5.5
+address_resolution_status = "verified"
+active = false
+mixing_class = "minteo-fintech"
+underlying_token = "0xC92E8Fc2947E32F2B574CCA9F2F12097A71d5606"  # COPM Minteo
+reason = "v2-deferred: same class as COPM_minteo_vault_1; tracked together for v2 promotion"
+blockscout_url = "https://celo.blockscout.com/address/0xB52CfF57Cf94717193C63fbcdd50d09EdEe3FBF5"
+
+# ----------------------------------------------------------------------
+# Other ICHI Celo vaults from CANDIDATES.md §3 enumeration
+# ----------------------------------------------------------------------
+# All deferred in v1 per Q-4 decision (single-vault microcosm only)
+
+[protocol.vaults.cKES_USDm_primary]
+address = "0xe5d19ae5271dcee3138d163dd7f7c662cfba7bbb"  # Per CANDIDATES §3 cKES/USDm pool LP holder #1 (30 Mints)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x95faa9a91cD6c1C018e4B1a6fC4c89D4F1695e5D"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; reconsideration in Phase-7-or-v2 per-protocol aggregate analysis"
+blockscout_url = "https://celo.blockscout.com/address/0xe5d19ae5271dcee3138d163dd7f7c662cfba7bbb"
+
+[protocol.vaults.cKES_USDm_secondary]
+address = "0x388434da760b975ae20ab3c72d705a09ec9986d1"  # Per CANDIDATES §3 cKES/USDm pool LP holder #2 (18 Mints)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x95faa9a91cD6c1C018e4B1a6fC4c89D4F1695e5D"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; sibling of cKES_USDm_primary"
+blockscout_url = "https://celo.blockscout.com/address/0x388434da760b975ae20ab3c72d705a09ec9986d1"
+
+[protocol.vaults.cNGN_USDT_primary]
+address = "0xAe3C63c6398cB63E2D6416C6D4a77aDdE8c717d1"  # Per CANDIDATES §3 cNGN/USDT pool LP holder #1 (20 Mints)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; cNGN thinness flagged per CANDIDATES §7.5 Q10 (only ~100 Transfer events/30d)"
+blockscout_url = "https://celo.blockscout.com/address/0xAe3C63c6398cB63E2D6416C6D4a77aDdE8c717d1"
+
+[protocol.vaults.cNGN_USDT_secondary]
+address = "0x8cBFFbC031A8e3627456774b6337baC75640ceAc"  # Per CANDIDATES §3 cNGN/USDT pool LP holder #3 (12 Mints)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; cNGN thinness flagged"
+blockscout_url = "https://celo.blockscout.com/address/0x8cBFFbC031A8e3627456774b6337baC75640ceAc"
+
+[protocol.vaults.cGHS_USDT_1]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0x93e2...224B" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x6BAB3AfA6d0c42d539bcbc33Ffb68C0406913413"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; address-pending-Phase-1-full-enumeration (CANDIDATES §4.1 lists partial-prefix '0x93e2...224B' only)"
+
+[protocol.vaults.cGHS_USDT_2]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0x3fdA...A6bF" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x6BAB3AfA6d0c42d539bcbc33Ffb68C0406913413"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; address-pending-Phase-1-full-enumeration (CANDIDATES §4.1 lists partial-prefix '0x3fdA...A6bF' only)"
+
+[protocol.vaults.cZAR_USDT_primary]
+address = "0xdf156f474D5eDB15Ee67995207d961976E7099fA"  # Per CANDIDATES §3 cZAR/USDT pool LP holder #1
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xb793ff8031FCe64b3f553DBf40a70370FDEAC1C7"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; cZAR pool one-sided per CANDIDATES §2 — TVL compressed"
+blockscout_url = "https://celo.blockscout.com/address/0xdf156f474D5eDB15Ee67995207d961976E7099fA"
+
+[protocol.vaults.cZAR_USDT_secondary]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0xb563...0BeE" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xb793ff8031FCe64b3f553DBf40a70370FDEAC1C7"
+reason = "v2-deferred: Q-4 single-vault microcosm decision; cZAR pool one-sided; address-pending-Phase-1-full-enumeration"
+
+[protocol.vaults.cXOF_EURm_primary]
+address = "0x72c7e587482C94ED2A0DD50A52BC2013Be3337dF"  # Per CANDIDATES §3 + §4.1 cXOF/EURm pool LP holder #1 (LP token symbol ICHI_Vault_LP)
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x625cB959213D18a9853973C2220Df7287F1e5B7d"
+reason = "below-q7-floor: cXOF/EURm at-floor TVL per notes/PRE_REGISTRATION.md Q-7 Floor (TVL ~$24,519 per CANDIDATES §2 but events/30d marginal); Q-4 single-vault also defers"
+blockscout_url = "https://celo.blockscout.com/address/0x72c7e587482C94ED2A0DD50A52BC2013Be3337dF"
+
+[protocol.vaults.cXOF_EURm_secondary]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0xe942...7077" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x625cB959213D18a9853973C2220Df7287F1e5B7d"
+reason = "below-q7-floor; Q-4 single-vault; address-pending-Phase-1-full-enumeration"
+
+[protocol.vaults.cXOF_USDm]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xAA97F0689660eA15b7d6f84F2E5250B63f2b381a"
+reason = "below-q7-floor: cXOF/USDm ~$11k TVL — at-or-below floor per notes/PRE_REGISTRATION.md Q-7 Floor; reconsideration trigger TVL >= $20k; address-pending"
+
+[protocol.vaults.cXOF_CELO_1]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0xd3d0...0eb3" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xc767C0b2E2e56C455fd29f9eE9b6e6F035C71Ed4"
+reason = "v2-deferred: Q-4 single-vault; cXOF/CELO non-USD-stable counter — counter-stable assumption fails; address-pending"
+
+[protocol.vaults.cXOF_CELO_2]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0xa991...ee26" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xc767C0b2E2e56C455fd29f9eE9b6e6F035C71Ed4"
+reason = "v2-deferred: Q-4 single-vault; cXOF/CELO non-USD-stable counter; address-pending"
+
+[protocol.vaults.BRLm_USDT_primary]
+address = "0xe7fcd93380d9a83564b75b63901711c93a1e60d4"  # Per CANDIDATES §3 + §4.1 BRLm/USDT pool LP holder #1
+address_resolution_status = "verified"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1625fE58Cdb3726e5841Fb2bb367Dde9AAa009B3"
+reason = "v2-deferred: Q-4 single-vault microcosm decision"
+blockscout_url = "https://celo.blockscout.com/address/0xe7fcd93380d9a83564b75b63901711c93a1e60d4"
+
+[protocol.vaults.BRLm_USDT_secondary]
+address = "0x0000000000000000000000000000000000000000"  # Per CANDIDATES §4.1 partial-prefix "0x9ee7...45c5" — full address pending Phase-1 enumeration
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x1625fE58Cdb3726e5841Fb2bb367Dde9AAa009B3"
+reason = "v2-deferred: Q-4 single-vault; address-pending-Phase-1-full-enumeration"
+
+[protocol.vaults.BRLm_EURm]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xb6c8f9490314394CFc6EDacb8717bFDC1EB8dab5"
+reason = "below-q7-floor: BRLm/EURm < $10k TVL — below floor per notes/PRE_REGISTRATION.md Q-7 Floor; reconsideration trigger events/30d >= 60; address-pending"
+
+[protocol.vaults.BRLm_cKES_1]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xb1Ed164c736909bA7ddBC1FeB7CEd4EAAD854a87"
+reason = "v2-deferred: Q-4 single-vault; non-USD-stable counter (cKES); address-pending-Phase-1-enumeration"
+
+[protocol.vaults.BRLm_cKES_2]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xb1Ed164c736909bA7ddBC1FeB7CEd4EAAD854a87"
+reason = "v2-deferred: Q-4 single-vault; non-USD-stable counter (cKES); address-pending; sibling of BRLm_cKES_1"
+
+[protocol.vaults.cKES_EURm_1]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xA143ccF73C25eeC6f38bD1b741043ebeA228b8e9"
+reason = "v2-deferred: Q-4 single-vault; cKES/EURm non-USD-stable counter (EURm); small pool per CANDIDATES §2; address-pending"
+
+[protocol.vaults.cGHS_CELO_1]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0xa4bC5Aa6229e6f2BaA4B8851b19342A1D1217C08"
+reason = "v2-deferred: Q-4 single-vault; cGHS/CELO non-USD-stable counter; small pool per CANDIDATES §2; address-pending"
+
+# ----------------------------------------------------------------------
+# Additional ICHI Celo vaults known to exist (~40-vault factory log per
+# CANDIDATES §4.1) but not surfaced in CANDIDATES §3 top-LP-holder
+# enumeration — recorded as pending placeholders for Phase-1 full
+# factory-log paginated enumeration.
+# ----------------------------------------------------------------------
+
+[protocol.vaults.factory_unenumerated_1]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x0000000000000000000000000000000000000000"
+reason = "v2-deferred: ICHIVaultCreated factory event log paginated full history retrieval deferred to Phase 1 fetch infrastructure (CANDIDATES §4.1 reports >=40 vaults total but only first-page 50 events decoded); placeholder for unenumerated balance"
+
+[protocol.vaults.factory_unenumerated_2]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x0000000000000000000000000000000000000000"
+reason = "v2-deferred: ICHIVaultCreated factory event log placeholder #2"
+
+[protocol.vaults.factory_unenumerated_3]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x0000000000000000000000000000000000000000"
+reason = "v2-deferred: ICHIVaultCreated factory event log placeholder #3"
+
+[protocol.vaults.factory_unenumerated_4]
+address = "0x0000000000000000000000000000000000000000"
+address_resolution_status = "pending"
+active = false
+mixing_class = "mento-native"
+pool_address = "0x0000000000000000000000000000000000000000"
+reason = "v2-deferred: ICHIVaultCreated factory event log placeholder #4"
+
+[enumeration_status]
+total_vaults_enumerated_in_toml = 27  # Vault rows present in this file
+verified_count = 10                   # address_resolution_status = "verified"
+pending_count = 17                    # address_resolution_status = "pending"
+ichi_factory_event_log_url = "https://celo.blockscout.com/address/0x9FAb4bdD4E05f5C023CCC85D2071b49791D7418F/logs"
+enumeration_complete = false  # Full ~40-vault factory log pagination deferred to Phase 1 fetch infrastructure
+enumeration_gap_reason = "Plan 00-05 used CANDIDATES.md §3 (per-pool top-LP-holder primary-source enumeration) + §4.1 (factory partial-address listing) + §5.5 (COPM Minteo vaults) as the verified-address baseline. Full ICHIVaultCreated factory-log paginated retrieval requires Phase 1 fetch infrastructure (TypeScript x402-aware Blockscout client with pagination cursor support). Pending placeholders carry zero-address per M12 schema; Phase 2+ code MUST assert verified status before any fetch operation."
