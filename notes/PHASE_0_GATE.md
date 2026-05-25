@@ -15,7 +15,7 @@
 
 The Phase-0 commit hash of `protocols/_schema.toml` is recorded here as the baseline for `make schema-frozen-check`. Any diff to `_schema.toml` after this commit triggers pre-commit hook (c) rejection.
 
-**Schema baseline commit:** `<SCHEMA_BASELINE_COMMIT>` (Plan 07 substitutes the actual hash after Plan 04 commits _schema.toml)
+**Schema baseline commit:** `e9b214dcb26d7a6085aa98765a3f8816950495eb` (Plan 00-04 commit of `protocols/_schema.toml`, recorded by Plan 00-07)
 
 ## ICHI on cKES/USDT — Five-Check Eligibility Gate
 
