@@ -102,6 +102,32 @@ LP-position aggregator discovery on Uniswap V3 Celo pools cleared **two applicat
 | **Excluded: Myriad** | Mainnet contracts "Coming soon" per own docs; MiniPay variant is points-based, no stablecoin cashflows. | ✓ Locked 2026-05-25 (supersedes the original Iteration 1 = Myriad row above) |
 | **Excluded: Halo** | Production JS bundle is points/reward-dominant, no Mento references, OP-stack predeploys indicate non-Celo settlement. | ✓ Locked 2026-05-25 (supersedes the original Iteration 2 = Halo row above) |
 
+### Thinness retraction 2026-05-25 (post-skepticism audit)
+
+The CANDIDATES.md §2 finding that cKES/USDT processed ~130 swaps/30d and cCOP/USDT ~100–150 swaps/30d is **retracted as a counting-artifact false positive**. Root cause: §1 Method implicitly used 5 s/block for Celo; actual post-2024 Celo block time is **1 s/block** (verified via Forno `eth_getBlockByNumber` over a 232,989-block window). Window calculations were 5× too short; pagination cutoffs compounded for cKES.
+
+**Corrected 30-day Uniswap V3 Swap counts** (per CANDIDATES.md §7 Hidden-Volume Audit):
+- **cKES/USDT: ~4,440 swaps/30d** (14.8× above 300-event Hawkes floor)
+- **cCOP/USDT: ~580–625 swaps/30d** (~2× above floor)
+
+Audit covered six gap channels with symmetric burden of proof (Ubeswap V2 + V3, Carbon DeFi, Sushi V2/V3, Velodrome, Mento V1 Exchange, Uniswap V4, Mento V2 Broker, total Transfer panel, DEX/bridge aggregators, MiniPay processors, Mento Labs Safes). Findings:
+- All alternative DEX venues ruled out as material (dormant, dead pools, or zero local-stable holdings).
+- Mento V2 Broker contributes ~185 mint/burn pairs/30d to **cCOP only** (28 of 100 cCOP Transfer counterparties are BrokerProxy).
+- Uniswap V4 PoolManager contributes ~90 swaps/30d to **cCOP only** (holds 7.4M cCOP).
+- Total Transfer panel is NOT a separate signal — ≥99% of cKES Transfer events have UniV3Pool/ICHIVault/SwapRouter on one side.
+
+**Material consequences:**
+- **ICHI on cKES/USDT** sample-size: BORDERLINE → PASS comfortably.
+- **Steer on cCOP/USDT** sample-size: CONDITIONAL → PASS. Cost-leg lower-bound (CANDIDATES §6 Q6b) is now the only remaining binding constraint on Iteration 2.
+- **Recommended dependent variable for the revenue-arrival process**: Uniswap V3 Swap events on the anchor pool (fee × tier = revenue per event, clean economic interpretation). ICHI deposit/withdraw is *demand-for-service*, not revenue. Transfer panel is DEX-amplified noise, not separate signal.
+- **PITFALLS §1 sample-thinness application to abrigo-x402 is hereby retracted** as a counting-artifact false positive. The discipline (PITFALLS §1 as a category, anti-fishing replication) remains valid in general; it just doesn't bind here. This is exactly the failure mode `feedback_thinness_skepticism` warns against — caught by the skepticism audit, not by silently accepting the first count.
+
+### New open question (post-audit)
+
+| ID | Question |
+|---|---|
+| Q-9 (post-audit) | **cCOP panel construction for Iteration 2**: V3-anchor-only (~625 swaps/30d) OR unified across V3 + V4 + Mento V2 Broker (~900 events/30d)? Unifying adds density and captures more of the cCOP flow universe but requires a justified pooling assumption (the three event classes must share a common arrival-process structure for joint Hawkes estimation to be valid). Resolved in Phase 0 / Phase 6. |
+
 ### Out of Scope additions (post-research)
 
 - **MiniPay-by-preference candidate filter** — superseded (see memory `project_abrigo_x402_minipay_scope`).
