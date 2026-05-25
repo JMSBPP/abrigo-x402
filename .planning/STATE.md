@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-25T20:24:29.900Z"
+last_updated: "2026-05-25T20:25:19.648Z"
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # State: abrigo-x402
@@ -45,6 +45,7 @@ Progress: [........] 0/8 phases complete  (Phase 0: 2/7 plans complete)
 | Phase 00-candidate-eligibility-pre-registration P03 | 15min | 1 tasks | 1 files |
 | Phase 00 P04 | 4min | 1 tasks | 1 files |
 | Phase 00-candidate-eligibility-pre-registration P01 | 30min | 1 tasks | 2 files |
+| Phase 00-candidate-eligibility-pre-registration P02 | 4min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -58,12 +59,14 @@ Progress: [........] 0/8 phases complete  (Phase 0: 2/7 plans complete)
 - MiniPay-by-preference filter retired (anti-correlated with FX-hedge thesis)
 - Myriad / Halo excluded (primary-source disqualification)
 - **Plan 00-04 SCHEMA-FROZEN BASELINE** [LOCKED 2026-05-25, commit `e9b214d` (full SHA `e9b214dcb26d7a6085aa98765a3f8816950495eb`)]: `protocols/_schema.toml` is the frozen baseline for `make schema-frozen-check`. `data_cost_class` enum = `[indexer-analytics-queries, per-event-oracle-stretch, per-scan-ocr-stretch]`. `mixing_class` enum = `[mento-native, minteo-fintech, mento-bridged]`. Demand-window scope (DEMAND-01) and AF-12 silent re-scope defense encoded in schema. Closes DEMAND-01 + GOV-03.
+- **Plan 00-01 PRE-REGISTRATION LOCKED** [LOCKED 2026-05-25, commit `6cd61ed`]: `notes/PRE_REGISTRATION.md` (160 lines) commits all pre-fit thresholds — kernel forms (Kirchner INAR(p) NHPP + bivariate HawkesExpKern off-diagonal); priors (α=0.01, η≥0.2, rate_per_event grid (1,5,10), USD_per_query $5e-6 ±50%); bootstrap-LR 50:50 χ²(0):χ²(1) mixture; PITFALLS §4 four-criterion gate; REPRO-03 two-tier threshold (PASS ≥100k/mo, STRADDLE 30-100k marginal-demand, FAIL <30k below-window); Q-9 V3-only-primary + V3+V4+Broker-unified-fallback (trigger: sample<300 OR CI>0.4, AND cross-class permutation p>0.05); Q-7 floor (TVL<$10k OR events<30/30d); deferred substrate (COPM, cXOF/USDm, BRLm/EURm, ~38 non-anchor ICHI vaults); condition-4 reparam to USDT depeg + USDT/USDC basis (NOT USDC depeg) per CLAUDE.md. AF-03 audit anchor. Closes GOV-01 + REPRO-04.
+- **Plan 00-02 PHASE_0_GATE LOCKED** [LOCKED 2026-05-25, commit `a669d37`]: `notes/PHASE_0_GATE.md` (117 lines) commits five-check eligibility outcome per candidate. **ICHI on cKES/USDT = PASS verbatim per CANDIDATES §4.1** (with §7.3 thinness retraction upgrading check 4 from BORDERLINE to PASS) — eligible for Iteration 1 anchor. **Steer on cCOP/USDT REPRO-03 verdict = STRADDLE** (30k–100k Celo-attributable Graph queries/mo per Phase-0 three-channel triangulation: Blockscout factory enumeration (6 active in-scope vaults), Steer architecture (Gelato keeper-RPC class excluded per DEMAND-01), DefiLlama TVL extrapolation ($855.65 = 0.0041% of $20.64M multi-chain across 42 chains)). Fires HEDGE-05 memo-only null with `marginal-demand` flag at Phase 0; Iteration 2 does NOT run Phase 1–5 cycle. `<SCHEMA_BASELINE_COMMIT>` placeholder embedded for Plan 07 substitution (target: schema baseline `e9b214dcb26d7a6085aa98765a3f8816950495eb`). Closes GOV-02 + DEMAND-01 (verify component).
 
 ### Decisions Pending (Phase 0)
 
 - Q-9 [LOCKED 2026-05-25 via Plan 00-03, commit `5782527`]: cCOP panel — V3-anchor-only primary + V3+V4+Broker unified fallback pre-registered (sample<300 OR CI>0.4, AND permutation p>0.05, 1000 reps, K-S D-max). REPRO-02 dead-code obligation on `analysis/src/abrigo_x402/panel/{unified,cross_class_permutation}.py`. REPRO-04 complete. See `notes/Q9_DECISION.md`.
 - Q-4: Per-protocol vs per-vault granularity for ICHI Iteration 1 (recommendation per SUMMARY.md: per-protocol-aggregate with single-vault microcosm sensitivity; final lock in Phase 0, retrospective in Phase 7)
-- Q-7: TVL-too-thin floor for cXOF/USDm and BRLm/EURm pools (Phase 0 commit; Phase 2 enforce)
+- Q-7 [LOCKED 2026-05-25 via Plan 00-01, commit `6cd61ed`]: TVL floor = `TVL < $10k OR events < 30/30d`. cXOF/USDm `0xAA97…381a` (~$11k TVL) flagged marginal; BRLm/EURm `0xb6c8…dab5` (<$10k) deferred. Reconsideration triggers: cXOF/USDm if TVL≥$20k; BRLm/EURm if events/30d≥60. See `notes/PRE_REGISTRATION.md` §Q-7 Floor + §Deferred Substrate.
 - USDT depeg jump-leg calibration source (Phase 4 lock)
 
 ### Active Todos
@@ -84,8 +87,8 @@ Progress: [........] 0/8 phases complete  (Phase 0: 2/7 plans complete)
 
 ## Session Continuity
 
-**Last action:** Completed Plan 00-04 — `protocols/_schema.toml` authored + committed at `e9b214d` (SCHEMA_BASELINE_COMMIT for Plan 00-06/00-07). DEMAND-01 + GOV-03 marked complete in REQUIREMENTS.md.
-**Next action:** Continue Wave 1 — siblings 00-01 (PRE_REGISTRATION.md) and 00-02 (PHASE_0_GATE.md) need to complete before Wave 2 (00-05 protocols/ichi.toml, 00-06 .pre-commit-config.yaml, 00-07 final PHASE_0_GATE substitution) can run.
+**Last action:** Completed Plan 00-01 — `notes/PRE_REGISTRATION.md` authored (160 lines) + committed at `6cd61ed`. GOV-01 + REPRO-04 marked complete in REQUIREMENTS.md. AF-03 audit anchor locked. Q-7 floor and Q-9 fallback trigger committed pre-fit.
+**Next action:** Wave 1 complete (00-01, 00-02, 00-03, 00-04). Proceed to Wave 2: 00-05 (protocols/ichi.toml), 00-06 (.pre-commit-config.yaml), 00-07 (final PHASE_0_GATE.md substitution).
 **Resume hint:** SCHEMA_BASELINE_COMMIT = `e9b214dcb26d7a6085aa98765a3f8816950495eb`. Plan 00-06 references this hash in `make schema-frozen-check`; Plan 00-07 substitutes it into `notes/PHASE_0_GATE.md` `<SCHEMA_BASELINE_COMMIT>` placeholder. Plan 00-05 consumes the per-vault schema (`active` boolean + `mixing_class` enum + `address_resolution_status`) to enumerate ICHI's ~40 Celo vaults.
 
 ---

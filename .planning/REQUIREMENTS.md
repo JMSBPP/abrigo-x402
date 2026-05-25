@@ -9,8 +9,8 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 ### Governance (pre-registration, anti-fishing discipline)
 
-- [ ] **GOV-01**: Pipeline must commit a pre-registration document (`notes/PRE_REGISTRATION.md`) listing kernel forms, prior parameters, test statistics, acceptance regions, and decision rules BEFORE any vault-level estimation runs
-- [ ] **GOV-02**: Each candidate protocol must pass the five-check Phase-0 eligibility gate (mainnet contract verified + Mento local-stable cashflow medium + ≥30 events/30d + ≥300 events lifetime + ≥60-day deployment age) before its iteration starts; gate result documented per candidate
+- [x] **GOV-01**: Pipeline must commit a pre-registration document (`notes/PRE_REGISTRATION.md`) listing kernel forms, prior parameters, test statistics, acceptance regions, and decision rules BEFORE any vault-level estimation runs
+- [x] **GOV-02**: Each candidate protocol must pass the five-check Phase-0 eligibility gate (mainnet contract verified + Mento local-stable cashflow medium + ≥30 events/30d + ≥300 events lifetime + ≥60-day deployment age) before its iteration starts; gate result documented per candidate
 - [x] **GOV-03**: Pipeline must reject all 12 anti-features from FEATURES.md (AF-01 mock-data validation, AF-02 hand-tuned p-values, AF-03 spec swap after seeing results, AF-04 retrospective category invention, AF-05 binning that destroys arrival signal, AF-06 strip-without-gate, AF-07 forced-Hawkes claim, AF-08 dashboard scope-creep, AF-09 single-fit no-comparison, AF-10 Dune-Plus-to-validate, AF-11 untimestamped fits, AF-12 silent re-scope); pre-commit lint/CI gate enforces
 
 ### Demand window (cost-leg definition)
@@ -112,10 +112,10 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 
 | Requirement | Primary Phase | Secondary Scope | Status |
 |-------------|---------------|------------------|--------|
-| GOV-01 | Phase 0 | — | Pending |
-| GOV-02 | Phase 0 | Re-fires per candidate in Phase 6 | Pending |
+| GOV-01 | Phase 0 | — | Complete (Plan 00-01, commit `6cd61ed`) |
+| GOV-02 | Phase 0 | Re-fires per candidate in Phase 6 | Complete (Plan 00-02, commit `a669d37`) |
 | GOV-03 | Phase 0 | CI gate active in all phases | Pending |
-| DEMAND-01 | Phase 0 | Enforce-component in Phase 2 | Pending |
+| DEMAND-01 | Phase 0 | Enforce-component in Phase 2 | Complete (Plan 00-02 verify-component, commit `a669d37`; enforce-component pending in Phase 2) |
 | FETCH-01 | Phase 1 | — | Pending |
 | FETCH-02 | Phase 1 | — | Pending |
 | FETCH-03 | Phase 1 | — | Pending |
@@ -144,7 +144,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | REPRO-01 | Phase 6 | Leak-check CI gate active continuously after Phase 1 | Pending |
 | REPRO-02 | Phase 6 | — | Pending |
 | REPRO-03 | Phase 6 (first step) | HEDGE-05 firing condition on failure | Pending |
-| REPRO-04 | Phase 0 (decision artifact) | Enforcement in Phase 6 (panel construction follows the lock) | Pending |
+| REPRO-04 | Phase 0 (decision artifact) | Enforcement in Phase 6 (panel construction follows the lock) | Complete (Plan 00-03 `5782527` + Plan 00-01 `6cd61ed`) |
 
 **Coverage:**
 - v1 requirements: 32 total
