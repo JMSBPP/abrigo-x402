@@ -11,11 +11,11 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 - [ ] **GOV-01**: Pipeline must commit a pre-registration document (`notes/PRE_REGISTRATION.md`) listing kernel forms, prior parameters, test statistics, acceptance regions, and decision rules BEFORE any vault-level estimation runs
 - [ ] **GOV-02**: Each candidate protocol must pass the five-check Phase-0 eligibility gate (mainnet contract verified + Mento local-stable cashflow medium + ≥30 events/30d + ≥300 events lifetime + ≥60-day deployment age) before its iteration starts; gate result documented per candidate
-- [ ] **GOV-03**: Pipeline must reject all 12 anti-features from FEATURES.md (AF-01 mock-data validation, AF-02 hand-tuned p-values, AF-03 spec swap after seeing results, AF-04 retrospective category invention, AF-05 binning that destroys arrival signal, AF-06 strip-without-gate, AF-07 forced-Hawkes claim, AF-08 dashboard scope-creep, AF-09 single-fit no-comparison, AF-10 Dune-Plus-to-validate, AF-11 untimestamped fits, AF-12 silent re-scope); pre-commit lint/CI gate enforces
+- [x] **GOV-03**: Pipeline must reject all 12 anti-features from FEATURES.md (AF-01 mock-data validation, AF-02 hand-tuned p-values, AF-03 spec swap after seeing results, AF-04 retrospective category invention, AF-05 binning that destroys arrival signal, AF-06 strip-without-gate, AF-07 forced-Hawkes claim, AF-08 dashboard scope-creep, AF-09 single-fit no-comparison, AF-10 Dune-Plus-to-validate, AF-11 untimestamped fits, AF-12 silent re-scope); pre-commit lint/CI gate enforces
 
 ### Demand window (cost-leg definition)
 
-- [ ] **DEMAND-01**: Pipeline must verify the candidate's data-cost leg sits inside the demand window `[100k Graph queries/mo free-tier ceiling, $390/mo Dune Plus]`, defined narrowly as **indexer-backed analytics/UI queries only** (Graph subgraphs + Dune analytics); Forno RPC `eth_call` keeper polling is explicitly excluded as it falls below the lower bound at any volume
+- [x] **DEMAND-01**: Pipeline must verify the candidate's data-cost leg sits inside the demand window `[100k Graph queries/mo free-tier ceiling, $390/mo Dune Plus]`, defined narrowly as **indexer-backed analytics/UI queries only** (Graph subgraphs + Dune analytics); Forno RPC `eth_call` keeper polling is explicitly excluded as it falls below the lower bound at any volume
 
 ### Data fetch (L1 + L2)
 
@@ -65,7 +65,7 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 - [ ] **REPRO-01**: Protocol-spec layer (`protocols/*.toml`) must be the only file class that changes between Iteration 1 (ICHI) and Iteration 2 (Steer); a `grep -r "ichi" fetch/src analysis/src` must return zero hits before Iteration 2 starts
 - [ ] **REPRO-02**: Iteration 2 must run the same Phase 2–5 pipeline end-to-end on Steer-on-cCOP/USDT with no edits to `fetch/src` or `analysis/src`, demonstrating the parameter-driven re-runnability invariant (per FEATURES.md TS-12 + D-08)
 - [ ] **REPRO-03**: Steer-on-Celo cost-leg lower-bound check must run as the first step of Iteration 2 (per CANDIDATES §6 Q6b); if the check fails, Steer drops to a documented null-result and Iteration 2 either defers or substitutes a replacement candidate — neither path involves modifying the pipeline code
-- [ ] **REPRO-04**: cCOP panel construction decision must be made and documented before Phase 6 estimation begins — either V3-anchor-only (~625 swaps/30d) or unified across V3 + V4 PoolManager + Mento V2 Broker (~900 events/30d per CANDIDATES.md §7). If unified, the pooling assumption (common arrival-process structure across the three event classes) must be either argued from primary sources or tested empirically (cross-class permutation test) before joint Hawkes estimation
+- [x] **REPRO-04**: cCOP panel construction decision must be made and documented before Phase 6 estimation begins — either V3-anchor-only (~625 swaps/30d) or unified across V3 + V4 PoolManager + Mento V2 Broker (~900 events/30d per CANDIDATES.md §7). If unified, the pooling assumption (common arrival-process structure across the three event classes) must be either argued from primary sources or tested empirically (cross-class permutation test) before joint Hawkes estimation
 
 ## v2 Requirements
 

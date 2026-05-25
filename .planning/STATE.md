@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+last_updated: "2026-05-25T20:24:29.900Z"
+progress:
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 7
+  completed_plans: 3
+---
+
 # State: abrigo-x402
 
 **Last updated:** 2026-05-25
@@ -13,11 +26,11 @@
 ## Current Position
 
 **Phase:** 0 — Candidate Eligibility & Pre-Registration
-**Plan:** (none yet — phase planning pending)
-**Status:** Not started
+**Plan:** 00-03 complete (Q9_DECISION.md committed `5782527`); 00-04 complete (protocols/_schema.toml frozen baseline committed `e9b214d`); Wave 1 sibling plans 00-01/00-02 in flight
+**Status:** In Progress
 
 ```
-Progress: [........] 0/8 phases complete
+Progress: [........] 0/8 phases complete  (Phase 0: 2/7 plans complete)
 ```
 
 ## Performance Metrics
@@ -29,6 +42,9 @@ Progress: [........] 0/8 phases complete
 | Iteration 2 swap-surface invariant | `grep -r "ichi" fetch/src analysis/src` returns 0 hits | N/A (no source code yet) |
 | Free-tier query budget | < 90k Graph queries/mo (soft cap) | 0 consumed |
 | v1 requirements complete | 32/32 | 0/32 |
+| Phase 00-candidate-eligibility-pre-registration P03 | 15min | 1 tasks | 1 files |
+| Phase 00 P04 | 4min | 1 tasks | 1 files |
+| Phase 00-candidate-eligibility-pre-registration P01 | 30min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -41,10 +57,11 @@ Progress: [........] 0/8 phases complete
 - Cost-leg = indexer-backed analytics/UI queries only (Forno RPC keeper polling excluded)
 - MiniPay-by-preference filter retired (anti-correlated with FX-hedge thesis)
 - Myriad / Halo excluded (primary-source disqualification)
+- **Plan 00-04 SCHEMA-FROZEN BASELINE** [LOCKED 2026-05-25, commit `e9b214d` (full SHA `e9b214dcb26d7a6085aa98765a3f8816950495eb`)]: `protocols/_schema.toml` is the frozen baseline for `make schema-frozen-check`. `data_cost_class` enum = `[indexer-analytics-queries, per-event-oracle-stretch, per-scan-ocr-stretch]`. `mixing_class` enum = `[mento-native, minteo-fintech, mento-bridged]`. Demand-window scope (DEMAND-01) and AF-12 silent re-scope defense encoded in schema. Closes DEMAND-01 + GOV-03.
 
 ### Decisions Pending (Phase 0)
 
-- Q-9: cCOP panel construction — V3-anchor-only OR V3+V4+Broker unified (per CANDIDATES §7 Hidden-Volume Audit + REPRO-04). Must be locked in `notes/Q9_DECISION.md` before Phase 6.
+- Q-9 [LOCKED 2026-05-25 via Plan 00-03, commit `5782527`]: cCOP panel — V3-anchor-only primary + V3+V4+Broker unified fallback pre-registered (sample<300 OR CI>0.4, AND permutation p>0.05, 1000 reps, K-S D-max). REPRO-02 dead-code obligation on `analysis/src/abrigo_x402/panel/{unified,cross_class_permutation}.py`. REPRO-04 complete. See `notes/Q9_DECISION.md`.
 - Q-4: Per-protocol vs per-vault granularity for ICHI Iteration 1 (recommendation per SUMMARY.md: per-protocol-aggregate with single-vault microcosm sensitivity; final lock in Phase 0, retrospective in Phase 7)
 - Q-7: TVL-too-thin floor for cXOF/USDm and BRLm/EURm pools (Phase 0 commit; Phase 2 enforce)
 - USDT depeg jump-leg calibration source (Phase 4 lock)
@@ -67,9 +84,9 @@ Progress: [........] 0/8 phases complete
 
 ## Session Continuity
 
-**Last action:** Roadmap created (8 phases, 32/32 requirements mapped, 0 orphaned)
-**Next action:** Plan Phase 0 (`/gsd:plan-phase 0`) — derive must-haves from Phase 0 success criteria
-**Resume hint:** Phase 0 success criteria are concrete on-disk artifacts (`notes/PRE_REGISTRATION.md`, `notes/PHASE_0_GATE.md`, `notes/Q9_DECISION.md`, pre-commit hook, `protocols/_schema.toml` demand-window comment). Plan-phase should decompose these into executable plans + must-haves.
+**Last action:** Completed Plan 00-04 — `protocols/_schema.toml` authored + committed at `e9b214d` (SCHEMA_BASELINE_COMMIT for Plan 00-06/00-07). DEMAND-01 + GOV-03 marked complete in REQUIREMENTS.md.
+**Next action:** Continue Wave 1 — siblings 00-01 (PRE_REGISTRATION.md) and 00-02 (PHASE_0_GATE.md) need to complete before Wave 2 (00-05 protocols/ichi.toml, 00-06 .pre-commit-config.yaml, 00-07 final PHASE_0_GATE substitution) can run.
+**Resume hint:** SCHEMA_BASELINE_COMMIT = `e9b214dcb26d7a6085aa98765a3f8816950495eb`. Plan 00-06 references this hash in `make schema-frozen-check`; Plan 00-07 substitutes it into `notes/PHASE_0_GATE.md` `<SCHEMA_BASELINE_COMMIT>` placeholder. Plan 00-05 consumes the per-vault schema (`active` boolean + `mixing_class` enum + `address_resolution_status`) to enumerate ICHI's ~40 Celo vaults.
 
 ---
 
