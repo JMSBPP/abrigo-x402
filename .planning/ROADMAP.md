@@ -97,7 +97,17 @@
   2. Every output artifact (parquet, fit_report.json scaffolds, plots) carries the metadata header `{chainId, contractAddress, blockRange, fetchTimestamp, dataHash, gitCommit}`; a build script `make lint-artifacts` greps each output file and exits non-zero if any header field is missing.
   3. FX-rate snap unit test: given a synthetic cKES→USDm transfer event at a fixed block, `revenue_leg.snap_fx(event, block)` calls the Mento broker mid-rate at that block and returns a rate with explicit `(source, block, mid_rate, provenance_url)` provenance; USDT/USD is treated as a separate column, never collapsed to 1.0.
   4. Phantom-transfer filter unit test: a fixture transaction containing one real cKES Swap + one USDC fee-abstraction Transfer (`from = 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B`) results in exactly one row in the panel (the Swap); the fee-abstraction Transfer is excluded; the test fails if the filter is bypassed.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ### Phase 3: DGP Estimation (L4) with Boundary-Correct LR Test
 **Goal**: Fit NHPP (Kirchner INAR(p)) and bivariate Hawkes (tick with full off-diagonal excitation matrix), then run the boundary-correct bootstrap LR test, time-rescaling KS test, held-out temporal evaluation, and profile-likelihood branching-ratio CIs — producing `fit_report.json` that survives a metadata audit.
@@ -112,7 +122,17 @@
   3. Bootstrap LR rig: `dgp/lr_test.py --bootstrap-reps 1000` produces a null distribution that visibly mixes χ²(0) point mass at zero with a χ²(1) continuous component (verifiable via histogram in `reports/_diagnostics/lr_null_dist.png`); the vanilla `statsmodels.likelihood_ratio_test` call is absent from the source (`grep -r "likelihood_ratio_test" analysis/src` returns zero hits).
   4. Held-out temporal split: `fit_report.json :: held_out_loglik.nhpp` and `.hawkes` are computed on a strict time-split (last 20% of window), and the split block boundary is logged with provenance; an in-sample-only fit attempt raises `InsufficientEvaluationError`. **Stationarity diagnostic** (per PITFALLS §4): the held-out segment's mean event rate must be within ±25% of the train segment's, OR the NHPP/Hawkes fits must use a piecewise-constant or spline baseline; the diagnostic is logged in `fit_report.json :: baseline_stationarity_check` with `{train_rate, held_out_rate, ratio, decision: stationary|piecewise_required}`.
   5. The same `fit_report.json` is produced byte-identically across two runs with identical input panel + git commit (modulo wall-clock fields), demonstrating fit-step reproducibility.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ### Phase 4: Cross-Leg Dependence (L5) + Falsification & Carr–Madan Strip (L6)
 **Goal**: Quantify cross-leg dependence (cross-correlogram + permutation null + empirical copula), then run the four-condition convex-dominance gate (USDT-depeg-reparameterized for condition 4) and emit the Carr–Madan strip on a convergence-tested grid IF AND ONLY IF at least one condition passes — otherwise emit a null-result PDF via the HEDGE-05 template.
@@ -128,7 +148,17 @@
   4. Three-way joint stress test: `hedge/stress_test.py` outputs `stress_report.json` with strip prices under `{independence, fitted_joint, comonotone}` scenarios; divergence is reported as a percentage spread; large divergence (>30%) is flagged in the report build.
   5. HEDGE-05 null-result template (`reports/_templates/null_result.md`) exists and is wired such that when **any** of the three firing conditions occurs — (a) Phase-0 cost-leg gate fails (REPRO-03 threshold from `PRE_REGISTRATION.md`), (b) DGP-03 LR test is indistinguishable at α=0.05, (c) HEDGE-01 finds zero convex-dominance conditions pass — the template fires automatically and `reports/ichi.pdf` becomes a documented null-result PDF. **Three fixture sets** at `analysis/tests/fixtures/hedge_05_{null_cost,null_lr,null_convex}/` each force one firing condition (synthetic `fit_report.json` + `gate_report.json` + `cost_leg_bound.md` triplet per fixture); `pytest analysis/tests/test_null_result_template.py` confirms `reports/ichi.pdf` is regenerated as a null-result PDF in each case (verified by grep on the rendered PDF text for the null-result template's signature header).
   6. USDT-depeg jump-leg calibration source is documented in `notes/usdt_depeg_calibration.md` — either a USDT-specific Merton/Kou calibration with primary-source citations OR an explicit methodological-port assumption with bounded sensitivity analysis attached.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ### Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)
 **Goal**: Ship the Iteration-1 PDF deliverable (`reports/ichi.pdf`) via Quarto/nbconvert with the spot-check checklist, cost-leg prior sensitivity sweep, and reproducibility manifest — completing Iteration 1 with either a positive convex-hedge result or a documented null-result, in PDF form (per memory `feedback_pdf_deliverable.md`).
@@ -142,7 +172,17 @@
   2. The PDF contains a spot-check section with 5 randomly-chosen panel rows, each carrying a clickable Blockscout URL of the form `https://celo.blockscout.com/tx/0x...`; running the URLs through `curl -I` returns HTTP 200 (or the PDF build script logs the verification per row).
   3. The PDF contains a cost-leg prior sensitivity section showing headline DGP/strip metrics under `{rate_per_event × 0.5, rate_per_event × 1.0, rate_per_event × 1.5}` and the same sweep on `USD_per_query`; the underlying `sensitivity_sweep.json` artifact lives at `data/fits/ichi/<run_id>/sensitivity_sweep.json` with all downstream estimates re-run (not approximated).
   4. `reports/MANIFEST.md` (reproducibility manifest) exists listing subgraph block-pins, `uv.lock` SHA, `package-lock.json` SHA, and output checksums for every artifact `reports/ichi.pdf` depends on; a fresh clone running `make verify-reproducibility` recomputes checksums and exits zero only if they match.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ### Phase 6: Iteration-2 Swap-Surface Validation on Steer (cCOP/USDT)
 **Goal**: Validate the swap-surface invariant by running the same Phase 2–5 pipeline on Steer on cCOP/USDT with ZERO edits to `fetch/src/` or `analysis/src/` — and emit a null-result if the Steer cost-leg empirical lower-bound check fails (first step of Iteration 2). **Steer's expected-failure path on the cost-leg lower-bound check is itself the FEATURES.md D-08 negative-control validation** — null-result emission must be observed at least once across the two iterations to confirm the falsification machinery works in practice.
@@ -157,7 +197,17 @@
   3. Leak gate (two layers): (a) `grep -ri "ichi" fetch/src analysis/src` returns zero hits before Phase 6 fetch begins; CI enforces via `make leak-check` (matches inside `protocols/*.toml` and `protocols/_schema.toml` comments are explicitly excluded by being outside the searched roots). Same check passes for any other Iteration-1-specific identifier (cKES address, ICHI factory address) outside `protocols/ichi.toml`. (b) The Phase 1 SC-5 protocol-agnosticism contract test (lint rejecting `if config.name ==`, magic fee-tier numbers, single-owner-per-pool assumptions) continues to pass — this is the load-bearing algorithmic-leak gate; the string grep is the cheap pre-commit complement.
   4. End-to-end re-run: `make iteration-2-full` invokes the same Phase 2–5 pipeline against `protocols/steer.toml` and produces `reports/steer.pdf` (or `reports/steer_null_result.pdf`); `git diff fetch/src analysis/src` between Iteration-1-complete and Iteration-2-complete commits returns an empty diff.
   5. cCOP panel construction follows the Phase-0-locked Q-9 decision (V3-only or V3+V4+Broker unified, per `notes/Q9_DECISION.md`); if unified, the cross-class permutation test result is committed at `data/fits/steer/<run_id>/q9_pooling_test.json` with a documented `pass` or `fail` verdict before joint Hawkes estimation runs.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ### Phase 7: Cross-Iteration Synthesis & Methodological Refinements (PROCEDURAL — non-gating on v1)
 **Status**: **PROCEDURAL phase, listed for continuity, NOT gating v1-completion.** v1 is complete when Phases 0–6 ship (REPORT-01..04 in Phase 5 and REPRO-01..04 in Phase 6 are the v1 closing reqs). Phase 7 fires the *v2-deferred* SYNTH-V2-01 and SYNTH-V2-02 requirements (per REQUIREMENTS.md "v2 Requirements" section) and produces input substrate for the next iteration cycle. It MAY be deferred to a follow-on milestone without violating the v1 contract.
@@ -171,7 +221,17 @@
   1. `notes/methodological_refinements.md` exists with retrospective evidence resolving Q4 (per-protocol vs per-vault granularity) — citing which choice gave the cleaner DGP fit across both iterations, with `fit_report.json` references.
   2. `notes/cost_leg_empirical_bounds.md` exists with the empirical Graph-spend bounds for both ICHI-on-Celo and Steer-on-Celo, with provenance log entries; the file documents whether each cleared the demand window's lower bound.
   3. `notes/tvl_thin_floor_decision.md` exists committing the cXOF/USDm and BRLm/EURm pool inclusion/exclusion rule for future iterations, with the substrate-too-thin flag propagation rule (if any) into Hawkes branching-ratio CIs.
-**Plans**: TBD
+**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
+- [ ] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold)
+- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
+- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
+- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
+- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
+- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
+- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
+- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
+- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
+- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
 
 ---
 
