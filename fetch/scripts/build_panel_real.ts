@@ -16,7 +16,27 @@
 //     --pool 0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F \
 //     --vault 0xe304b980535c29869983BC58d129F984Fec4176F \
 //     --from 67378253 --to 67896653 \
-//     [--chunk 100000] [--limit-tx 0]
+//     [--chunk 100000] [--limit-tx 0] \
+//     [--skip-pool-events] [--skip-tx-logs]
+//
+// Skip flags (added 2026-05-26 per Plan 02-10 patch — drop-transfer-companions):
+//   --skip-pool-events  Reuse existing data/raw/ichi/<pool>/pool_events.jsonl
+//                       on disk (skip Blockscout v1 getLogs pull). The script
+//                       must be able to derive {events, txHashes, blocks}
+//                       from the existing JSONL. Used when the upstream
+//                       Blockscout quota is exhausted but the pool_events
+//                       sidecar is already complete.
+//   --skip-tx-logs      Skip the Transfer-companion pull entirely. The
+//                       phantom_filter step in panel.build_panel already
+//                       handles the synthetic + 1 real CIP-64 fixture; CIP-64
+//                       fee Transfers within Swap txs of this pool are
+//                       statistically rare; Phase 3 NHPP/Hawkes consumes Swap
+//                       arrival times, not full Transfer set. Empirical
+//                       Blockscout probe (2026-05-26) found an IP-scoped
+//                       ~180-req per ~3.9h cap that neither free nor Pro keys
+//                       lift, making the Transfer-companion pull infeasible
+//                       in-budget. The materialize CLI gates `tx_logs_jsonl`
+//                       on file existence, so omitting the file is safe.
 //
 // Cost-ledger: every Blockscout/Forno call appends one row. Forno is uncapped.
 
@@ -75,7 +95,7 @@ const MAX_RETRY = 6;
 // Tiny CLI parser
 // -----------------------------------------------------------------------------
 
-function parseArgs(argv: string[]): Record<string, string> {
+export function parseArgs(argv: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -228,6 +248,29 @@ async function pullPoolEvents(
     `pool-events: ${allEvents.length} total events, ${txHashes.size} unique txs, ${blocks.size} unique blocks`,
   );
   return { events: allEvents, txHashes, blocks };
+}
+
+function loadPoolEventsFromDisk(eventsPath: string): PoolEventsResult {
+  if (!existsSync(eventsPath)) {
+    throw new Error(
+      `--skip-pool-events requested but ${eventsPath} does not exist`,
+    );
+  }
+  const raw = readFileSync(eventsPath, 'utf-8');
+  const events: BlockscoutLog[] = [];
+  const txHashes = new Set<string>();
+  const blocks = new Set<number>();
+  for (const line of raw.split('\n')) {
+    if (line.trim() === '') continue;
+    const log = JSON.parse(line) as BlockscoutLog;
+    events.push(log);
+    txHashes.add(log.transactionHash);
+    blocks.add(parseInt(log.blockNumber, 16));
+  }
+  console.log(
+    `pool-events (from disk): ${events.length} events, ${txHashes.size} unique txs, ${blocks.size} unique blocks`,
+  );
+  return { events, txHashes, blocks };
 }
 
 // -----------------------------------------------------------------------------
@@ -397,20 +440,24 @@ async function main(): Promise<void> {
   const toBlock = Number(args.to);
   const chunkSize = Number(args.chunk ?? '100000');
   const limitTx = Number(args['limit-tx'] ?? '0'); // 0 = no limit
+  const skipPoolEvents = args['skip-pool-events'] === 'true';
+  const skipTxLogs = args['skip-tx-logs'] === 'true';
 
   if (!pool || !vault || !Number.isFinite(fromBlock) || !Number.isFinite(toBlock)) {
     console.error(
-      'usage: build_panel_real.ts --pool 0x... --vault 0x... --from N --to N [--chunk 100000] [--limit-tx 0]',
+      'usage: build_panel_real.ts --pool 0x... --vault 0x... --from N --to N [--chunk 100000] [--limit-tx 0] [--skip-pool-events] [--skip-tx-logs]',
     );
     process.exit(2);
   }
 
   console.log('=== build_panel_real ===');
-  console.log(`pool       ${pool}`);
-  console.log(`vault      ${vault}`);
-  console.log(`range      [${fromBlock}, ${toBlock}]  (${toBlock - fromBlock + 1} blocks)`);
-  console.log(`chunkSize  ${chunkSize}`);
-  console.log(`limit-tx   ${limitTx === 0 ? 'none' : limitTx}`);
+  console.log(`pool             ${pool}`);
+  console.log(`vault            ${vault}`);
+  console.log(`range            [${fromBlock}, ${toBlock}]  (${toBlock - fromBlock + 1} blocks)`);
+  console.log(`chunkSize        ${chunkSize}`);
+  console.log(`limit-tx         ${limitTx === 0 ? 'none' : limitTx}`);
+  console.log(`skip-pool-events ${skipPoolEvents}`);
+  console.log(`skip-tx-logs     ${skipTxLogs}`);
 
   const outDir = join(REPO_ROOT, 'data', 'raw', 'ichi', pool);
   const eventsPath = join(outDir, 'pool_events.jsonl');
@@ -421,23 +468,25 @@ async function main(): Promise<void> {
   const startMs = Date.now();
 
   // ---- 1. Pool events ----
-  const { events, txHashes, blocks } = await pullPoolEvents(
-    pool,
-    fromBlock,
-    toBlock,
-    chunkSize,
-    eventsPath,
-  );
+  const { events, txHashes, blocks } = skipPoolEvents
+    ? loadPoolEventsFromDisk(eventsPath)
+    : await pullPoolEvents(pool, fromBlock, toBlock, chunkSize, eventsPath);
 
   // ---- 2. Transfer companions ----
-  let txHashList = Array.from(txHashes);
-  if (limitTx > 0 && txHashList.length > limitTx) {
-    console.warn(
-      `  applying --limit-tx ${limitTx} (would otherwise call Blockscout v2 ${txHashList.length} times)`,
+  if (skipTxLogs) {
+    console.log(
+      'tx-logs: SKIPPED via --skip-tx-logs (Blockscout IP-cap; phantom_filter handles synthetic + real CIP-64 fixture)',
     );
-    txHashList = txHashList.slice(0, limitTx);
+  } else {
+    let txHashList = Array.from(txHashes);
+    if (limitTx > 0 && txHashList.length > limitTx) {
+      console.warn(
+        `  applying --limit-tx ${limitTx} (would otherwise call Blockscout v2 ${txHashList.length} times)`,
+      );
+      txHashList = txHashList.slice(0, limitTx);
+    }
+    await pullTxLogs(txHashList, txLogsPath);
   }
-  await pullTxLogs(txHashList, txLogsPath);
 
   // ---- 3. Vault state ----
   // Only Swap-event blocks need vault state (per panel pipeline contract).
@@ -458,8 +507,8 @@ async function main(): Promise<void> {
   const durationMs = Date.now() - startMs;
   console.log(`\n=== complete in ${(durationMs / 1000).toFixed(1)}s ===`);
   console.log(`outputs in ${outDir}:`);
-  console.log(`  pool_events.jsonl  (${events.length} rows)`);
-  console.log(`  tx_logs.jsonl      (Transfer companions)`);
+  console.log(`  pool_events.jsonl  (${events.length} rows${skipPoolEvents ? ', reused-from-disk' : ''})`);
+  console.log(`  tx_logs.jsonl      ${skipTxLogs ? '(SKIPPED)' : '(Transfer companions)'}`);
   console.log(`  vault_state.jsonl  (${swapBlocks.length} blocks)`);
   console.log(`  fx_snap.jsonl      (${allBlocks.length} blocks)`);
 }
