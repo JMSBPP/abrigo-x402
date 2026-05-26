@@ -48,3 +48,7 @@ data/raw/
 # paths which resolve to fetch/data/raw/. These are test scratch artifacts;
 # the real cost-ledger lives at repo-root data/raw/_cost_ledger.jsonl above.
 fetch/data/
+
+# Phase 2 Plan 02-08 fixture generator (one-off; outputs are committed,
+# the generator script itself is reproducible scaffolding only).
+analysis/tests/fixtures/_gen_n100.py
