@@ -180,7 +180,7 @@
 | Phase | Plans Complete | Status | Review Status (RC / CR) | Completed |
 |-------|----------------|--------|--------------------------|-----------|
 | 0. Candidate Eligibility & Pre-Registration | 7/7 | Complete    | 2026-05-25 | 2026-05-25 |
-| 1. L1 Data-Fetch Skeleton | 9/9 | Complete | pending / pending | 2026-05-26 |
+| 1. L1 Data-Fetch Skeleton | 9/9 | Complete    | 2026-05-26 | 2026-05-26 |
 | 2. Panel Build (ICHI cKES/USDT) | 0/0 | Not started | pending / pending | - |
 | 3. DGP Estimation | 0/0 | Not started | pending / pending | - |
 | 4. Dependence + Falsification + Strip | 0/0 | Not started | pending / pending | - |
