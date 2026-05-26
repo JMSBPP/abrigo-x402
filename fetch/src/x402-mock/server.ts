@@ -1,14 +1,31 @@
 // fetch/src/x402-mock/server.ts
 // Plan 01-07 Task 1 — self-hosted node:http 402 mock server.
 //
-// Behavioral contract (RESEARCH.md §F):
-//   - GET /mock/weather without X-PAYMENT → 402 + x402 v2 PaymentRequirements
-//     JSON body with accepts[0].network='eip155:84532' and asset=Base Sepolia USDC.
+// Behavioral contract (RESEARCH.md §F + checker I10 / live-probe drift adaptation):
+//   - GET /mock/weather without X-PAYMENT → 402 + x402 v1 PaymentRequirements
+//     JSON body with accepts[0].network='base-sepolia' and asset=Base Sepolia USDC.
 //   - GET /mock/weather with valid base64-encoded X-PAYMENT (scheme='exact',
-//     network='eip155:84532', sig=0x{130 hex}, payer=0x{40 hex}) → 200 +
-//     X-PAYMENT-RESPONSE base64 JSON {success:true, transaction, network, payer}.
+//     network='base-sepolia', payload.signature=0x{130 hex}, payload.authorization.from=
+//     0x{40 hex}) → 200 + X-PAYMENT-RESPONSE base64 JSON
+//     {success:true, transaction, network, payer, errorReason:null}.
 //   - Malformed X-PAYMENT → 402 with X-PAYMENT-RESPONSE carrying success=false
 //     and errorReason.
+//
+// STACK DRIFT (documented in 01-07-SUMMARY.md): the plan body's static text
+// proposed `accepts[0].network='eip155:84532'` (CAIP-2 form). Live probe of
+// @x402/evm v2.13 + @x402/fetch v2.13 with `new x402Client()` +
+// `registerExactEvmScheme(client, { signer })` revealed:
+//   - x402Version: 1 → ExactEvmSchemeV1 registers on NAMED networks
+//     (`ethereum`, `base-sepolia`, `base`, ...). It does NOT recognise
+//     `eip155:84532` and throws "No network/scheme registered for x402 version: 1".
+//   - x402Version: 2 → ExactEvmScheme registers on `eip155:*`. The v2 schema
+//     uses `amount` (not `maxAmountRequired`), top-level `resource: {url, method}`,
+//     and emits a payload envelope with `accepted` (no top-level `scheme`/`network`).
+//     The header is `PAYMENT-SIGNATURE`, NOT `X-PAYMENT`.
+// The plan's structural validator (scheme/network/payload.signature/
+// payload.authorization.from on the X-PAYMENT header) matches the v1 envelope.
+// We therefore land v1 PaymentRequirements with network='base-sepolia'. The
+// functional contract (402 → sign → retry → 200) per RESEARCH §F is invariant.
 //
 // Phase 1 ships HEADER-ONLY mode by default. X402_MOCK_REAL_SETTLE=1 is the
 // opt-in escalation for manual developer-machine validation against a real
@@ -29,12 +46,17 @@ import { randomBytes } from 'node:crypto';
 const X402_VERSION = 1;
 const BASE_SEPOLIA_USDC = '0x036cbd53842c5426634e7929541ec2318f3dcf7e';
 
+// x402 v2.13 ExactEvmScheme requires `extra.name` + `extra.version` for the
+// EIP-712 domain construction (TransferWithAuthorization on USDC). Without
+// these, createPaymentPayload throws BEFORE producing a signature.
+// USDC on Base Sepolia uses EIP-712 domain {name: 'USDC', version: '2'} —
+// matches mainnet Circle deployment.
 export const PAYMENT_REQUIREMENTS = {
   x402Version: X402_VERSION,
   accepts: [
     {
       scheme: 'exact',
-      network: 'eip155:84532',
+      network: 'base-sepolia',
       maxAmountRequired: '1000', // 0.001 USDC (6 decimals)
       resource: '/mock/weather',
       description: 'Mock 402 endpoint for x402 round-trip test',
@@ -42,6 +64,7 @@ export const PAYMENT_REQUIREMENTS = {
       asset: BASE_SEPOLIA_USDC,
       mimeType: 'application/json',
       maxTimeoutSeconds: 60,
+      extra: { name: 'USDC', version: '2' },
     },
   ],
 };
@@ -60,7 +83,7 @@ export function validateXPaymentHeader(b64: string): {
     if (decoded.scheme !== 'exact') {
       return { ok: false, reason: 'scheme must be "exact"' };
     }
-    if (decoded.network !== 'eip155:84532') {
+    if (decoded.network !== 'base-sepolia') {
       return { ok: false, reason: 'network mismatch' };
     }
     const sig = decoded.payload?.signature;
@@ -87,7 +110,7 @@ function paymentResponseHeader(
     JSON.stringify({
       success,
       transaction: tx,
-      network: 'eip155:84532',
+      network: 'base-sepolia',
       payer,
       errorReason: err,
     }),
