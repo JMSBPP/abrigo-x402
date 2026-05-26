@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3
+current_plan: 5
 status: executing
-last_updated: "2026-05-26T17:27:33.147Z"
+last_updated: "2026-05-26T17:28:59.863Z"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 26
-  completed_plans: 19
+  completed_plans: 23
   percent: 65
 ---
 
@@ -28,7 +28,7 @@ progress:
 ## Current Position
 
 **Phase:** 2 — Panel Build (L3) for the ICHI cKES/USDT Anchor — **IN PROGRESS (1/10 plans landed)**
-**Current Plan:** 3
+**Current Plan:** 5
 **Total Plans in Phase:** 10
 **Last completed:** Plan 01-08 (Wave 3 — Phase 1 acceptance gate; commit `f5e3d52`). Produced `.planning/phases/01-l1-.../01-VERIFICATION-pre.md` (frontmatter `verification_pass: true`; full acceptance grid mapping FETCH-01..04 + ROADMAP SC-1..SC-6 to commands + exit codes + verdicts; SC-4 Parquet → JSONL pivot acknowledged per checker I6; library-drift v1/v2 inventory carried from Plan 01-07; deferred-items rolled up — single 01-03→01-05 entry resolved) + `01-08-SUMMARY.md` thin pointer per checker M15. Full Phase-1 suite at end of 01-08: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean; `pnpm install --frozen-lockfile` clean; `make leak-check` / `make schema-frozen-check` / `make schema-probe` all PASS. CLI dry-run JSON: `total_queries=795 < earmark=30000`, `exceeds_earmark=false`, `head_source="snapshot"` (proves dry-run mechanically cannot escalate to live). One acceptance-cmd substitution: `make verify-cache-idempotency` network leg → `tests/cache.test.ts` unit-level byte-identity (18/18 PASS) per plan body line 158 Tier-1 substitute (pnpm fetch ↔ pnpm built-in collision documented; Makefile rewrite deferred to Phase 2). I11 regex acceptance: `grep -cE "FETCH-0[1234]|SC-[1-6]"` = 33 hits (>= 6 required). No outstanding gaps. Previously completed: Plan 01-07 (Wave 2 parallel — x402 mock server + client bridge + integration test: `fetch/src/x402-mock/server.ts` + `fetch/src/x402-mock/client-bridge.ts` + `fetch/tests/x402_mock.test.ts`; commits `4718946`+`27176ce`+`e62b694`).
 
@@ -69,6 +69,8 @@ Progress: [███████░░░] 65% (17/26 plans complete; 9/9 Phase-
 | Phase 02-panel-build-l3-for-the-ichi-ckes-usdt-anchor P00 | 9min | 3 tasks | 23 files |
 | Phase 02-panel-build-l3-for-the-ichi-ckes-usdt-anchor P03 | 3min | 1 tasks | 2 files |
 | Phase 02-panel-build-l3-for-the-ichi-ckes-usdt-anchor P01 | 9min | 2 tasks | 5 files |
+| Phase 02 P05 | 3min | 1 tasks | 2 files |
+| Phase 02-panel-build-l3-for-the-ichi-ckes-usdt-anchor P07 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -123,7 +125,7 @@ Progress: [███████░░░] 65% (17/26 plans complete; 9/9 Phase-
 
 ## Session Continuity
 
-**Last session:** 2026-05-26T17:27:33.144Z
+**Last session:** 2026-05-26T17:28:44.355Z
 **Last action:** Completed Plan 01-07 (Wave 2 parallel — x402 mock server + client bridge + integration test: `fetch/src/x402-mock/server.ts` + `fetch/src/x402-mock/client-bridge.ts` + `fetch/tests/x402_mock.test.ts`). Three atomic 01-07 commits: `4718946` (feat — node:http 402 mock with x402 v2 PaymentRequirements + structural X-PAYMENT validation + X-PAYMENT-RESPONSE settlement echo) / `27176ce` (fix — v1-protocol named-network drift adaptation; STACK drift discovered via live probe: @x402/evm v2.13 ExactEvmSchemeV1 registers on NAMED networks ('base-sepolia'), NOT CAIP-2 ('eip155:84532') — plan-body proposal overridden; added `extra: {name: 'USDC', version: '2'}` to PaymentRequirements for EIP-712 domain, load-bearing for ExactEvmScheme.createPaymentPayload) / `e62b694` (feat — client bridge wires @x402/fetch x402Client + @x402/evm/exact/client registerExactEvmScheme with viem privateKeyToAccount; 3-test integration suite: bare 402 → PaymentRequirements / wrapFetchWithPayment round-trip → 200 + 32-byte tx hash / malformed-network rejection with errorReason; cost-ledger row written for x402-mock-sepolia endpoint with paid_real=false, chain='base-sepolia', cost_usdc='0.001'). 3 new vitest tests green; full Phase-1 suite at end of 01-07: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean. 2 Rule-3 deviations auto-fixed (both library wire-format drifts the plan body explicitly authorized adapting). Header-only mode is the Phase-1 default; X402_MOCK_REAL_SETTLE=1 env-toggle reserved for manual developer-machine validation against a faucet-funded Base Sepolia wallet (not exercised in CI). x402 plumbing now exercised end-to-end against a representative payload through real @x402/fetch + @x402/evm code, partially relaxing PROJECT.md's cost-leg-modeled-not-paid stance per CONTEXT.md.
 **Next action:** Plan 01-08 (Wave 3 — full end-to-end CLI integration acceptance test). Extends `fetch/src/cli.ts` non-dry-run path to actually call `getLogsV1` from 01-05 + `writeCachePayload` from 01-04 + `appendLedger` from 01-02 + `appendManifestIfNew` from 01-04 for the cKES/USDT cold-backfill window. The 4-tier head resolver, parseArgs, and exit-code conventions established in 01-06 remain intact. `make verify-cache-idempotency` uses `dataHash` field from 01-04 writeCachePayload as byte-identity oracle. 01-08 may optionally invoke `startMockServer` from 01-07 for an end-to-end CLI product test; mock binds ephemeral port (no collision). **pnpm invocation note for 01-08**: `pnpm -s -C fetch run fetch ichi ...` (NOT `pnpm -C fetch fetch ichi ...` — collides with pnpm's built-in `fetch`); OR spawn `pnpm -s exec tsx src/cli.ts ...` directly as the integration tests do.
 **Resume hint:** `pnpm -C fetch test --run` exits 0 with 11 passed / 0 skipped / 80 tests passing; `pnpm -C fetch test tests/x402_mock.test.ts --run` exits 0 with 3 tests; `pnpm -C fetch exec tsc --noEmit` exits 0. 01-08 callers consume: `import { startMockServer, validateXPaymentHeader, PAYMENT_REQUIREMENTS } from './x402-mock/server.js'`; `import { makeFetchWithPayment, fetchWithPayment } from './x402-mock/client-bridge.js'`. STACK drift inventory for downstream plans: @x402/evm v2.13 v1-protocol uses named networks + X-PAYMENT header; v2-protocol uses CAIP-2 networks + PAYMENT-SIGNATURE header + `accepted` envelope + `amount` (not `maxAmountRequired`) — pick v1 for any future @x402/fetch integration that expects the X-PAYMENT envelope per RESEARCH §E. AF-10 fixture remains parked for Phase 1 duration.
