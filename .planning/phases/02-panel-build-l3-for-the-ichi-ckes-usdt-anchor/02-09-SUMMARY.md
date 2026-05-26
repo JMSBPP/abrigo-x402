@@ -30,3 +30,11 @@ See `02-VERIFICATION-pre.md` for the full acceptance grid mapping every requirem
 - `make leak-check`: exit 0 (Phase 1 invariant carried)
 - `make lint-artifacts`: exit 0 (pre-panel-build skip path)
 - DEMAND-01 enforce: PASS (vacuous — no cost-ledger entries; zero graph-mainnet rows)
+
+## Self-Check: PASSED
+
+- `02-VERIFICATION-pre.md` exists (frontmatter `verification_pass: true`)
+- `02-09-SUMMARY.md` exists (thin pointer for orchestrator glob)
+- Commit `b1b8ce5` present in `git log` (verified via `git log --oneline | grep b1b8ce5`)
+- Placeholder counts: `<actual>` = 0, `<count>` = 0, `<N>|<M>` = 0 in `02-VERIFICATION-pre.md`
+- Acceptance-grid regex (`PANEL-0[1234]|DEMAND-01`) returns 25 hits (≥10 required)
