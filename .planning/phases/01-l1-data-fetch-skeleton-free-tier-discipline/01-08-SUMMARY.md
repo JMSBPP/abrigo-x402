@@ -77,3 +77,12 @@ Per checker finding M15: the GSD orchestrator phase-globs for `*-SUMMARY.md` fil
 ## Next step
 
 `/gsd:verify-work 01-l1-data-fetch-skeleton-free-tier-discipline`
+
+## Self-Check: PASSED
+
+- [x] FOUND: `.planning/phases/01-l1-data-fetch-skeleton-free-tier-discipline/01-VERIFICATION-pre.md`
+- [x] FOUND: `.planning/phases/01-l1-data-fetch-skeleton-free-tier-discipline/01-08-SUMMARY.md`
+- [x] FOUND commit `f5e3d52` (task commit: acceptance artifacts)
+- [x] FOUND commit `5b9e3a1` (metadata commit: STATE / ROADMAP / REQUIREMENTS)
+- [x] `verification_pass: true` present in 01-VERIFICATION-pre.md frontmatter
+- [x] I11 regex check: `grep -cE "FETCH-0[1234]|SC-[1-6]" 01-VERIFICATION-pre.md` = 33 hits (>= 6 required)
