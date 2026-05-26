@@ -146,8 +146,8 @@ describe('getLogsV1 — Blockscout v1 etherscan-compat client', () => {
     expect(mock).toHaveBeenCalledTimes(2);
     expect(logs.length).toBe(1001);
     const secondCallUrl = mock.mock.calls[1]?.[0] as string;
-    // lastBlock = 0x4061986 = 67_502_982; cursor should become 67_502_983.
-    expect(secondCallUrl).toContain('fromBlock=67502983');
+    // lastBlock = 0x4061986 = 67_508_614; cursor should become 67_508_615.
+    expect(secondCallUrl).toContain('fromBlock=67508615');
   });
 
   test('throws on status != 1 with non-empty result (real error)', async () => {
