@@ -25,6 +25,18 @@ cost_leg_lower_bound_verified = false  # v1: cost leg is modeled, not paid (no C
 panel_construction = "single-vault"     # Q-4 per CONTEXT.md: single-vault microcosm only in v1
 iteration = 1
 
+# Cold-backfill anchor block for Plan 01-04 (Blockscout v1 getLogs bulk pull)
+# and Plan 01-06 (--dry-run --estimate-budget over the (cold_backfill_from_block,
+# forno_head) window). Initial placeholder is a conservative pre-deployment lower
+# bound; Plan 01-04 may refine downward to the exact ICHI factory deployment block
+# on Celo after paginated ICHIVaultCreated log retrieval. Value chosen as ~3 months
+# before the 2026-05-26 Forno head snapshot (head=67,896,653, ~1s/block):
+#   67,896,653 - (90 * 24 * 3600) = ~60,120,653 → rounded to 60,000,000
+# Refinement triggers: any factory event observed before this block lowers the floor.
+# Added at Plan 01-01 (I5 gate resolution); per-protocol-only field, not in
+# protocols/_schema.toml — schema-frozen-check unaffected (verified live).
+cold_backfill_from_block = 60000000
+
 [protocol.anchor_pool]
 # cKES/USDT Uniswap V3 anchor pool (Iter-1 headline)
 address = "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F"

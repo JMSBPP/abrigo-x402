@@ -1,0 +1,21 @@
+# fetch/tests/fixtures/test_fixture_bad.toml
+# Negative-case fixture: malformed mixing_class value. Used by the zod
+# enum-rejection test in fetch/tests/protocol-spec.test.ts.
+#
+# Otherwise identical to test_fixture.toml; only the anchor_pool.mixing_class
+# differs from the schema-locked enum.
+
+[protocol]
+name = "synthetic-bad"
+chain_id = 42220
+factory_address = "0xdEAD000000000000000000000000000000beef00"
+data_cost_class = "indexer-analytics-queries"
+panel_construction = "single-vault"
+iteration = 99
+
+[protocol.anchor_pool]
+address = "0xdEAD000000000000000000000000000000beef01"
+token0  = "0xdEAD000000000000000000000000000000beef02"
+token1  = "0xdEAD000000000000000000000000000000beef03"
+fee_tier = 7777
+mixing_class = "invalid-class"
