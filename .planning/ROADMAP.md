@@ -27,7 +27,7 @@
 
 - [x] **Phase 0: Candidate Eligibility & Pre-Registration** — Lock GOV/DEMAND artifacts + resolve Q-9 (cCOP panel construction) + commit pre-reg before any data-fetch
 - [x] **Phase 1: L1 Data-Fetch Skeleton + Free-Tier Discipline** — TS workspace + cost ledger + subgraph-freshness wrapper + content-addressed cache
-- [x] **Phase 2: Panel Build (L3) for ICHI cKES/USDT Anchor** — Event-level Parquet panel with provenance + FX-rate snap + phantom-transfer filter (completed 2026-05-26)
+- [ ] **Phase 2: Panel Build (L3) for ICHI cKES/USDT Anchor** — Event-level Parquet panel with provenance + FX-rate snap + phantom-transfer filter (re-opened 2026-05-26 — SC-1 real-data closure via Plan 02-10)
 - [ ] **Phase 3: DGP Estimation (L4) with Boundary-Correct LR Test** — Kirchner NHPP + tick Hawkes + boundary-correct LR test + KS rescaled-time + held-out evaluation
 - [ ] **Phase 4: Cross-Leg Dependence (L5) + Falsification & Carr–Madan Strip (L6)** — Empirical copula + four-condition gate (USDT-reparameterized) + grid-verified Carr–Madan + null-result template
 - [ ] **Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)** — `reports/ichi.pdf` + spot-check + cost-leg sensitivity sweep + reproducibility manifest
@@ -241,7 +241,7 @@
 |-------|----------------|--------|--------------------------|-----------|
 | 0. Candidate Eligibility & Pre-Registration | 7/7 | Complete    | 2026-05-25 | 2026-05-25 |
 | 1. L1 Data-Fetch Skeleton | 9/9 | Complete    | 2026-05-26 | 2026-05-26 |
-| 2. Panel Build (ICHI cKES/USDT) | 0/0 | Complete    | 2026-05-26 | - |
+| 2. Panel Build (ICHI cKES/USDT) | 10/11 | In Progress | 2026-05-26 | - |
 | 3. DGP Estimation | 0/0 | Not started | pending / pending | - |
 | 4. Dependence + Falsification + Strip | 0/0 | Not started | pending / pending | - |
 | 5. Reporting + Iteration-1 PDF | 0/0 | Not started | pending / pending | - |
