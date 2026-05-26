@@ -78,7 +78,7 @@
 - [ ] 01-00-PLAN.md — pnpm workspace + tsconfig + vitest + biome + analysis/uv.lock pins + .env.example + Makefile + schema-probe (Wave 0 scaffold)
 - [ ] 01-01-PLAN.md — STACK pin verification + protocol-spec zod loader + viem cached clients (FETCH-01)
 - [ ] 01-02-PLAN.md — cost-ledger JSONL append + checkBudget 90k cap + --force bypass (FETCH-02)
-- [ ] 01-03-PLAN.md — subgraphFreshness + blockscoutFreshness wrappers (no block_consensus per RESEARCH §H) (FETCH-03)
+- [x] 01-03-PLAN.md — subgraphFreshness + blockscoutFreshness wrappers (no block_consensus per RESEARCH §H) (FETCH-03)
 - [ ] 01-04-PLAN.md — content-addressed cache: cacheKeyHash + manifest + deterministic payload writer (FETCH-04)
 - [ ] 01-05-PLAN.md — Blockscout v1 etherscan-compat client + Swap ABI decoder + dormant subgraph client + protocol-agnosticism contract test (FETCH-01 SC-5)
 - [ ] 01-06-PLAN.md — CLI ichi --dry-run --estimate-budget --force + cache short-circuit (FETCH-02 SC-6)
@@ -180,7 +180,7 @@
 | Phase | Plans Complete | Status | Review Status (RC / CR) | Completed |
 |-------|----------------|--------|--------------------------|-----------|
 | 0. Candidate Eligibility & Pre-Registration | 7/7 | Complete    | 2026-05-25 | 2026-05-25 |
-| 1. L1 Data-Fetch Skeleton | 1/9 | In Progress | pending / pending | - |
+| 1. L1 Data-Fetch Skeleton | 5/9 | In Progress | pending / pending | - |
 | 2. Panel Build (ICHI cKES/USDT) | 0/0 | Not started | pending / pending | - |
 | 3. DGP Estimation | 0/0 | Not started | pending / pending | - |
 | 4. Dependence + Falsification + Strip | 0/0 | Not started | pending / pending | - |

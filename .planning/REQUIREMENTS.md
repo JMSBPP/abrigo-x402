@@ -21,7 +21,7 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 - [x] **FETCH-01**: TypeScript `fetch/` workspace must bootstrap with viem 2.51 + `@x402/fetch 2.13` + `@graphprotocol/client-x402 1.0.0` + `graphql-request 7.4` + `@mento-protocol/mento-sdk 3.2.8` + Blockscout v2 REST client
 - [x] **FETCH-02**: Cost-ledger module (`cost-ledger.ts`) must record every paid request with USDC cost in Parquet and abort cumulative monthly Graph spend at 90k queries (soft cap, 10k headroom below the 100k free-tier ceiling); `--force` flag required to bypass
-- [ ] **FETCH-03**: Subgraph-freshness wrapper must include `_meta { block { number hash } }` in every Graph query and abort if lag vs Forno `eth_blockNumber` exceeds 100 blocks (~8 minutes); failure propagates with explicit error, never silently
+- [x] **FETCH-03**: Subgraph-freshness wrapper must include `_meta { block { number hash } }` in every Graph query and abort if lag vs Forno `eth_blockNumber` exceeds 100 blocks (~8 minutes); failure propagates with explicit error, never silently
 - [x] **FETCH-04**: Cache layer (`data/raw/`) must be content-addressed by `(chainId, contractAddress, blockRange, fetchTimestamp)`; the paid-step-is-idempotent invariant must hold (re-running a fetch with identical inputs must produce identical outputs without re-paying)
 
 ### Panel construction (L3)
