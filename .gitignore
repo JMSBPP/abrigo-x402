@@ -43,3 +43,8 @@ data/raw/
 !data/raw/manifest.json
 !data/raw/_cost_ledger.jsonl
 !data/raw/_cost_ledger.parquet
+
+# Vitest cwd is fetch/ — cost-ledger tests use relative `data/raw/*.test.jsonl`
+# paths which resolve to fetch/data/raw/. These are test scratch artifacts;
+# the real cost-ledger lives at repo-root data/raw/_cost_ledger.jsonl above.
+fetch/data/
