@@ -748,3 +748,20 @@ def exclude_adapters(df: pl.DataFrame) -> pl.DataFrame:
 ---
 
 *Researcher's note for the planner:* The two highest-uncertainty items in the brief — Q96 LP-fee math and Mento broker historical-block query — are now both **HIGH confidence**. The remaining LOW-confidence item is the real phantom-transfer fixture tx hash, which is a deterministic single-task capture, not a research gap. Recommend planning a Wave 0 task that runs the Blockscout probe to capture the fixture before any module starts depending on it.
+
+---
+
+## Corrigendum — §D Phantom-Transfer Adapter Mechanism (2026-05-26)
+
+The pre-CIP-64 `FeeCurrencyWrapper` address `0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72` cited in §D and §4 is a **retired contract** (confirmed via Blockscout `has_token_transfers:false`, zero Transfer participation in a 200k-block topic-correct probe back from head 67,896,653). It is the v1 adapter contract from Celo's older fee-abstraction model.
+
+Celo's current (post-CIP-64) fee-currency mechanism whitelists ERC-20 tokens directly. When an EOA pays gas in USDT, the Celo client emits Transfer events **on the underlying USDT contract** (`0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e`) routed through a protocol-reserved dispatcher pseudo-address. Live distribution chain (empirically observed at head 67,918,258):
+
+1. `EOA → 0x000000000000000000000000000000000ce106a5` — base fee paid into dispatcher (EOA-like, no code)
+2. `0x000…Ce106A5 → 0xcd437749e43a154c07f3553504c68fbfd56b8778` — `FeeHandlerProxy` (verified; impl `FeeHandler`)
+3. `0x000…Ce106A5 → 0x4200000000000000000000000000000000000011` — OP-Stack `SequencerFeeVault` predeploy (Celo runs as OP L2)
+4. `0x000…Ce106A5 → <validator/proposer>` — tip portion (variable)
+
+A canonical fixture is captured at `analysis/tests/fixtures/phantom_transfer_usdt_real.json` (tx `0x41a425582618efc57c412f090d87bf53a4af3867b43601b16e2fe836c1d1f7b5`, USDT value 7,475 wei ≈ $0.0075). The `phantom_filter.ADAPTERS` constant is extended with the three live pseudo-addresses; the original retired-wrapper constants are retained as no-op defenses.
+
+This corrigendum supersedes §D's adapter-address claims; downstream pitfalls and code-path mechanics in §D are otherwise unchanged.

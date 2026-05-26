@@ -15,6 +15,9 @@ from abrigo_x402.phantom_filter import (
     ADAPTERS,
     USDC_FEE_ADAPTER,
     USDT_FEE_ADAPTER,
+    CELO_CIP64_DISPATCHER,
+    CELO_FEE_HANDLER,
+    OP_SEQUENCER_FEE_VAULT,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -51,9 +54,19 @@ def _df_from_logs(logs: list[dict]) -> pl.DataFrame:
 
 
 def test_adapters_constant_matches_individual_exports():
-    assert {USDC_FEE_ADAPTER, USDT_FEE_ADAPTER} == set(ADAPTERS)
+    expected = {
+        USDC_FEE_ADAPTER,
+        USDT_FEE_ADAPTER,
+        CELO_CIP64_DISPATCHER,
+        CELO_FEE_HANDLER,
+        OP_SEQUENCER_FEE_VAULT,
+    }
+    assert expected == set(ADAPTERS)
     assert USDC_FEE_ADAPTER == "0x2f25deb3848c207fc8e0c34035b3ba7fc157602b"
     assert USDT_FEE_ADAPTER == "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72"
+    assert CELO_CIP64_DISPATCHER == "0x000000000000000000000000000000000ce106a5"
+    assert CELO_FEE_HANDLER == "0xcd437749e43a154c07f3553504c68fbfd56b8778"
+    assert OP_SEQUENCER_FEE_VAULT == "0x4200000000000000000000000000000000000011"
 
 
 def test_drops_usdc_adapter_from():
