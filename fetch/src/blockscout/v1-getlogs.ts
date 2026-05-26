@@ -92,8 +92,14 @@ export async function getLogsV1(opts: GetLogsV1Opts): Promise<BlockscoutLog[]> {
     const result = Array.isArray(parsed.result) ? parsed.result : [];
 
     if (parsed.status !== '1') {
-      // v1 idiom: status='0' + 'No records found' + empty result == success-empty.
-      if (result.length === 0 && /No records/i.test(parsed.message ?? '')) {
+      // v1 idiom: status='0' + ('No records found' | 'No logs found') + empty
+      // result == success-empty. Blockscout's celo.blockscout.com instance
+      // returns "No logs found" verbatim; legacy/etherscan instances use
+      // "No records found". Widened regex accepts both. (Plan 02-10 Rule-1 fix.)
+      if (
+        result.length === 0 &&
+        /No (records|logs|transactions) found/i.test(parsed.message ?? '')
+      ) {
         break;
       }
       throw new Error(

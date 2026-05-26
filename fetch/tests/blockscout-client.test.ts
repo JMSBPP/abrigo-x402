@@ -183,6 +183,22 @@ describe('getLogsV1 — Blockscout v1 etherscan-compat client', () => {
     expect(logs).toEqual([]);
   });
 
+  test('treats "No logs found" with empty result as empty success (Celo Blockscout idiom; Plan 02-10 fix)', async () => {
+    // celo.blockscout.com returns "No logs found" verbatim; legacy/etherscan
+    // instances use "No records found". Both must be accepted as empty success.
+    const empty = { status: '0', message: 'No logs found', result: [] };
+    const mock = makeMockFetch([empty]);
+    const logs = await getLogsV1({
+      baseUrl: 'https://celo.blockscout.com',
+      address: '0x0000000000000000000000000000000000000000',
+      fromBlock: 0,
+      toBlock: 0,
+      topic0: UniswapV3SwapTopic0,
+      fetcher: mock,
+    });
+    expect(logs).toEqual([]);
+  });
+
   test('throws when HTTP response is not ok', async () => {
     const mock = vi.fn(async () => ({
       ok: false,
