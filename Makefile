@@ -53,16 +53,26 @@ fetch-ichi:
 	pnpm -C fetch fetch ichi $(ARGS)
 
 # Phase 2 implements PANEL-02 metadata-header lint over generated panel artifacts.
-# Pre-panel-build (data/raw/ichi/panels/ absent — true until Plan 02-08): SKIP path,
-# exits 0 so the target is a no-op gate. Post-panel-build (directory present): invokes
-# scripts/lint_artifacts.py against every *.parquet under data/raw/ichi/panels/ and
+# Pre-panel-build (no panel parquets — true until Plan 02-08): SKIP path,
+# exits 0 so the target is a no-op gate. Post-panel-build: invokes
+# scripts/lint_artifacts.py against every *.parquet under data/raw/ichi/ and
 # exits non-zero on any artifact missing one of the six PANEL-02 metadata keys.
+#
+# Plan 02-10: the real-data driver writes panels at
+# data/raw/ichi/<pool>/<from>_<to>.parquet (NOT under panels/), so the scan
+# walks data/raw/ichi/ recursively rather than restricting to a single
+# subdirectory.
 lint-artifacts:
-	@echo "lint-artifacts: scanning data/raw/ichi/panels/ for PANEL-02 headers..."
-	@if [ -d data/raw/ichi/panels ]; then \
-	  cd analysis && uv run python ../scripts/lint_artifacts.py ../data/raw/ichi/panels/*.parquet; \
+	@echo "lint-artifacts: scanning data/raw/ichi/ for PANEL-02 headers..."
+	@if [ -d data/raw/ichi ]; then \
+	  PARQUETS=$$(find data/raw/ichi -name "*.parquet" 2>/dev/null); \
+	  if [ -z "$$PARQUETS" ]; then \
+	    echo "lint-artifacts: no panel artifacts yet (no *.parquet under data/raw/ichi/) — skipping"; \
+	  else \
+	    cd analysis && uv run python ../scripts/lint_artifacts.py $$(echo $$PARQUETS | sed 's| | ../|g; s|^|../|'); \
+	  fi; \
 	else \
-	  echo "lint-artifacts: no panel artifacts yet (data/raw/ichi/panels/ absent) — skipping"; \
+	  echo "lint-artifacts: no panel artifacts yet (data/raw/ichi/ absent) — skipping"; \
 	fi
 
 # FETCH-04 cache-byte-identity invariant. Two consecutive runs of the same

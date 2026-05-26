@@ -53,13 +53,16 @@ def build_panel(
     vault_state_sidecar_path: str | Path,
     forno_head: int,
     protocol_spec: ProtocolSpec,
+    tx_logs_jsonl: str | Path | None = None,
 ) -> pl.DataFrame:
     """Compose Wave 1 modules into the canonical Phase 2 panel.
 
     Parameters
     ----------
     cache_path
-        Phase 1 Blockscout JSONL cache (content-addressed file).
+        Phase 1 Blockscout JSONL cache (content-addressed file). For real-data
+        runs this is the pool-event sidecar `pool_events.jsonl` containing
+        Swap/Mint/Burn logs only (the pool contract emits no Transfer events).
     fx_sidecar_path
         Mento broker historical-rate JSONL sidecar (Plan 02-06).
     vault_state_sidecar_path
@@ -69,6 +72,15 @@ def build_panel(
         (cutoff = forno_head - lag_blocks).
     protocol_spec
         Validated ProtocolSpec from `protocol_spec.load_protocol`.
+    tx_logs_jsonl
+        Optional Transfer-companion sidecar (Plan 02-10). The build_panel_real
+        driver pulls every log from each Swap-tx via Blockscout v2
+        /transactions/{hash}/logs and filters to topic0 == ERC-20 Transfer.
+        When provided, the rows are concatenated with the pool-event stream
+        BEFORE the phantom-filter step so adapter-Transfer rows can be dropped
+        by `exclude_adapters`. Pre-existing synthetic-fixture call sites that
+        embed Transfer rows directly in `cache_path` continue to work unchanged
+        (this parameter defaults to None).
 
     Returns
     -------
@@ -77,6 +89,10 @@ def build_panel(
         join, Q96 LP-fees (on Swap rows; null on others), and Mento FX rates.
     """
     df = ingest.load_jsonl(Path(cache_path))
+    if tx_logs_jsonl is not None:
+        tx_df = ingest.load_jsonl(Path(tx_logs_jsonl))
+        if tx_df.height > 0:
+            df = pl.concat([df, tx_df], how="vertical")
     df = ingest.apply_finality_cutoff(
         df,
         forno_head,
