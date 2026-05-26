@@ -39,7 +39,8 @@ build/
 # Ignore everything under data/raw/ EXCEPT the cost-ledger and manifest
 # (those are the load-bearing audit trail; everything else is reproducible
 # from cache_key_hash = sha256(canonical(chainId, contractAddress, blockRange))).
-data/raw/
+data/raw/*
+data/raw/*/
 !data/raw/manifest.json
 !data/raw/_cost_ledger.jsonl
 !data/raw/_cost_ledger.parquet
