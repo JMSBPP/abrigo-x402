@@ -26,10 +26,10 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 ### Panel construction (L3)
 
-- [ ] **PANEL-01**: Pipeline must build event-level Parquet panels with on-chain provenance: each row carries `(blockNumber, blockHash, logIndex, txHash, contractAddress, event, ...payload)` columns, no aggregation/binning at this stage
+- [x] **PANEL-01**: Pipeline must build event-level Parquet panels with on-chain provenance: each row carries `(blockNumber, blockHash, logIndex, txHash, contractAddress, event, ...payload)` columns, no aggregation/binning at this stage
 - [ ] **PANEL-02**: Every fit artifact (parquet, fit_report.json, plots, PDF) must carry a metadata header listing `chainId, contractAddress, blockRange, fetchTimestamp, dataHash, gitCommit`; outputs without the header are rejected by the build
 - [ ] **PANEL-03**: FX-rate snap must use Mento broker mid-rate at the event block for cKES↔USDm (and equivalent pairs); USDT/USD must be treated explicitly with provenance, never collapsed to 1:1
-- [ ] **PANEL-04**: Phantom-transfer filter must exclude USDC fee-abstraction adapter (`0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B`) and USDT fee-abstraction adapter (`0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72`) transfer events from arrival counts; the filter must be unit-tested against a known fee-abstraction transaction
+- [x] **PANEL-04**: Phantom-transfer filter must exclude USDC fee-abstraction adapter (`0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B`) and USDT fee-abstraction adapter (`0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72`) transfer events from arrival counts; the filter must be unit-tested against a known fee-abstraction transaction
 
 ### DGP estimation (L4)
 
