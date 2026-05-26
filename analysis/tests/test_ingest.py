@@ -1,0 +1,72 @@
+"""PANEL-01: ingest.load_jsonl + apply_finality_cutoff tests."""
+from pathlib import Path
+
+import polars as pl
+import pytest
+
+from abrigo_x402.ingest import apply_finality_cutoff, load_jsonl
+
+FIXTURES = Path(__file__).parent / "fixtures"
+JSONL = FIXTURES / "ichi_anchor_block_67000000_67001000.jsonl"
+
+
+def test_load_jsonl_row_count():
+    df = load_jsonl(JSONL)
+    assert df.height == 10
+    assert df.null_count().sum_horizontal()[0] == 0
+
+
+def test_load_jsonl_schema():
+    df = load_jsonl(JSONL)
+    # blockNumber must be Int64; hex strings parsed
+    assert df.schema["blockNumber"] == pl.Int64
+    # blockHash, txHash, contractAddress must be String
+    for col in ("blockHash", "txHash", "contractAddress"):
+        assert df.schema[col] == pl.String, f"{col} schema = {df.schema[col]}"
+
+
+def test_load_jsonl_hex_block_decoded():
+    df = load_jsonl(JSONL)
+    # 0x3FED320 = 67_000_000 (decimal); 0x40BF545 = 67_896_645 (decimal)
+    assert df["blockNumber"].min() == 67_000_000
+    assert df["blockNumber"].max() == 67_896_645
+
+
+def test_load_jsonl_provenance_columns():
+    df = load_jsonl(JSONL)
+    for col in ("blockNumber", "blockHash", "logIndex", "txHash", "contractAddress"):
+        assert col in df.columns
+
+
+def test_finality_cutoff_drops_above():
+    df = load_jsonl(JSONL)
+    out = apply_finality_cutoff(df, forno_head=67_896_653, lag_blocks=120)
+    # cutoff = 67896653 - 120 = 67896533; rows at 67896641+ MUST be dropped
+    assert out.height == 5
+    assert out["blockNumber"].max() <= 67_896_533
+
+
+def test_finality_cutoff_default_lag():
+    df = load_jsonl(JSONL)
+    out_default = apply_finality_cutoff(df, forno_head=67_896_653)
+    out_explicit = apply_finality_cutoff(df, forno_head=67_896_653, lag_blocks=120)
+    assert out_default.equals(out_explicit)
+
+
+def test_finality_cutoff_empty_input():
+    empty = pl.DataFrame({"blockNumber": pl.Series([], dtype=pl.Int64)})
+    out = apply_finality_cutoff(empty, forno_head=67_896_653, lag_blocks=120)
+    assert out.height == 0
+
+
+def test_finality_cutoff_monotonic():
+    df = load_jsonl(JSONL)
+    out = apply_finality_cutoff(df, forno_head=67_896_653, lag_blocks=120)
+    assert out.height <= df.height  # cutoff never adds rows
+
+
+def test_load_jsonl_raises_on_null_blocknumber(tmp_path):
+    bad = tmp_path / "bad.jsonl"
+    bad.write_text('{"blockNumber":null,"blockHash":"0x1"}\n')
+    with pytest.raises((ValueError, AssertionError)):
+        load_jsonl(bad)
