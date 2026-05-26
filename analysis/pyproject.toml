@@ -9,6 +9,12 @@ dependencies = [
   "polars==1.41.0",
   "numpy==2.4.6",
   "scipy==1.17.1",
+  "pydantic>=2.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.3",
 ]
 
 [build-system]
@@ -17,3 +23,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/abrigo_x402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+pythonpath = ["src"]
