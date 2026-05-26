@@ -12,6 +12,7 @@
 
 import { describe, test, expect } from 'vitest';
 import { subgraphFreshness, SubgraphLagError } from '../src/subgraph/freshness';
+import { blockscoutFreshness, BlockscoutFreshnessError } from '../src/blockscout/freshness';
 import { fornoMock } from './_helpers';
 
 describe('subgraphFreshness (FETCH-03 SC-3 subgraph path)', () => {
@@ -66,5 +67,43 @@ describe('subgraphFreshness (FETCH-03 SC-3 subgraph path)', () => {
       forno: forno as any,
     });
     expect(forno.getBlockNumber).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('blockscoutFreshness (FETCH-03 SC-3 blockscout path)', () => {
+  test('passes at lag = 99', async () => {
+    const r = await blockscoutFreshness({
+      most_recent_log_block: 67_854_023,
+      forno: fornoMock(67_854_122n) as any,
+      endpoint: 'celo.blockscout.com',
+    });
+    expect(r.fresh).toBe(true);
+    expect(r.lag).toBe(99);
+  });
+
+  test('throws BlockscoutFreshnessError at lag = 101', async () => {
+    try {
+      await blockscoutFreshness({
+        most_recent_log_block: 67_854_021,
+        forno: fornoMock(67_854_122n) as any,
+        endpoint: 'celo.blockscout.com',
+      });
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(BlockscoutFreshnessError);
+      expect((e as BlockscoutFreshnessError).details.lag).toBe(101);
+      expect((e as BlockscoutFreshnessError).details.endpoint).toBe('celo.blockscout.com');
+    }
+  });
+
+  test('custom threshold = 50 rejects lag = 75', async () => {
+    await expect(
+      blockscoutFreshness({
+        most_recent_log_block: 67_854_047,
+        forno: fornoMock(67_854_122n) as any,
+        endpoint: 'celo.blockscout.com',
+        threshold: 50,
+      })
+    ).rejects.toBeInstanceOf(BlockscoutFreshnessError);
   });
 });
