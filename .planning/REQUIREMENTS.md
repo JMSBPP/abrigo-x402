@@ -115,7 +115,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | GOV-01 | Phase 0 | — | Complete (Plan 00-01, commit `6cd61ed`) |
 | GOV-02 | Phase 0 | Re-fires per candidate in Phase 6 | Complete (Plan 00-02, commit `a669d37`) |
 | GOV-03 | Phase 0 | CI gate active in all phases | Complete (Plans 00-04 / 00-05 / 00-06 / 00-07, commits `e9b214d` schema + `aa2fcc8`+`24d054b` protocols + `fc653e8`+`ec5c492`+`13a7c99` hooks + `59f43f7`+`d87abef` install/validate) |
-| DEMAND-01 | Phase 0 | Enforce-component in Phase 2 | Complete (Plan 00-02 verify-component, commit `a669d37`; enforce-component pending in Phase 2) |
+| DEMAND-01 | Phase 0 | Enforce-component landed in Phase 2 Plan 02-08 | Complete (Plan 00-02 verify-component, commit `a669d37`; Plan 02-08 enforce-component, commit `4ae857f` — `panel.assert_no_graph_mainnet_in_ledger` raises on any `endpoint='graph-mainnet'` row in `data/raw/_cost_ledger.jsonl`) |
 | FETCH-01 | Phase 1 | — | Complete (Plan 01-01 stack-pins + protocol-spec + viem-clients commits `a1daf97`+`6f0d500`+`c799049`; Plan 01-05 blockscout v1 + swap decoder + dormant subgraph + SC-5 leak gate commits `3d7bb04`+`b24f8d5`+`969676d`+`d3f1c64`; Plan 01-08 acceptance commit `f5e3d52`) |
 | FETCH-02 | Phase 1 | — | Complete (Plans 01-02 cost-ledger commits `b951b22`+`e569d2f`+`729a17e`; 01-06 SC-6 dry-run estimator commits `f8b7df8`+`388379f`+`1d8c515`+`1321d11`; Plan 01-08 acceptance commit `f5e3d52`) |
 | FETCH-03 | Phase 1 | — | Complete (Plan 01-03 subgraph + blockscout freshness wrappers commits `d48b51f`+`ceec9c4`+`92eab70`+`c477604`; Plan 01-08 acceptance commit `f5e3d52`) |
