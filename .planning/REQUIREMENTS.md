@@ -117,7 +117,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | GOV-03 | Phase 0 | CI gate active in all phases | Complete (Plans 00-04 / 00-05 / 00-06 / 00-07, commits `e9b214d` schema + `aa2fcc8`+`24d054b` protocols + `fc653e8`+`ec5c492`+`13a7c99` hooks + `59f43f7`+`d87abef` install/validate) |
 | DEMAND-01 | Phase 0 | Enforce-component in Phase 2 | Complete (Plan 00-02 verify-component, commit `a669d37`; enforce-component pending in Phase 2) |
 | FETCH-01 | Phase 1 | — | Pending |
-| FETCH-02 | Phase 1 | — | Pending |
+| FETCH-02 | Phase 1 | — | Complete (Plans 01-02 cost-ledger commits `b951b22`+`e569d2f`+`729a17e`; 01-06 SC-6 dry-run estimator commits `f8b7df8`+`388379f`+`1d8c515`+`1321d11`) |
 | FETCH-03 | Phase 1 | — | Pending |
 | FETCH-04 | Phase 1 | — | Pending |
 | PANEL-01 | Phase 2 | — | Pending |
