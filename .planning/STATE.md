@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 7
-status: executing
-last_updated: "2026-05-26T17:47:54.893Z"
+current_plan: Not started
+status: planning
+last_updated: "2026-05-26T18:20:55.072Z"
 progress:
   total_phases: 8
   completed_phases: 3
@@ -28,14 +28,14 @@ progress:
 ## Current Position
 
 **Phase:** 2 — Panel Build (L3) for the ICHI cKES/USDT Anchor — **IN PROGRESS (1/10 plans landed)**
-**Current Plan:** 7
+**Current Plan:** Not started
 **Total Plans in Phase:** 10
 **Last completed:** Plan 01-08 (Wave 3 — Phase 1 acceptance gate; commit `f5e3d52`). Produced `.planning/phases/01-l1-.../01-VERIFICATION-pre.md` (frontmatter `verification_pass: true`; full acceptance grid mapping FETCH-01..04 + ROADMAP SC-1..SC-6 to commands + exit codes + verdicts; SC-4 Parquet → JSONL pivot acknowledged per checker I6; library-drift v1/v2 inventory carried from Plan 01-07; deferred-items rolled up — single 01-03→01-05 entry resolved) + `01-08-SUMMARY.md` thin pointer per checker M15. Full Phase-1 suite at end of 01-08: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean; `pnpm install --frozen-lockfile` clean; `make leak-check` / `make schema-frozen-check` / `make schema-probe` all PASS. CLI dry-run JSON: `total_queries=795 < earmark=30000`, `exceeds_earmark=false`, `head_source="snapshot"` (proves dry-run mechanically cannot escalate to live). One acceptance-cmd substitution: `make verify-cache-idempotency` network leg → `tests/cache.test.ts` unit-level byte-identity (18/18 PASS) per plan body line 158 Tier-1 substitute (pnpm fetch ↔ pnpm built-in collision documented; Makefile rewrite deferred to Phase 2). I11 regex acceptance: `grep -cE "FETCH-0[1234]|SC-[1-6]"` = 33 hits (>= 6 required). No outstanding gaps. Previously completed: Plan 01-07 (Wave 2 parallel — x402 mock server + client bridge + integration test: `fetch/src/x402-mock/server.ts` + `fetch/src/x402-mock/client-bridge.ts` + `fetch/tests/x402_mock.test.ts`; commits `4718946`+`27176ce`+`e62b694`).
 
 (Original last-completed Plan 01-07 block retained below for full chain context).
 
 Plan 01-07 detail: Three atomic 01-07 commits: `4718946` (feat — node:http 402 mock with x402 v2 PaymentRequirements + structural X-PAYMENT validation + X-PAYMENT-RESPONSE settlement echo) / `27176ce` (fix — v1-protocol named-network drift adaptation; STACK drift discovered via live probe: @x402/evm v2.13 ExactEvmSchemeV1 registers on NAMED networks like 'base-sepolia', NOT CAIP-2 'eip155:84532' — plan-body proposal overridden; added `extra: {name: 'USDC', version: '2'}` to PaymentRequirements for EIP-712 domain, load-bearing for ExactEvmScheme.createPaymentPayload) / `e62b694` (feat — client bridge wires @x402/fetch x402Client + @x402/evm/exact/client registerExactEvmScheme with viem privateKeyToAccount; 3-test integration suite: bare 402 → PaymentRequirements / wrapFetchWithPayment round-trip → 200 + 32-byte tx hash / malformed-network rejection with errorReason; cost-ledger row written for x402-mock-sepolia endpoint with paid_real=false, chain='base-sepolia'). 3 new vitest tests green; full Phase-1 suite at end of 01-07: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean. 2 Rule-3 deviations auto-fixed (both library wire-format drifts the plan body explicitly authorized adapting). Header-only mode is the Phase-1 default; X402_MOCK_REAL_SETTLE=1 env-toggle reserved for manual developer-machine validation against a faucet-funded Base Sepolia wallet (not exercised in CI). Previously completed: Plan 01-06 (Wave 2 — FETCH-02 SC-6 dry-run budget estimator + CLI ichi/steer subcommand wiring; commits `f8b7df8`+`388379f`+`1d8c515`+`1321d11`); Plan 01-05 (FETCH-01 blockscout + decoder + dormant subgraph + SC-5 leak gate; commits `3d7bb04`+`b24f8d5`+`969676d`+`d3f1c64`); Plan 01-03 (FETCH-03 freshness wrappers; commits `d48b51f`+`ceec9c4`+`92eab70`+`c477604`); Plan 01-04 (FETCH-04 content-addressed cache; commits `e394cf1`+`5129ef7`+`a1daf97`+`0496df8`); Plan 01-02 (cost-ledger + 90k budget gate; commits `b951b22`+`e569d2f`+`729a17e`); Plan 01-01 (stack-pins + protocol-spec + viem-clients); Plan 01-00 (workspace bootstrap).
-**Status:** Ready to execute
+**Status:** Ready to plan
 
 ```
 Progress: [███████░░░] 65% (17/26 plans complete; 9/9 Phase-1 + 1/10 Phase-2 plans complete; 1/8 phases complete; Phase 2 in progress)
