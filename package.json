@@ -1,0 +1,14 @@
+{
+  "name": "abrigo-x402",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Empirical FX-cashflow modeling pipeline for Celo aggregator protocols (ICHI Iter-1; Steer Iter-2 STRADDLE) with x402 data-cost validation on Base Sepolia.",
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "tsx": "^4.22.3",
+    "vitest": "^4.1.7",
+    "@biomejs/biome": "^2.4.15",
+    "@types/node": "^22"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "fetch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/integration/**'",
+    "tsc": "tsc --noEmit",
+    "fetch": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "viem": "2.51.0",
+    "@x402/fetch": "2.13.0",
+    "@x402/evm": "2.13.0",
+    "@x402/core": "2.13.0",
+    "@graphprotocol/client-x402": "1.0.0",
+    "graphql": "^16",
+    "graphql-request": "7.4.0",
+    "@mento-protocol/mento-sdk": "3.2.8",
+    "zod": "4.4.3",
+    "dotenv": "^16",
+    "@iarna/toml": "^2.2"
+  },
+  "devDependencies": {
+    "@graphprotocol/client-cli": "3.0.7",
+    "@types/node": "^22"
+  }
+}
