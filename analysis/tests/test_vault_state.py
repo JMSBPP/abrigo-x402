@@ -129,3 +129,136 @@ def test_attach_in_range_boundary_inclusive(vault_jsonl: Path) -> None:
     )
     out = attach_in_range(swap_df, vs)
     assert out["vault_in_range"][0] is True
+
+
+# -----------------------------------------------------------------------------
+# V3 TickMath + getLiquidityForAmounts — Bug-1 fix tests
+# -----------------------------------------------------------------------------
+
+from abrigo_x402.vault_state import (
+    Q96,
+    MAX_TICK,
+    MIN_TICK,
+    get_sqrt_ratio_at_tick,
+    get_liquidity_for_amounts,
+    attach_vault_liquidity,
+)
+
+
+def test_get_sqrt_ratio_at_tick_anchors():
+    # Anchor: tick=0 → sqrt(1.0) × 2^96 = exactly Q96
+    assert get_sqrt_ratio_at_tick(0) == Q96
+    # Anchor: tick=MIN_TICK → known V3 constant 4295128739
+    assert get_sqrt_ratio_at_tick(MIN_TICK) == 4295128739
+    # Anchor: tick=MAX_TICK → known V3 constant
+    assert get_sqrt_ratio_at_tick(MAX_TICK) == 1461446703485210103287273052203988822378723970342
+
+
+def test_get_sqrt_ratio_at_tick_symmetry():
+    # sqrt(p(t)) × sqrt(p(-t)) ≈ Q96 (since p(t) × p(-t) = 1)
+    for t in (1, 100, 10_000, 100_000, 324_987):
+        s_pos = get_sqrt_ratio_at_tick(t)
+        s_neg = get_sqrt_ratio_at_tick(-t)
+        product = (s_pos * s_neg) // Q96
+        # Within 1 part in 1e10 of Q96 (rounding-bound)
+        assert abs(product - Q96) / Q96 < 1e-10
+
+
+def test_get_sqrt_ratio_at_tick_out_of_range():
+    with pytest.raises(ValueError):
+        get_sqrt_ratio_at_tick(MAX_TICK + 1)
+    with pytest.raises(ValueError):
+        get_sqrt_ratio_at_tick(MIN_TICK - 1)
+
+
+def test_get_liquidity_for_amounts_in_range_min_branch():
+    # Symmetric case: sqrt_p halfway between sqrt_a and sqrt_b (in ratio space)
+    # with amount0 large and amount1 small → L should be determined by amount1.
+    sqrt_a = get_sqrt_ratio_at_tick(-1000)
+    sqrt_b = get_sqrt_ratio_at_tick(1000)
+    sqrt_p = get_sqrt_ratio_at_tick(0)  # midpoint
+    L = get_liquidity_for_amounts(sqrt_p, sqrt_a, sqrt_b, amount0=10**30, amount1=10**6)
+    # L should equal liquidity_for_amount1(sqrt_a, sqrt_p, 10^6) because that's the binding side
+    expected_L1 = (10**6 * Q96) // (sqrt_p - sqrt_a)
+    assert L == expected_L1
+
+
+def test_get_liquidity_for_amounts_all_token0_below_range():
+    sqrt_a = get_sqrt_ratio_at_tick(-1000)
+    sqrt_b = get_sqrt_ratio_at_tick(1000)
+    sqrt_p = get_sqrt_ratio_at_tick(-2000)  # below lower
+    # amount1 should be ignored; L derived from amount0 alone over [sqrt_a, sqrt_b]
+    L = get_liquidity_for_amounts(sqrt_p, sqrt_a, sqrt_b, amount0=10**18, amount1=0)
+    intermediate = (sqrt_a * sqrt_b) // Q96
+    expected = (10**18 * intermediate) // (sqrt_b - sqrt_a)
+    assert L == expected
+
+
+def test_get_liquidity_for_amounts_all_token1_above_range():
+    sqrt_a = get_sqrt_ratio_at_tick(-1000)
+    sqrt_b = get_sqrt_ratio_at_tick(1000)
+    sqrt_p = get_sqrt_ratio_at_tick(2000)  # above upper
+    L = get_liquidity_for_amounts(sqrt_p, sqrt_a, sqrt_b, amount0=0, amount1=10**18)
+    expected = (10**18 * Q96) // (sqrt_b - sqrt_a)
+    assert L == expected
+
+
+def test_get_liquidity_for_amounts_zero_amounts():
+    sqrt_a = get_sqrt_ratio_at_tick(-1000)
+    sqrt_b = get_sqrt_ratio_at_tick(1000)
+    sqrt_p = get_sqrt_ratio_at_tick(0)
+    assert get_liquidity_for_amounts(sqrt_p, sqrt_a, sqrt_b, 0, 0) == 0
+
+
+def test_attach_vault_liquidity_real_vault_values():
+    """Real cKES/USDT vault values from materialized panel (block 67,382,070).
+
+    Bug-1 regression: prior `vault_liquidity = totalSupply` produced
+    L ≈ 5.85e10 (= 58.5B share tokens) — meaningless as a V3 L. The proper
+    computation must produce an L commensurate with the pool's swap.liquidity
+    (~4.87e19), so the vault_L / pool_L ratio reflects actual fee share, not
+    a 9-order-of-magnitude error.
+    """
+    df = pl.DataFrame({
+        "totalAmounts_0": ["3471972750244298049277479"],  # ~3.47M cKES wei
+        "totalAmounts_1": ["30221215163"],                # ~30k USDT wei
+        "sqrtPriceX96": ["6951915929841657563186"],      # pool sqrt at swap
+        "lowerTick": [-887272],                           # MIN_TICK
+        "upperTick": [-324987],
+    }, schema={
+        "totalAmounts_0": pl.String,
+        "totalAmounts_1": pl.String,
+        "sqrtPriceX96": pl.String,
+        "lowerTick": pl.Int32,
+        "upperTick": pl.Int32,
+    })
+    out = attach_vault_liquidity(df)
+    L = int(out["vault_liquidity"][0])
+    # L must be > 10^11 (way larger than totalSupply 5.85e10) and < pool L (4.87e19)
+    assert L > 10**11, f"vault_L {L} suspiciously small — bug-1 not fixed"
+    assert L < 5 * 10**19, f"vault_L {L} larger than pool L — math broken"
+
+
+def test_attach_vault_liquidity_missing_inputs_emits_zero():
+    df = pl.DataFrame({
+        "totalAmounts_0": [None],
+        "totalAmounts_1": [None],
+        "sqrtPriceX96": [None],
+        "lowerTick": [None],
+        "upperTick": [None],
+    }, schema={
+        "totalAmounts_0": pl.String,
+        "totalAmounts_1": pl.String,
+        "sqrtPriceX96": pl.String,
+        "lowerTick": pl.Int32,
+        "upperTick": pl.Int32,
+    })
+    out = attach_vault_liquidity(df)
+    assert out["vault_liquidity"][0] == "0"
+
+
+def test_attach_vault_liquidity_passthrough_when_columns_missing():
+    df = pl.DataFrame({"x": [1, 2, 3]})
+    out = attach_vault_liquidity(df)
+    assert "vault_liquidity" in out.columns
+    assert out["vault_liquidity"].to_list() == ["0", "0", "0"]

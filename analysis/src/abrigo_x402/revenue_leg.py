@@ -11,11 +11,13 @@ The Swap event emits NET amounts (amount0, amount1); the input side has the POSI
 sign (zeroForOne ⇒ amount0 > 0; else amount1 > 0). Recover gross-input via
 fee_tier_bps / (1_000_000 - fee_tier_bps) factor — see Pitfall 2 in RESEARCH.
 
-Vault liquidity proxy (Phase 2 simplification): use ``vault_liquidity`` column
-populated upstream by ``vault_state.attach_in_range`` (sentinel: vault's
-``totalSupply``). A precise ``pool.positions(vault, lower, upper).liquidity``
-computation is deferred to Phase 7 if a captured ``collectFees`` cross-check
-shows >1% drift (Pitfall 2 warning sign).
+Vault liquidity: ``vault_liquidity`` column is the proper Uniswap V3 virtual
+liquidity L, computed upstream by ``vault_state.attach_vault_liquidity`` via
+the canonical ``getLiquidityForAmounts(sqrtP, sqrtA, sqrtB, amount0, amount1)``
+algorithm. Inputs are taken from the vault's ``totalAmounts_{0,1}`` + tick
+range + the Swap event's ``sqrtPriceX96`` (post-swap; within-block drift is
+negligible at this pool's scale). The earlier Phase-2 ``totalSupply`` sentinel
+was wrong by ~9 orders of magnitude on real vaults and is removed.
 
 Pitfall 6 mitigation: explicit ``Int128`` casts — arithmetic stays in
 fixed-width BigInt land, never silently coerced to Float64. Int128 range

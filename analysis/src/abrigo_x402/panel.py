@@ -110,11 +110,12 @@ def build_panel(
     non_swap = df.filter(~swap_mask)
 
     if swap_rows.height > 0:
-        # Bridge naming gap: compute_swap_fee expects `vault_liquidity`;
-        # attach_in_range emits `totalSupply` as the Phase-2 sentinel.
-        swap_rows = swap_rows.with_columns(
-            pl.col("totalSupply").alias("vault_liquidity")
-        )
+        # Compute proper V3 virtual liquidity L for each Swap row from the
+        # vault's totalAmounts + tick range + swap's sqrtPriceX96. This replaces
+        # the prior totalSupply alias (totalSupply is share-token count, NOT a
+        # V3 L value — using it as a proxy understated vault fee share by ~9
+        # orders of magnitude on real vaults). See vault_state.attach_vault_liquidity.
+        swap_rows = vault_state.attach_vault_liquidity(swap_rows)
         swap_rows = revenue_leg.compute_swap_fee(
             swap_rows,
             fee_tier_bps=protocol_spec.protocol.anchor_pool.fee_tier,
