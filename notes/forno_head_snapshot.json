@@ -1,0 +1,6 @@
+{
+  "head": 67896653,
+  "snapshotted_at": "2026-05-26T11:01:00.000Z",
+  "source": "Forno eth_blockNumber primary-source pull during Plan 01-00 Task 4 execution (https://forno.celo.org); raw response 0x40bf54d",
+  "refresh_policy": "Refresh on demand when dry-run estimates become stale (>2 weeks recommended). DO NOT call Forno on every dry-run. A Phase-2 `pnpm head:refresh` script may automate this; until then bump this file manually."
+}

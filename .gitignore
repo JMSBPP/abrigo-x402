@@ -3,10 +3,10 @@ node_modules/
 .pnpm-store/
 .turbo/
 
-# Foundry / forge
-out/
-cache/
-broadcast/
+# Foundry / forge (anchor to repo root so it doesn't shadow fetch/src/cache/)
+/out/
+/cache/
+/broadcast/
 
 # Hardhat
 artifacts/
