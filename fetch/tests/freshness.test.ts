@@ -6,9 +6,9 @@
 // appended by Task 2). `fornoMock` is IMPORTED from ./_helpers (Plan 01-01) —
 // NEVER redeclared locally.
 //
-// Per RESEARCH.md §H + orchestrator finding #1: Blockscout v2 log shape does
-// NOT expose `block_consensus`. The blockscout wrapper (Task 2) checks
-// lag-vs-Forno only.
+// Per RESEARCH.md §H + orchestrator finding #1: Blockscout v2 log shape lacks
+// the per-log consensus field hypothesized by the CONTEXT.md draft. The
+// blockscout wrapper (Task 2) checks lag-vs-Forno only.
 
 import { describe, test, expect } from 'vitest';
 import { subgraphFreshness, SubgraphLagError } from '../src/subgraph/freshness';
