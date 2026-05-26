@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "source": "forno-live-call",
+    "url": "https://forno.celo.org",
+    "biPoolManager": "0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901",
+    "broker": "0x777A8255cA72412f0d706dc03C9D1987306B4CaD",
+    "captured_at": "2026-05-26T17:09:52.408Z",
+    "pair_lower": {
+      "cKES": "0x456a3d042c0dbd3db53d5489e98dfb038553b0d0",
+      "USDm": "0x765de816845861e75a25fca122bb6898b8b1282a"
+    },
+    "status": "resolved"
+  },
+  "exchangeId": "0x89de88b8eb790de26f4649f543cb6893d93635c728ac857f0926e842fb0d298b",
+  "asset0": "0x765de816845861e75a25fca122bb6898b8b1282a",
+  "asset1": "0x456a3d042c0dbd3db53d5489e98dfb038553b0d0",
+  "pricingModule": "0xDebED1F6f6ce9F6e73AA25F95acBFFE2397550Fb",
+  "totalExchangesProbed": 16
+}

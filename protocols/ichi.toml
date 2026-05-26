@@ -48,6 +48,16 @@ blockscout_url = "https://celo.blockscout.com/address/0x61Ef8708fc240DC7f9F2c0d8
 swaps_per_30d_observed = 4440  # Per CANDIDATES §7.3 corrected count (post-block-time recalibration)
 above_hawkes_floor = true       # 4440 / 300 = 14.8x above Hawkes floor
 
+[panel]
+# Finality cutoff: events on blocks > (forno_head - finality_lag_blocks) are EXCLUDED
+# from the Phase 2 panel and flagged for re-ingest on next refresh.
+# 120 blocks ≈ 2min at Celo 1s block time, matches Celo PoS soft-finality.
+# Configurable here per-protocol (NOT in _schema.toml — per-protocol field, same
+# precedent as cold_backfill_from_block added at Plan 01-01).
+# Added at Plan 02-00 after `make schema-probe` returned PROBE_PASS confirming
+# the schema-frozen hook scans _schema.toml only (per-protocol fields safe).
+finality_lag_blocks = 120
+
 # ======================================================================
 # ICHI Celo vault enumeration (Task 1 output)
 # ======================================================================

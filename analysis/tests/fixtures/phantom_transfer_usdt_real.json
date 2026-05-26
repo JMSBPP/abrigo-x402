@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "source": "blockscout-v1-getlogs",
+    "url": "https://celo.blockscout.com/api?module=logs&action=getLogs",
+    "captured_at": "2026-05-26T17:10:44.283Z",
+    "head_block_at_capture": 67896653,
+    "adapter": "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72",
+    "windows_probed": [
+      10000,
+      50000,
+      200000,
+      1000000
+    ],
+    "status": "no-adapter-traffic-found"
+  },
+  "txHash": null,
+  "blockNumber": null,
+  "logs": [],
+  "note": "USDT-adapter saw zero Transfer activity in the probed windows. phantom_transfer_synthetic.json is the load-bearing fixture for Plan 02-03 unit tests until adapter traffic surfaces."
+}
