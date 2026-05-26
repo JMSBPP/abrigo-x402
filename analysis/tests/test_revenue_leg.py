@@ -83,8 +83,9 @@ def test_vault_out_of_range_zero_fee():
 def test_worked_example_from_research():
     """RESEARCH §A worked example: in-range Swap with full vault-share.
 
-    fee_token0 = 1e18 * 100 / 999900 = 100010001000100010 wei
-    vault_fee_token0 = fee_token0 * 5e18 / 5e18 = fee_token0 (full share)
+    fee_token0 = (1e18 * 100) // 999_900 = 100_010_001_000_100 wei
+        (Python int floor-div; matches Solidity FullMath.mulDiv truncation.)
+    vault_fee_token0 = fee_token0 * 5e18 / 5e18 = fee_token0 (full share).
     """
     df = _make_swap(
         amount0=1_000_000_000_000_000_000,
@@ -94,9 +95,11 @@ def test_worked_example_from_research():
         vault_liquidity=5_000_000_000_000_000_000,  # FULL share (vault == pool)
     )
     out = compute_swap_fee(df, fee_tier_bps=FEE_TIER)
-    assert int(out["fee_token0"][0]) == 100_010_001_000_100_010
+    expected = (1_000_000_000_000_000_000 * 100) // (1_000_000 - 100)
+    assert expected == 100_010_001_000_100  # docstring sanity
+    assert int(out["fee_token0"][0]) == expected
     assert int(out["vault_fee_token0"][0]) == int(out["fee_token0"][0])
-    assert int(out["vault_fee_token0"][0]) == 100_010_001_000_100_010
+    assert int(out["vault_fee_token0"][0]) == 100_010_001_000_100
 
 
 def test_zero_input_edge_case():
