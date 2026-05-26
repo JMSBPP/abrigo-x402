@@ -74,7 +74,16 @@
   4. Re-running `pnpm fetch ichi --pool 0x61Ef…829F --block-range 67000000-67100000` twice produces byte-identical Parquet output (verified via `sha256sum`) and the second run emits zero new cost-ledger rows; the cache key is `(chainId, contractAddress, blockRange, fetchTimestamp)` and is observable in `data/raw/<protocol>/manifest.json`.
   5. **Protocol-agnosticism contract test**: `analysis/tests/test_panel_agnostic.py` constructs a panel from a synthetic `protocols/test_fixture.toml` (cKES-like + COP-like + a Steer-shaped multi-vault-per-pool layout) with no protocol-name conditional branches in `analysis/src/`; a CI lint rejects any string match of `if config.name ==`, `if protocol ==`, `if vault_owner == "ichi"`, or any hard-coded fee-tier magic number (`0.0001`, `100`, `500`) outside `protocols/*.toml`. This is the load-bearing leak-gate (the string grep at Phase 6 is the cheap pre-commit version).
   6. **Cold-backfill budget dry-run**: `pnpm fetch ichi --dry-run --estimate-budget` prints the projected total Graph queries for the in-scope vault set (anchor-only OR full ICHI Celo footprint per Q-9 / Phase-0 decision); if projection > 30k, the cold-backfill must be re-scoped or budget reallocated from the 20k reserve before any production fetch. Note: the ARCHITECTURE.md budget line still labeled "Halo" (now Steer) is corrected here — 25k earmark is now Iteration-2 cold-backfill on Steer.
-**Plans**: TBD
+**Plans**: 9 plans (Wave 0: 00 workspace scaffold + schema-probe; Wave 1: 01 STACK pins + protocol-spec + viem clients (FETCH-01), 02 cost-ledger + 90k cap + --force (FETCH-02), 03 BOTH freshness wrappers — subgraph + Blockscout (FETCH-03), 04 content-addressed cache + manifest + byte-identity (FETCH-04), 05 Blockscout v1 client + Swap decoder + dormant subgraph + protocol-agnosticism test (FETCH-01 SC-5); Wave 2: 06 CLI end-to-end --dry-run/--estimate-budget (FETCH-02 SC-6), 07 self-hosted x402 mock + round-trip test; Wave 3: 08 phase acceptance + 01-VERIFICATION-pre.md)
+- [ ] 01-00-PLAN.md — pnpm workspace + tsconfig + vitest + biome + analysis/uv.lock pins + .env.example + Makefile + schema-probe (Wave 0 scaffold)
+- [ ] 01-01-PLAN.md — STACK pin verification + protocol-spec zod loader + viem cached clients (FETCH-01)
+- [ ] 01-02-PLAN.md — cost-ledger JSONL append + checkBudget 90k cap + --force bypass (FETCH-02)
+- [ ] 01-03-PLAN.md — subgraphFreshness + blockscoutFreshness wrappers (no block_consensus per RESEARCH §H) (FETCH-03)
+- [ ] 01-04-PLAN.md — content-addressed cache: cacheKeyHash + manifest + deterministic payload writer (FETCH-04)
+- [ ] 01-05-PLAN.md — Blockscout v1 etherscan-compat client + Swap ABI decoder + dormant subgraph client + protocol-agnosticism contract test (FETCH-01 SC-5)
+- [ ] 01-06-PLAN.md — CLI ichi --dry-run --estimate-budget --force + cache short-circuit (FETCH-02 SC-6)
+- [ ] 01-07-PLAN.md — node:http x402 mock server + wrapFetchWithPayment client bridge + round-trip integration test
+- [ ] 01-08-PLAN.md — Wave 3 acceptance: full suite + 01-VERIFICATION-pre.md (FETCH-01..04 grid)
 
 ### Phase 2: Panel Build (L3) for the ICHI cKES/USDT Anchor
 **Goal**: Materialize the event-level Parquet panel for ICHI on cKES/USDT (and the Q4 single-vault microcosm as sensitivity) with full on-chain provenance, Mento broker mid-rate FX snap, and the phantom-transfer filter for USDC/USDT fee-abstraction adapters.
