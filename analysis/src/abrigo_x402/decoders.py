@@ -32,6 +32,11 @@ from eth_utils import keccak
 SWAP_TOPIC0 = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
 MINT_TOPIC0 = "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"
 BURN_TOPIC0 = "0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c"
+# ERC-20 Transfer (canonical keccak256 of "Transfer(address,address,uint256)") —
+# required for PANEL-04 phantom-filter (exclude_adapters expects event_name='Transfer'
+# rows carrying `from` + `to` columns). Phase 2 use is narrow: fee-abstraction
+# Transfer gas-leg detection. Plan 02-08 Rule-3 integration patch.
+TRANSFER_TOPIC0 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 
 def _compute_topic0_from_abi(abi: list, event_name: str) -> str:
@@ -69,6 +74,7 @@ TOPIC0_TO_EVENT: dict[str, str] = {
     BURN_TOPIC0: "Burn",
     DEPOSIT_TOPIC0: "Deposit",
     WITHDRAW_TOPIC0: "Withdraw",
+    TRANSFER_TOPIC0: "Transfer",
 }
 
 
@@ -208,12 +214,31 @@ def decode_withdraw(topics: list[str], data: str) -> dict[str, Any]:
     }
 
 
+def decode_transfer(topics: list[str], data: str) -> dict[str, Any]:
+    """ERC-20 Transfer:
+    Transfer(address indexed from, address indexed to, uint256 value)
+
+    Required by PANEL-04 phantom_filter.exclude_adapters which expects rows
+    carrying `from` + `to` columns to match against the USDC/USDT fee-abstraction
+    adapter set. Non-adapter Transfers pass through unchanged.
+    """
+    sender = _topic_to_addr(topics[1])
+    to = _topic_to_addr(topics[2])
+    (value,) = abi_decode(["uint256"], _hex_to_bytes(data))
+    return {
+        "from": sender,
+        "to": to,
+        "value": str(value),
+    }
+
+
 _DECODER_FUNCS = {
     "Swap": decode_swap,
     "Mint": decode_mint,
     "Burn": decode_burn,
     "Deposit": decode_deposit,
     "Withdraw": decode_withdraw,
+    "Transfer": decode_transfer,
 }
 
 
