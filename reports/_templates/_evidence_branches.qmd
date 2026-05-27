@@ -1,15 +1,75 @@
-<!-- Wave-0 placeholder. Plan 04-08 (Wave 2) implements the four firing-condition branches.
+<!-- Plan 04-08 (Wave-2 fill of the Wave-0 placeholder).
 
-Each branch reads the substrate JSON files injected by render_null_result_pdf and renders
-a condition-specific evidence block:
-
-  - null_cost: notes/cost_leg_bound_<protocol>.md frontmatter (verdict + threshold + measured)
-  - null_lr: fit_report.json :: lr_test (statistic, p_value, n_reps, method) + held_out_loglik table
-  - null_convex: gate_report.json :: four-condition pass/fail grid + evidence dicts
-  - null_strip_unavailable: data/fits/<run_id>/strip_degenerate.json (max_negative_value,
-    total_negative_mass, characteristic_function_decay_rate, recommended_method)
-
-Branching is via Quarto conditional content blocks keyed off `params$firing_condition`.
+Four condition-branched evidence blocks, keyed off `params$firing_condition`.
+Each branch reads the relevant substrate (cost_leg_bound memo + fit_report.json
++ gate_report.json + strip_degenerate.json) and renders a condition-specific
+block of evidence text + small tables. The branches are mutually exclusive --
+the decision tree in `hedge/null_result.py :: decide_firing_condition` emits
+exactly one of {null_cost, null_lr, null_convex, null_strip_unavailable}.
 -->
 
-*Evidence block placeholder — Plan 04-08 (Wave 2) implements.*
+```{python}
+#| label: evidence-block
+#| echo: false
+#| output: asis
+
+firing_condition = "{{< meta params.firing_condition >}}"
+
+if firing_condition == "null_cost":
+    # HEDGE-05 firing condition (a) -- Phase-0 cost-leg gate failed.
+    print("## Evidence: Phase-0 Cost-Leg Gate Failure (null_cost)")
+    print()
+    print("The free-tier subgraph cost-leg lower-bound check (REPRO-03) failed against")
+    print("the PRE_REGISTRATION-locked threshold. See `notes/<protocol>_cost_leg_bound.md`")
+    print("for the verdict + threshold + measured query rate.")
+    print()
+    print("Per HEDGE-05 firing condition (a), no convex-hedge claim is justified for the")
+    print("candidate substrate at this iteration; the candidate is RETIRED-PENDING-MATURITY.")
+
+elif firing_condition == "null_lr":
+    # HEDGE-05 firing condition (b) -- DGP-03 LR-indistinguishable.
+    print("## Evidence: NHPP-vs-Hawkes Indistinguishability (null_lr)")
+    print()
+    print("The boundary-correct LR test (DGP-03) returned `p_value >= 0.05` against the")
+    print("locked 50:50 chi-squared mixture null. NHPP cannot be rejected at the")
+    print("conventional alpha level on the panel window.")
+    print()
+    print("Per HEDGE-05 firing condition (b), the Hawkes self-excitation premise is not")
+    print("evidenced; the convex-hedge claim falls back to the NHPP linear hedge -- and")
+    print("the strip / stress stages are not informative.")
+
+elif firing_condition == "null_convex":
+    # HEDGE-05 firing condition (c) -- zero convex-dominance conditions passed.
+    print("## Evidence: Zero Convex-Dominance Conditions Passed (null_convex)")
+    print()
+    print("All four conditions in the falsification gate -- (1) vol-of-vol > 0, (2)")
+    print("positive skew + fat tails, (3) Hawkes self-excitation, (4) USDT-depeg basis")
+    print("jump under literature-range stipulation + N=64 LHS sensitivity -- returned")
+    print("`passed: false`.")
+    print()
+    print("Per HEDGE-05 firing condition (c), the linear hedge is preferred over the")
+    print("convex (Panoptic) replication; the Carr-Madan strip is suppressed.")
+
+elif firing_condition == "null_strip_unavailable":
+    # HEDGE-05 firing condition (d) -- iter-3 addition.
+    # Covers two upstream paths that BOTH produce strip_degenerate.json:
+    #   (i)  reason="build_failed_upstream"     -- _build_char_func_from_winner raised
+    #   (ii) reason="positivity_fail_after_2_12" -- compute_strip FFT positivity failed
+    print("## Evidence: Gate Passed, Carr-Madan Strip Not Emittable (null_strip_unavailable)")
+    print()
+    print("At least one convex-dominance condition passed, but the Carr-Madan strip")
+    print("stage aborted to `strip_degenerate.json`. Two mutually exclusive sub-paths:")
+    print()
+    print("- `reason: \"build_failed_upstream\"` -- the upstream characteristic-function")
+    print("  builder `_build_char_func_from_winner` raised (e.g., the copula sampler")
+    print("  rejected degenerate fitted params). Diagnostic in `char_func_build_error`.")
+    print("- `reason: \"positivity_fail_after_2_12\"` -- FFT inversion of the BIC-winner")
+    print("  characteristic function produced > 0.1% negative implied-density mass at")
+    print("  BOTH the 2^11 and 2^12 grids. Per the PRE_REGISTRATION amendment dated")
+    print("  2026-05-27, the strip is NOT emitted (no silent COS/PROJ swap; no")
+    print("  Gaussian-proxy fallback).")
+    print()
+    print("Per HEDGE-05 firing condition (d) -- added in the iter-3 revision -- this is")
+    print("a valid null-result completion. The four-condition gate evidence is preserved")
+    print("in `gate_report.json`; the strip price is simply not produced for this run.")
+```
