@@ -129,7 +129,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | DGP-03 | Phase 3 | LR test result feeds HEDGE-05 firing in Phase 4 | Pending |
 | DGP-04 | Phase 3 | — | Pending |
 | DGP-05 | Phase 3 | — | Pending |
-| DGP-06 | Phase 3 | — | Pending |
+| DGP-06 | Phase 3 | — | Complete (Plan 03-06 commits `cae3e2e` RED + `9d3e470` GREEN — Filimonov-Sornette 2014 profile-likelihood eta-CI via scipy.optimize.brentq inversion of chi2(1)-deficit function on 30-point projection-trick grid; CI structurally clamped to [0, 0.999); Q9_CI_WIDTH_THRESHOLD = 0.4 surfaces PRE_REGISTRATION-locked null-fire trigger; LL_max derived self-consistently from grid argmax to absorb 03-02 LS-fallback objective-scale mismatch; 4 DGP-06 tests pass; anti-pattern grep gate `! grep -E "Hessian|Wald"` honoured) |
 | DEPEND-01 | Phase 4 | — | Pending |
 | DEPEND-02 | Phase 4 | Enforced in Phase 5 report build | Pending |
 | HEDGE-01 | Phase 4 | — | Pending |
