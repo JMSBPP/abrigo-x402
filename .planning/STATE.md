@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 9
-status: verifying
-last_updated: "2026-05-27T04:03:17.645Z"
+current_plan: Not started
+status: planning
+last_updated: "2026-05-27T04:12:58.144Z"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
   completed_plans: 36
-  percent: 78
+  percent: 100
 ---
 
 # State: abrigo-x402
@@ -28,7 +28,7 @@ progress:
 ## Current Position
 
 **Phase:** 3 — DGP Estimation (L4) with Boundary-Correct LR Test — **COMPLETE (9/9 plans landed; Wave-3 acceptance gate closed via Plan 03-08)**
-**Current Plan:** 9
+**Current Plan:** Not started
 **Total Plans in Phase:** 9
 **Last completed:** Plan 03-08 (Wave 3 — Phase 3 acceptance gate; commits `2e5ad5f` test + `945e126` docs). Produced `.planning/phases/03-.../03-VERIFICATION-pre.md` (frontmatter `verification_pass: true`; 13-row acceptance grid mapping DGP-01..06 + ROADMAP SC-1..5 to commands + exit codes + verdicts; all PASS at HEAD `2e5ad5f`; regex acceptance `grep -cE "DGP-0[1-6]|SC-[1-5]"` = 44 hits >> 11 required) + `03-08-SUMMARY.md` (Pattern I + J established for byte-identity discipline reuse in Phase 4+5). **SC-5 byte-identical contract operationalized**: `analysis/tests/test_byte_identical.py` shipped 3 tests (`test_deterministic_fit`, `test_deterministic_run_id`, `test_different_panel_different_run_id`) with **first-code-line thread pinning** (4 `os.environ.setdefault` calls for OMP/MKL/OpenBLAS/NumExpr BEFORE first numpy import — Reality Checker BLOCKER fix because statsmodels VAR.select_order AIC drifts under multi-thread BLAS, breaking byte-identity on multi-core CI) + 4 runtime sanity-guard asserts inside `test_deterministic_fit`. Per-env-var grep gates ≥ 2 each: OMP=3, MKL=2, OpenBLAS=2, NumExpr=2. Full Phase 3 suite at end of 03-08: **39 passed / 0 failed / 0 skipped / 9 test files / 127.09 s wall-clock** (single-threaded BLAS — multi-thread is faster but breaks SC-5). SC-3 grep gate green (`! grep -rE "likelihood_ratio_test\|chi2\(1\)\.sf" analysis/src/abrigo_x402/dgp/lr_test.py` exit 0). `make lint-artifacts` exit 0. `reports/_diagnostics/lr_null_dist.png` 40,236 bytes confirmed (mixture-null visual VISUAL PASS). **Production-rep size sanity** (manual, once-per-phase, n_reps=1000 on synthetic α=0 NHPP fixture, 337+316 events): `observed_stat=0.006931`, `p_value=0.562000`, `n_failed=0`, `rejects_at_alpha=False`, wall-clock 73.3 s — non-rejection on null data confirms size discipline; load-bearing deliverable is the successful 1000-rep completion on production-scale event counts. **SC-5 thread-pinning requirement documented verbatim** in `03-VERIFICATION-pre.md` SC-5 row Notes/Caveats sub-cell so future CI / runner migrations preserve byte-identity. Deferred to Phase 4: (a) real ICHI panel actual fit run (gate may FAIL per CONTEXT.md `<specifics>` — that null outcome is a HEDGE-05 firing condition in Phase 4), (b) piecewise-NHPP fit branch (scaffolded, conditional on stationarity diagnostic), (c) tick API drift on raw polars `to_numpy()` (workaround documented), (d) LS-fallback objective-scale mismatch (absorbed via canonical-LL contract Pattern F in 03-07). 0 deviations — plan executed exactly as written; downstream type-cast adjustment to the manual production-rep command (matching conftest `.ravel().astype(np.float64)` pattern) is an input-discipline fix, not a plan deviation. Pre-commit hooks AF-01..AF-12 PASS on both commits.
 
@@ -47,7 +47,7 @@ Plan 01-08 detail: Plan 01-08 (Wave 3 — Phase 1 acceptance gate; commit `f5e3d
 (Original last-completed Plan 01-07 block retained below for full chain context).
 
 Plan 01-07 detail: Three atomic 01-07 commits: `4718946` (feat — node:http 402 mock with x402 v2 PaymentRequirements + structural X-PAYMENT validation + X-PAYMENT-RESPONSE settlement echo) / `27176ce` (fix — v1-protocol named-network drift adaptation; STACK drift discovered via live probe: @x402/evm v2.13 ExactEvmSchemeV1 registers on NAMED networks like 'base-sepolia', NOT CAIP-2 'eip155:84532' — plan-body proposal overridden; added `extra: {name: 'USDC', version: '2'}` to PaymentRequirements for EIP-712 domain, load-bearing for ExactEvmScheme.createPaymentPayload) / `e62b694` (feat — client bridge wires @x402/fetch x402Client + @x402/evm/exact/client registerExactEvmScheme with viem privateKeyToAccount; 3-test integration suite: bare 402 → PaymentRequirements / wrapFetchWithPayment round-trip → 200 + 32-byte tx hash / malformed-network rejection with errorReason; cost-ledger row written for x402-mock-sepolia endpoint with paid_real=false, chain='base-sepolia'). 3 new vitest tests green; full Phase-1 suite at end of 01-07: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean. 2 Rule-3 deviations auto-fixed (both library wire-format drifts the plan body explicitly authorized adapting). Header-only mode is the Phase-1 default; X402_MOCK_REAL_SETTLE=1 env-toggle reserved for manual developer-machine validation against a faucet-funded Base Sepolia wallet (not exercised in CI). Previously completed: Plan 01-06 (Wave 2 — FETCH-02 SC-6 dry-run budget estimator + CLI ichi/steer subcommand wiring; commits `f8b7df8`+`388379f`+`1d8c515`+`1321d11`); Plan 01-05 (FETCH-01 blockscout + decoder + dormant subgraph + SC-5 leak gate; commits `3d7bb04`+`b24f8d5`+`969676d`+`d3f1c64`); Plan 01-03 (FETCH-03 freshness wrappers; commits `d48b51f`+`ceec9c4`+`92eab70`+`c477604`); Plan 01-04 (FETCH-04 content-addressed cache; commits `e394cf1`+`5129ef7`+`a1daf97`+`0496df8`); Plan 01-02 (cost-ledger + 90k budget gate; commits `b951b22`+`e569d2f`+`729a17e`); Plan 01-01 (stack-pins + protocol-spec + viem-clients); Plan 01-00 (workspace bootstrap).
-**Status:** Phase 3 complete — ready for verification (`/gsd:verify-work 03-dgp-estimation-l4-with-boundary-correct-lr-test`)
+**Status:** Ready to plan
 
 ```
 Progress: [██████████] 100% (36/36 plans complete; 9/9 Phase-1 + 10/10 Phase-2 + 9/9 Phase-3 + 7/7 Phase-0 + 1/1 Phase-init; 3/8 phases verified-complete + Phase 3 ready-for-verification; Phase 4 input substrate ready: data/fits/ichi/<run_id>/{residuals.parquet, fit_report.json :: hawkes_mv_params :: adjacency})
