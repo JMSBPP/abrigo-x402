@@ -346,10 +346,18 @@ def run_hedge(
     if stage in {"dependence", "all"}:
         xcorr = cross_correlogram_event_index(leg_0, leg_1)
         perm = permutation_null_max_abs_rho(leg_0, leg_1)
+        # Rule-1 fix (Plan 04-09 production-rep): copulae u_data must have equal
+        # row counts across columns; truncate to min(len(leg_0), len(leg_1))
+        # using the same Bowsher-2007 convention cross_correlogram applies
+        # internally. Without this, real (held-out) residuals with even
+        # one-event leg differences trip np.column_stack.
+        _n_u = min(len(leg_0), len(leg_1))
+        _leg_0_u = leg_0[:_n_u]
+        _leg_1_u = leg_1[:_n_u]
         u_data = np.column_stack(
             [
-                (np.argsort(np.argsort(leg_0)) + 1) / (max(len(leg_0), 1) + 1),
-                (np.argsort(np.argsort(leg_1)) + 1) / (max(len(leg_1), 1) + 1),
+                (np.argsort(np.argsort(_leg_0_u)) + 1) / (max(_n_u, 1) + 1),
+                (np.argsort(np.argsort(_leg_1_u)) + 1) / (max(_n_u, 1) + 1),
             ]
         )
         cop = fit_5_families_bic(u_data)

@@ -174,6 +174,10 @@ def _cmd_hedge(args: argparse.Namespace) -> int:
         reports_pdf=Path(args.reports_pdf),
     )
     print(_json.dumps(result, indent=2, default=str))
+    # Sentinel for Plan 04-09 row-16 acceptance grep — must be greppable from
+    # `data/fits/ichi/<run_id>/run_log.txt` to prove the orchestrator ran to
+    # completion (and not just exited early via an upstream exception).
+    print("hedge.orchestrator.run_hedge completed")
     return 0
 
 
