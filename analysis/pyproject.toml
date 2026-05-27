@@ -13,6 +13,7 @@ dependencies = [
   "eth-abi>=5.2.0",
   "eth-utils>=6.0.0",
   "eth-hash[pycryptodome]>=0.8.0",
+  "numpydoc>=1.10.0",
 ]
 
 [dependency-groups]
