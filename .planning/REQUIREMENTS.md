@@ -124,7 +124,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | PANEL-02 | Phase 2 | Headers required in all downstream artifact phases | Pending |
 | PANEL-03 | Phase 2 | — | Pending |
 | PANEL-04 | Phase 2 | — | Pending |
-| DGP-01 | Phase 3 | — | Pending |
+| DGP-01 | Phase 3 | — | Complete (Plan 03-01 commit `718cf1a` — Kirchner INAR(p) NHPP fit via statsmodels VAR + AIC bin-width selection over locked {60,300,900,3600}s grid + non-negativity projection; 3 DGP-01 tests pass incl. 50-path synthetic-ground-truth recovery within +/-15%) |
 | DGP-02 | Phase 3 | — | Pending |
 | DGP-03 | Phase 3 | LR test result feeds HEDGE-05 firing in Phase 4 | Pending |
 | DGP-04 | Phase 3 | — | Pending |
