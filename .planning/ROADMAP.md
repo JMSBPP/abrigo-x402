@@ -161,6 +161,19 @@
 - [x] 04-08-PLAN.md — run_hedge orchestrator + hedge CLI subcommand + HEDGE-05 firing decision + Quarto null-result PDF (DEPEND-01/02 + HEDGE-01..05) ✓ commits `8badf8c`+`4c11df8`
 - [x] 04-09-PLAN.md — Phase 4 acceptance gate + 04-VERIFICATION-pre.md (18-row grid + production-rep on synthetic-stacked substrate run_id `0afc6af38e24`; verification_pass:true, quarto_skipped:true; BIC=frank Δ=0.009 noise-floor caveat; HEDGE-04 divergence_pct=46.36%) ✓ commit `9ed4170`
 
+### Phase 04.1: Backport block_timestamp into Phase 2 panel writer and rerun Phase 3 fit + Phase 4 production rep on real ICHI cKES/USDT panel (INSERTED)
+
+**Goal:** Close the Phase 2→Phase 3 column-wire gap surfaced in Plan 04-09. Backport `block_timestamp` into the Phase 2 ingest path (`analysis/src/abrigo_x402/ingest.py`), regenerate the real ICHI cKES/USDT panel from cached JSONL sidecars (no Forno/Blockscout re-fetch), rerun Phase 3 fit + Phase 4 production rep on the augmented real panel, and append a side-by-side synthetic-vs-real comparison to `04-VERIFICATION-pre.md` so Phase 5 PDF deliverable consumes real-data findings as canonical v1.0 substrate (synthetic `0afc6af38e24` archived as methodology-validation evidence).
+**Requirements**: (no new IDs; re-validates existing PANEL-01 zero-null invariant + DEPEND-01/02 + HEDGE-01..05 on real data)
+**Depends on:** Phase 4
+**Plans:** 4 plans (Wave 1: 00 ingest.py edit + fixture extension + 2 sanity tests + lint_artifacts extension; Wave 2: 01 re-materialize real ICHI panel; Wave 3: 02 Phase 3 fit on augmented panel; Wave 4: 03 Phase 4 hedge rerun + 0afc6af38e24/README.md archival note + 04-VERIFICATION-pre.md append-section + 3 new frontmatter fields)
+
+Plans:
+- [ ] 04.1-00-PLAN.md — ingest.py PROVENANCE_COLS + block_timestamp Int64 + zero-null invariant extension + 2 sanity tests + 2 fixture extensions + scripts/lint_artifacts.py ICHI_PANEL_REQUIRED_COLUMNS
+- [ ] 04.1-01-PLAN.md — `cli.py materialize` re-run on cached JSONL sidecars; augmented real ICHI panel parquet with new dataHash
+- [ ] 04.1-02-PLAN.md — `cli.py fit` on augmented real panel; new run_id under data/fits/ichi/; first-ever real-data Phase 3 fit
+- [ ] 04.1-03-PLAN.md — `cli.py hedge --run-id <new> --stage all`; 4 primary Phase 4 artifacts + run_log.txt; 0afc6af38e24/README.md archival pointer; 04-VERIFICATION-pre.md "04.1 Real-Data Rerun" appended section + 3 new greppable frontmatter fields (real_data_rerun_run_id, real_data_rerun_passed, substrate_substitution_resolved); Phase 5 unblocking signal
+
 ### Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)
 **Goal**: Ship the Iteration-1 PDF deliverable (`reports/ichi.pdf`) via Quarto/nbconvert with the spot-check checklist, cost-leg prior sensitivity sweep, and reproducibility manifest — completing Iteration 1 with either a positive convex-hedge result or a documented null-result, in PDF form (per memory `feedback_pdf_deliverable.md`).
 **Depends on**: Phase 4 (gate report + strip OR null-result template fire must be resolved)
