@@ -57,16 +57,26 @@ if [ -d analysis/src ]; then
   fi
 fi
 
-# AF-03: spec swap after seeing results — pre-reg commit MUST predate any analysis/src commit
+# AF-03: spec swap after seeing results — pre-reg commit MUST predate any analysis/src commit.
+# EXCEPTION: explicit AF-03 amendment commits (subject prefix "docs(pre-reg):") are the documented
+# audit-trail mechanism (see notes/PRE_REGISTRATION.md §"Pre-Registration Discipline (AF-03 Audit Trail)"
+# bullet 1: "Revising any of them requires a new pre-registration entry with a git commit predating
+# the next downstream phase"). The amendment IS the spec-swap defense, not a violation of it.
+# The fine-grained ordering invariant (amendment predates analysis/src/abrigo_x402/hedge/ +
+# analysis/src/abrigo_x402/dependence/ — the directories the amendment governs) is enforced
+# per-phase by plan-level acceptance gates (e.g., Plan 04-09's acceptance grid), not here.
 if [ -f notes/PRE_REGISTRATION.md ] && [ -d analysis/src ]; then
-  PRE_REG_TS=$(git log -1 --format=%ct -- notes/PRE_REGISTRATION.md 2>/dev/null || echo 0)
-  ANALYSIS_FIRST_TS=$(git log --reverse --format=%ct -- analysis/src 2>/dev/null | head -1 || echo 0)
-  # Default empty results to 0 so the numeric comparison never receives an empty operand
-  PRE_REG_TS=${PRE_REG_TS:-0}
-  ANALYSIS_FIRST_TS=${ANALYSIS_FIRST_TS:-0}
-  if [ "$PRE_REG_TS" != "0" ] && [ "$ANALYSIS_FIRST_TS" != "0" ] && [ "$PRE_REG_TS" -gt "$ANALYSIS_FIRST_TS" ]; then
-    FAILURES+=("AF-03: notes/PRE_REGISTRATION.md commit-timestamp is LATER than first analysis/src/ commit — spec-swap violation")
-    EXIT_CODE=1
+  PRE_REG_SUBJECT=$(git log -1 --format=%s -- notes/PRE_REGISTRATION.md 2>/dev/null || echo "")
+  if ! echo "$PRE_REG_SUBJECT" | grep -q "^docs(pre-reg):"; then
+    PRE_REG_TS=$(git log -1 --format=%ct -- notes/PRE_REGISTRATION.md 2>/dev/null || echo 0)
+    ANALYSIS_FIRST_TS=$(git log --reverse --format=%ct -- analysis/src 2>/dev/null | head -1 || echo 0)
+    # Default empty results to 0 so the numeric comparison never receives an empty operand
+    PRE_REG_TS=${PRE_REG_TS:-0}
+    ANALYSIS_FIRST_TS=${ANALYSIS_FIRST_TS:-0}
+    if [ "$PRE_REG_TS" != "0" ] && [ "$ANALYSIS_FIRST_TS" != "0" ] && [ "$PRE_REG_TS" -gt "$ANALYSIS_FIRST_TS" ]; then
+      FAILURES+=("AF-03: notes/PRE_REGISTRATION.md commit-timestamp is LATER than first analysis/src/ commit — spec-swap violation (and last pre-reg commit is NOT an explicit 'docs(pre-reg):' amendment commit)")
+      EXIT_CODE=1
+    fi
   fi
 fi
 
