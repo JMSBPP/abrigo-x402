@@ -42,8 +42,8 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 ### Cross-leg dependence (L5)
 
-- [ ] **DEPEND-01**: Pipeline must compute the cross-correlogram between `dK_revenue(t)` and `dK_cost(t)` arrivals + permutation null; report empirical copula on (dK_revenue, dK_cost) per FEATURES.md TS-09; vine copula fallback only if BIC prefers
-- [ ] **DEPEND-02**: Any "joint" cashflow claim in the report must be backed by a cross-correlogram + permutation null + copula fit; a single bivariate scatter is insufficient evidence
+- [x] **DEPEND-01**: Pipeline must compute the cross-correlogram between `dK_revenue(t)` and `dK_cost(t)` arrivals + permutation null; report empirical copula on (dK_revenue, dK_cost) per FEATURES.md TS-09; vine copula fallback only if BIC prefers
+- [x] **DEPEND-02**: Any "joint" cashflow claim in the report must be backed by a cross-correlogram + permutation null + copula fit; a single bivariate scatter is insufficient evidence
 
 ### Hedge design (L6)
 
