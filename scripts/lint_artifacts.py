@@ -24,6 +24,14 @@ REQUIRED_KEYS = (
     "gitCommit",
 )
 
+# Phase 04.1 extension: column-presence requirements for ICHI panel parquets.
+# The single required column (initially) is `block_timestamp` — Phase 3 DGP fit
+# input contract (analysis/src/abrigo_x402/dgp/orchestrator.py :: _extract_legs_from_panel).
+# Frozenset form for forward-compat (additional required columns may follow in v2).
+ICHI_PANEL_REQUIRED_COLUMNS = frozenset({
+    "block_timestamp",
+})
+
 # Phase 3 fit_report.json SC-1 schema. Plan 03-07 (orchestrator) lands the
 # artifact at data/fits/**/fit_report.json. The schema is mirrored verbatim
 # from analysis/src/abrigo_x402/dgp/orchestrator.py :: REQUIRED_FIT_REPORT_KEYS;
@@ -201,6 +209,28 @@ def lint_strip_degenerate_json(path: Path) -> list[str]:
     return _lint_json_against_keys(path, STRIP_DEGENERATE_REQUIRED_KEYS, "strip_degenerate.json")
 
 
+def lint_ichi_panel_columns(path: Path) -> list[str]:
+    """Verify an ICHI panel parquet carries all ICHI_PANEL_REQUIRED_COLUMNS.
+
+    Reads only the parquet schema (no row materialization). Empty list on PASS;
+    one error string per missing column on FAIL.
+
+    Phase 04.1 contract: the single required column is `block_timestamp`.
+    """
+    try:
+        import polars as pl
+    except ImportError:
+        return [f"{path}: polars not available (run via `cd analysis && uv run`)"]
+    try:
+        cols = set(pl.read_parquet_schema(path).keys())
+    except Exception as exc:
+        return [f"{path}: failed to read parquet schema: {exc}"]
+    missing = ICHI_PANEL_REQUIRED_COLUMNS - cols
+    if missing:
+        return [f"{path}: missing required ICHI panel columns: {sorted(missing)}"]
+    return []
+
+
 _PHASE_4_ARTIFACT_LINTERS: dict[str, callable] = {
     "joint_dist.json": lint_joint_dist_json,
     "gate_report.json": lint_gate_report_json,
@@ -308,6 +338,13 @@ def main(argv: list[str]) -> int:
             missing = [k for k in REQUIRED_KEYS if k not in md]
             if missing:
                 failures.append((p, missing))
+            # Phase 04.1: ICHI panel column-presence check (block_timestamp required).
+            # Scope to data/raw/ichi/ panels only; non-ICHI panels (synthetic, Steer in
+            # future iter-2) are out of scope for this contract.
+            if "data/raw/ichi" in str(p):
+                col_errs = lint_ichi_panel_columns(p)
+                if col_errs:
+                    failures.append((p, col_errs))
 
     for fit_json_path in fit_report_paths:
         errors = lint_fit_report_json(fit_json_path)

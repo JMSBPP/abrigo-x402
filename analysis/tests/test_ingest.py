@@ -70,3 +70,50 @@ def test_load_jsonl_raises_on_null_blocknumber(tmp_path):
     bad.write_text('{"blockNumber":null,"blockHash":"0x1"}\n')
     with pytest.raises((ValueError, AssertionError)):
         load_jsonl(bad)
+
+
+def test_block_timestamp_present_and_int64():
+    """PANEL-01 ext (Phase 04.1): block_timestamp column is materialized as Int64."""
+    df = load_jsonl(JSONL)
+    assert "block_timestamp" in df.columns
+    assert df.schema["block_timestamp"] == pl.Int64
+    assert df["block_timestamp"].null_count() == 0
+
+
+def test_block_timestamp_hex_parse_raises_on_null(tmp_path):
+    """PANEL-01 ext (Phase 04.1): null timeStamp in JSONL raises ValueError at the
+    upstream `_hex_to_int(None)` raise path (BEFORE DataFrame construction).
+    Exercises the FIRST of two defense-in-depth code paths."""
+    bad = tmp_path / "bad_timestamp.jsonl"
+    bad.write_text('{"blockNumber":"0x1","blockHash":"0x1","transactionHash":"0x1","logIndex":"0x0","address":"0x1","topics":[],"data":"0x","timeStamp":null}\n')
+    with pytest.raises(ValueError):
+        load_jsonl(bad)
+
+
+def test_block_timestamp_post_df_null_count_raises(tmp_path, monkeypatch):
+    """PANEL-01 ext (Phase 04.1): defense-in-depth — even if `_hex_to_int` is bypassed
+    and a null `block_timestamp` slips into the constructed DataFrame, the post-DataFrame
+    `df["block_timestamp"].null_count() > 0` guard fires with the exact zero-null-invariant
+    error string. Exercises the SECOND defense-in-depth code path (the post-DF guard),
+    NOT the upstream `_hex_to_int(None)` raise. Monkeypatches `pl.DataFrame` in the
+    ingest module to inject a null cell into the `block_timestamp` column AFTER row-dict
+    construction; the post-DF guard MUST fire with the canonical error string."""
+    import polars as pl
+    from abrigo_x402 import ingest as ingest_mod
+
+    real_df_ctor = pl.DataFrame
+
+    def df_with_injected_null(rows, schema=None, **kwargs):
+        df = real_df_ctor(rows, schema=schema, **kwargs)
+        if "block_timestamp" in df.columns and df.height > 0:
+            new_col = pl.Series(
+                "block_timestamp",
+                [None] + df["block_timestamp"].to_list()[1:],
+                dtype=pl.Int64,
+            )
+            df = df.with_columns(new_col)
+        return df
+
+    monkeypatch.setattr(ingest_mod.pl, "DataFrame", df_with_injected_null)
+    with pytest.raises(ValueError, match=r"null block_timestamp in JSONL row .PANEL-01 zero-null invariant."):
+        ingest_mod.load_jsonl(JSONL)

@@ -20,7 +20,7 @@ import polars as pl
 
 DEFAULT_FINALITY_LAG = 120
 
-PROVENANCE_COLS = ("blockNumber", "blockHash", "logIndex", "txHash", "contractAddress")
+PROVENANCE_COLS = ("blockNumber", "blockHash", "logIndex", "txHash", "contractAddress", "block_timestamp")
 
 
 def _hex_to_int(s: str | int | None) -> int:
@@ -65,6 +65,7 @@ def load_jsonl(cache_path: str | Path) -> pl.DataFrame:
                     ).lower(),
                     "topics": row.get("topics", []),
                     "data": row.get("data", ""),
+                    "block_timestamp": _hex_to_int(row.get("timeStamp")),
                 }
             )
     df = pl.DataFrame(
@@ -77,11 +78,14 @@ def load_jsonl(cache_path: str | Path) -> pl.DataFrame:
             "contractAddress": pl.String,
             "topics": pl.List(pl.String),
             "data": pl.String,
+            "block_timestamp": pl.Int64,
         },
     )
-    # Enforce zero-null invariant on blockNumber (PANEL-01 must-have).
+    # Enforce zero-null invariant on blockNumber + block_timestamp (PANEL-01 must-have; extended Phase 04.1 for Phase 3 DGP fit input contract).
     if df["blockNumber"].null_count() > 0:
         raise ValueError("PANEL-01: null blockNumber in ingested DataFrame")
+    if df["block_timestamp"].null_count() > 0:
+        raise ValueError("null block_timestamp in JSONL row (PANEL-01 zero-null invariant)")
     return df
 
 
