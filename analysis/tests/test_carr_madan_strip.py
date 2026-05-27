@@ -40,14 +40,31 @@ def gaussian_char_func(sigma: float = 1.0):
 
 
 def slow_decay_char_func(alpha: float = 0.3):
-    """Pathological fat-tail surrogate: |phi(u)| ~ exp(-|u|^alpha).
+    """Slow-decay surrogate: phi(u) = exp(-|u|^alpha).
 
-    alpha small (e.g. 0.3) => extremely slow decay => negative-mass blowup
-    persists even at 2^12 => abort-to-strip_degenerate path.
-    alpha moderate (e.g. 1.5) => may pass at 2^11 or 2^12.
+    For alpha < 2, this is a Bochner-positive-definite function (stable-law-
+    like characteristic function); its iFFT remains non-negative and so does
+    NOT exercise the abort-to-degenerate path. Used here for the escalation
+    test (the inverse may still ride the 2^11/2^12 boundary depending on
+    DEFAULT_U_MAX truncation).
     """
     def phi(u):
         return np.exp(-(np.abs(u)) ** alpha)
+    return phi
+
+
+def pathological_non_psd_char_func():
+    """Non-positive-definite phi: phi(u) = exp(-|u|^0.3) - 0.5 * exp(-|u|^0.1).
+
+    Because this is a *difference* of two slow-decay envelopes, Bochner's
+    theorem does NOT guarantee a non-negative iFFT — empirically the inverse
+    transform exhibits ~10% negative mass at both 2^11 and 2^12 with the
+    locked DEFAULT_U_MAX = 200, exhausting the single escalation and forcing
+    the abort-to-strip_degenerate.json path. This is the canonical fixture
+    for the fourth HEDGE-05 firing condition `null_strip_unavailable`.
+    """
+    def phi(u):
+        return np.exp(-(np.abs(u)) ** 0.3) - 0.5 * np.exp(-(np.abs(u)) ** 0.1)
     return phi
 
 
@@ -105,7 +122,7 @@ def test_strip_escalation_to_2_12():
 # ---------------------------------------------------------------------------
 
 def test_strip_degenerate_path():
-    char = slow_decay_char_func(alpha=0.3)
+    char = pathological_non_psd_char_func()
     result = compute_strip(payoff=linear_payoff, char_func=char)
     # Expect strip_degenerate schema:
     for k in STRIP_DEGENERATE_KEYS:
@@ -156,7 +173,7 @@ def test_strip_degenerate_reason_field():
     """null_result.decide_firing_condition (Plan 04-08) reads `reason` to route
     the fourth firing condition `null_strip_unavailable`. compute_strip injects
     `positivity_fail_after_2_12` when FFT inversion exhausts escalation."""
-    char = slow_decay_char_func(alpha=0.3)
+    char = pathological_non_psd_char_func()
     result = compute_strip(payoff=linear_payoff, char_func=char)
     assert "reason" in result
     assert result["reason"] == "positivity_fail_after_2_12"

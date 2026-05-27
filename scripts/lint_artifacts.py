@@ -150,11 +150,14 @@ STRIP_REQUIRED_KEYS = frozenset({
 })
 
 # Sync source: analysis/src/abrigo_x402/hedge/carr_madan_strip.py :: STRIP_DEGENERATE_KEYS
+# iter-3 Issue 1: `reason` field added for fourth-firing-condition routing
+# (null_strip_unavailable) in null_result.decide_firing_condition.
 STRIP_DEGENERATE_REQUIRED_KEYS = frozenset({
     "chainId", "contractAddress", "blockRange",
     "fetchTimestamp", "dataHash", "gitCommit", "run_id",
     "max_negative_value", "total_negative_mass",
     "characteristic_function_decay_rate", "recommended_method",
+    "reason",
 })
 
 
