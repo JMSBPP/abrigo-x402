@@ -242,7 +242,7 @@
 | 0. Candidate Eligibility & Pre-Registration | 7/7 | Complete    | 2026-05-25 | 2026-05-25 |
 | 1. L1 Data-Fetch Skeleton | 9/9 | Complete    | 2026-05-26 | 2026-05-26 |
 | 2. Panel Build (ICHI cKES/USDT) | 10/11 | Complete    | 2026-05-26 | - |
-| 3. DGP Estimation | 0/0 | Not started | pending / pending | - |
+| 3. DGP Estimation | 1/9 | In Progress | pending / pending | - |
 | 4. Dependence + Falsification + Strip | 0/0 | Not started | pending / pending | - |
 | 5. Reporting + Iteration-1 PDF | 0/0 | Not started | pending / pending | - |
 | 6. Iteration-2 Steer Swap | 0/0 | Not started | pending / pending | - |

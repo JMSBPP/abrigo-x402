@@ -33,12 +33,12 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 ### DGP estimation (L4)
 
-- [ ] **DGP-01**: Pipeline must fit a non-homogeneous Poisson process via Kirchner 2015 INAR(p) on `statsmodels.tsa.api.VAR` with non-negativity projection; implementation validated against `tick.hawkes.SimuHawkesExpKernels` synthetic data within tolerance before any production fit
-- [ ] **DGP-02**: Pipeline must fit a multivariate Hawkes process via `tick.HawkesExpKern` with the full off-diagonal excitation matrix (no diagonal-only shortcut that masks cross-leg self-excitation)
-- [ ] **DGP-03**: Pipeline must perform the NHPP-vs-Hawkes likelihood-ratio test with the 50:50 χ²(0):χ²(1) mixture as the null distribution (per Filimonov & Sornette 2014, Wheatley ETH thesis, arxiv 2410.05008); bootstrap-LR rig must be used; vanilla `statsmodels.likelihood_ratio_test` is rejected
-- [ ] **DGP-04**: Pipeline must run a held-out temporal evaluation (train/test split by time) and report out-of-sample log-likelihood for both models; in-sample fit alone is insufficient
-- [ ] **DGP-05**: Pipeline must run the Brown et al. 2002 time-rescaling KS test on Hawkes residuals; failure to reject under NHPP rescaling is required before claiming the data is fit
-- [ ] **DGP-06**: Pipeline must report branching-ratio confidence intervals via profile likelihood, not Hessian standard errors (per PITFALLS §4)
+- [x] **DGP-01**: Pipeline must fit a non-homogeneous Poisson process via Kirchner 2015 INAR(p) on `statsmodels.tsa.api.VAR` with non-negativity projection; implementation validated against `tick.hawkes.SimuHawkesExpKernels` synthetic data within tolerance before any production fit
+- [x] **DGP-02**: Pipeline must fit a multivariate Hawkes process via `tick.HawkesExpKern` with the full off-diagonal excitation matrix (no diagonal-only shortcut that masks cross-leg self-excitation)
+- [x] **DGP-03**: Pipeline must perform the NHPP-vs-Hawkes likelihood-ratio test with the 50:50 χ²(0):χ²(1) mixture as the null distribution (per Filimonov & Sornette 2014, Wheatley ETH thesis, arxiv 2410.05008); bootstrap-LR rig must be used; vanilla `statsmodels.likelihood_ratio_test` is rejected
+- [x] **DGP-04**: Pipeline must run a held-out temporal evaluation (train/test split by time) and report out-of-sample log-likelihood for both models; in-sample fit alone is insufficient
+- [x] **DGP-05**: Pipeline must run the Brown et al. 2002 time-rescaling KS test on Hawkes residuals; failure to reject under NHPP rescaling is required before claiming the data is fit
+- [x] **DGP-06**: Pipeline must report branching-ratio confidence intervals via profile likelihood, not Hessian standard errors (per PITFALLS §4)
 
 ### Cross-leg dependence (L5)
 
