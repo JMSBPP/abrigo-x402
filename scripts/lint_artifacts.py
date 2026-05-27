@@ -24,10 +24,12 @@ REQUIRED_KEYS = (
     "gitCommit",
 )
 
-# Phase 3 fit_report.json SC-1 metadata header — same six keys as the
-# Parquet panel footer, surfaced at top-level of the JSON document.
-# Wave 2 plan 03-07 lands the artifact at data/fits/**/fit_report.json;
-# until then this loop is dormant (no JSON files to find -> no errors).
+# Phase 3 fit_report.json SC-1 schema. Plan 03-07 (orchestrator) lands the
+# artifact at data/fits/**/fit_report.json. The schema is mirrored verbatim
+# from analysis/src/abrigo_x402/dgp/orchestrator.py :: REQUIRED_FIT_REPORT_KEYS;
+# both sources are kept in sync manually.
+#
+# The six top-level metadata-header keys (PANEL-02 baseline carried into SC-1):
 FIT_REPORT_REQUIRED_KEYS = frozenset({
     "chainId",
     "contractAddress",
@@ -37,10 +39,40 @@ FIT_REPORT_REQUIRED_KEYS = frozenset({
     "gitCommit",
 })
 
+# The full SC-1 top-level key set (12 additional Phase-3 result keys on top of
+# the six PANEL-02 metadata keys). `make lint-artifacts` exits non-zero on any
+# fit_report.json missing one or more of these.
+FIT_REPORT_SC1_KEYS = frozenset({
+    # Inherited PANEL-02 + Phase-3 provenance
+    "chainId",
+    "contractAddress",
+    "blockRange",
+    "fetchTimestamp",
+    "dataHash",
+    "gitCommit",
+    "run_id",
+    "tick_lib_version",
+    # DGP-01..06 result blocks
+    "nhpp_inar_params",
+    "hawkes_mv_params",
+    "lr_test",
+    "ks_rescaled_time",
+    "held_out_loglik",
+    "branching_ratio_ci",
+    "baseline_stationarity_check",
+    "input_diagnostics",
+    # Four-criterion gate output (CONTEXT.md <specifics>: present even on FAIL)
+    "gate_passes",
+    "gate_criteria",
+})
+
 
 def lint_fit_report_json(path: Path) -> list[str]:
-    """Verify SC-1 metadata-header keys exist at top level of fit_report.json.
-    Returns list of missing-key / invalid-JSON errors.
+    """Verify the SC-1 fit_report.json schema at the given path.
+
+    Checks BOTH the PANEL-02 metadata-header subset AND the full SC-1 top-level
+    key set. Returns list of error strings (empty on success). Caller aggregates
+    into the failure count + exit code.
     """
     import json
     try:
@@ -49,19 +81,59 @@ def lint_fit_report_json(path: Path) -> list[str]:
         return [f"{path}: invalid JSON ({exc})"]
     if not isinstance(payload, dict):
         return [f"{path}: fit_report.json root must be an object, got {type(payload).__name__}"]
-    missing = FIT_REPORT_REQUIRED_KEYS - set(payload.keys())
-    if missing:
-        return [f"{path}: missing required SC-1 metadata keys: {sorted(missing)}"]
-    return []
+    errors: list[str] = []
+    missing_header = FIT_REPORT_REQUIRED_KEYS - set(payload.keys())
+    if missing_header:
+        errors.append(
+            f"{path}: missing required PANEL-02 metadata-header keys: {sorted(missing_header)}"
+        )
+    missing_sc1 = FIT_REPORT_SC1_KEYS - set(payload.keys())
+    if missing_sc1:
+        errors.append(
+            f"{path}: missing required SC-1 keys: {sorted(missing_sc1)}"
+        )
+    return errors
+
+
+def lint_fit_reports(root: Path) -> list[tuple[Path, list[str]]]:
+    """Glob `data/fits/**/fit_report.json` under `root` and lint each.
+
+    Returns list of (path, errors) tuples; an empty list means every fit_report.json
+    passed (or none were found, which is also a pass — the loop is dormant pre-
+    Wave-2).
+    """
+    failures: list[tuple[Path, list[str]]] = []
+    for fit_report in sorted(root.glob("data/fits/**/fit_report.json")):
+        errs = lint_fit_report_json(fit_report)
+        if errs:
+            failures.append((fit_report, errs))
+    return failures
+
+
+def _find_repo_root(start: Path) -> Path:
+    """Walk up from `start` until a directory containing `data/` is found.
+
+    Phase 2's `make lint-artifacts` cd's into `analysis/` before running this
+    script (so the polars import resolves under the uv-managed venv). The fit
+    report sweep must scan the repo's top-level `data/fits/**`, NOT the
+    nested `analysis/data/fits/**`. Walking up from CWD or from the script
+    file resolves the ambiguity.
+    """
+    for parent in (start, *start.parents):
+        # Heuristic: repo root contains data/ AND .planning/ (or .git/).
+        if (parent / "data").is_dir() and (
+            (parent / ".planning").is_dir() or (parent / ".git").exists()
+        ):
+            return parent
+    # Fall back to CWD so the previous behavior is preserved when neither marker exists.
+    return start
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) < 2:
-        print("usage: lint_artifacts.py <path>...", file=sys.stderr)
-        return 1
-
     # Resolve globs (shells like dash don't expand patterns the way bash/zsh do,
-    # and Makefile recipes may pass an unexpanded glob if no files match).
+    # and Makefile recipes may pass an unexpanded glob if no files match). Empty
+    # argv is OK — the script still runs the fit_report.json sweep so that the
+    # Makefile lint-artifacts target can be invoked when only fit artifacts exist.
     paths: list[Path] = []
     for arg in argv[1:]:
         matched = glob.glob(arg)
@@ -75,9 +147,9 @@ def main(argv: list[str]) -> int:
     parquet_paths = [p for p in paths if p.suffix == ".parquet" and p.exists()]
 
     # Phase 3 fit_report.json sweep: discover any data/fits/**/fit_report.json
-    # under the current working directory. Loop is dormant until Wave 2 plan
-    # 03-07 lands the artifact (no JSON files -> no errors raised).
-    repo_root = Path.cwd()
+    # under the REPO ROOT (walking up from CWD so the sweep works from both the
+    # repo root and from analysis/ where Makefile cd's before invoking us).
+    repo_root = _find_repo_root(Path.cwd())
     fit_report_paths = sorted(repo_root.glob("data/fits/**/fit_report.json"))
 
     if not parquet_paths and not fit_report_paths:
@@ -110,6 +182,8 @@ def main(argv: list[str]) -> int:
     for fit_json_path in fit_report_paths:
         errors = lint_fit_report_json(fit_json_path)
         if errors:
+            # One row per failing file; the errors list may have multiple
+            # entries (e.g. both missing header keys AND missing SC-1 keys).
             failures.append((fit_json_path, errors))
 
     if failures:

@@ -121,6 +121,34 @@ def materialize(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_fit(args: argparse.Namespace) -> int:
+    """Phase-3 DGP fit subcommand (Plan 03-07).
+
+    Invokes the run_fit orchestrator on a Phase-2 panel parquet and prints a
+    JSON summary of the resulting fit_report.json + residuals.parquet pair.
+    """
+    import json as _json
+
+    from .dgp.orchestrator import run_fit
+
+    out = run_fit(
+        panel_path=args.panel_path,
+        out_dir=args.out_dir,
+        bootstrap_reps=args.bootstrap_reps,
+    )
+    print(
+        _json.dumps(
+            {
+                "run_id": out.run_id,
+                "fit_report_path": str(out.fit_report_path),
+                "residuals_path": str(out.residuals_path),
+                "gate_passes": out.fit_report.get("gate_passes"),
+            }
+        )
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="abrigo_x402")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -135,6 +163,40 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--protocol-toml", default="protocols/ichi.toml")
     m.add_argument("--forno-head", default=None)
     m.set_defaults(func=materialize)
+
+    # Phase-3 DGP fit subcommand (Plan 03-07). Production locks bootstrap_reps
+    # to 1000 per PRE_REGISTRATION (AF-04 hand-tuning hazard); the CLI exposes
+    # a dev-only override so unit-test smoke runs and the SC-3 diagnostic
+    # render can complete in seconds rather than minutes.
+    fit_parser = sub.add_parser(
+        "fit",
+        help="run DGP NHPP+Hawkes fit on a Phase-2 panel parquet",
+    )
+    fit_parser.add_argument(
+        "--pool",
+        required=True,
+        help="Pool address (informational; provenance comes from the panel parquet)",
+    )
+    fit_parser.add_argument(
+        "--panel-path",
+        required=True,
+        help="Path to data/raw/<protocol>/<pool>/<block_range>.parquet",
+    )
+    fit_parser.add_argument(
+        "--out-dir",
+        required=True,
+        help="Output directory; <out-dir>/<run_id>/{fit_report.json,residuals.parquet}",
+    )
+    fit_parser.add_argument(
+        "--bootstrap-reps",
+        type=int,
+        default=1000,
+        help=(
+            "DEV-ONLY override; production locks to 1000 per "
+            "PRE_REGISTRATION AF-04"
+        ),
+    )
+    fit_parser.set_defaults(func=_cmd_fit)
 
     ns = parser.parse_args(argv)
     return ns.func(ns)

@@ -1,0 +1,10 @@
+# Phase 3 fit artifacts (Plan 03-07).
+#
+# Per-run fit_report.json + residuals.parquet artifacts re-materialize
+# deterministically from the Phase-2 panel (run_id = sha256 of panel +
+# code + tick version, per CONTEXT.md). Only the manifest is committed.
+# Mirrors the data/raw/.gitignore allowlist pattern from Phase 2.
+
+*
+!.gitignore
+!manifest.json

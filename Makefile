@@ -65,16 +65,21 @@ fetch-ichi:
 # walks data/raw/ichi/ recursively rather than restricting to a single
 # subdirectory.
 lint-artifacts:
-	@echo "lint-artifacts: scanning data/raw/ichi/ for PANEL-02 headers..."
-	@if [ -d data/raw/ichi ]; then \
+	@echo "lint-artifacts: scanning data/raw/ichi/ for PANEL-02 + data/fits/ for SC-1..."
+	@PARQUETS=""; \
+	if [ -d data/raw/ichi ]; then \
 	  PARQUETS=$$(find data/raw/ichi -name "*.parquet" 2>/dev/null); \
-	  if [ -z "$$PARQUETS" ]; then \
-	    echo "lint-artifacts: no panel artifacts yet (no *.parquet under data/raw/ichi/) — skipping"; \
-	  else \
-	    cd analysis && uv run python ../scripts/lint_artifacts.py $$(echo $$PARQUETS | sed 's| | ../|g; s|^|../|'); \
-	  fi; \
+	fi; \
+	FIT_REPORTS=""; \
+	if [ -d data/fits ]; then \
+	  FIT_REPORTS=$$(find data/fits -name "fit_report.json" 2>/dev/null); \
+	fi; \
+	if [ -z "$$PARQUETS" ] && [ -z "$$FIT_REPORTS" ]; then \
+	  echo "lint-artifacts: no panel artifacts or fit_report.json yet — skipping"; \
 	else \
-	  echo "lint-artifacts: no panel artifacts yet (data/raw/ichi/ absent) — skipping"; \
+	  ARGS=""; \
+	  [ -n "$$PARQUETS" ] && ARGS="$$ARGS $$(echo $$PARQUETS | sed 's| | ../|g; s|^|../|')"; \
+	  cd analysis && uv run python ../scripts/lint_artifacts.py $$ARGS; \
 	fi
 
 # FETCH-04 cache-byte-identity invariant. Two consecutive runs of the same
