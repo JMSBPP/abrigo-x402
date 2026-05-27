@@ -148,17 +148,18 @@
   4. Three-way joint stress test: `hedge/stress_test.py` outputs `stress_report.json` with strip prices under `{independence, fitted_joint, comonotone}` scenarios; divergence is reported as a percentage spread; large divergence (>30%) is flagged in the report build.
   5. HEDGE-05 null-result template (`reports/_templates/null_result.md`) exists and is wired such that when **any** of the three firing conditions occurs — (a) Phase-0 cost-leg gate fails (REPRO-03 threshold from `PRE_REGISTRATION.md`), (b) DGP-03 LR test is indistinguishable at α=0.05, (c) HEDGE-01 finds zero convex-dominance conditions pass — the template fires automatically and `reports/ichi.pdf` becomes a documented null-result PDF. **Three fixture sets** at `analysis/tests/fixtures/hedge_05_{null_cost,null_lr,null_convex}/` each force one firing condition (synthetic `fit_report.json` + `gate_report.json` + `cost_leg_bound.md` triplet per fixture); `pytest analysis/tests/test_null_result_template.py` confirms `reports/ichi.pdf` is regenerated as a null-result PDF in each case (verified by grep on the rendered PDF text for the null-result template's signature header).
   6. USDT-depeg jump-leg calibration source is documented in `notes/usdt_depeg_calibration.md` — either a USDT-specific Merton/Kou calibration with primary-source citations OR an explicit methodological-port assumption with bounded sensitivity analysis attached.
-**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
-- [x] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold) ✓ commits 07edf46+d418a5a+36f298b
-- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
-- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
-- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
-- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
-- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
-- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
-- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
-- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
-- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
+**Plans**: 11 plans (Wave 0a: pre PRE_REGISTRATION amendment SOLO COMMIT (HEDGE-02 AF-03 precondition); Wave 0: 00 scaffold dependence/ + hedge/ modules + 3 HEDGE-05 fixture triplets + Quarto template + lint-artifacts five-track + 4 pre-commit grep gates + copulae==0.8.0 dep; Wave 1: 01 cross_correlogram_event_index (DEPEND-01), 02 permutation_null_max_abs_rho (DEPEND-01), 03 fit_5_families_bic + lint_joint_dist_json (DEPEND-01/02), 04 four-condition gate (HEDGE-01 SC-2 USDT + Pattern F canonical-LL + literature_range_stipulation), 05 Carr-Madan FFT + 2^11→2^12 escalation + abort-to-strip_degenerate (HEDGE-02), 06 USDT depeg calibration doc + load_calibration + LHS N=64 (HEDGE-03), 07 three-way stress test (HEDGE-04 Frechet upper bound, 30% flag-only); Wave 2: 08 run_hedge orchestrator + hedge CLI subcommand + HEDGE-05 firing decision + Quarto PDF render (DEPEND-01/02 + HEDGE-01..05); Wave 3: 09 acceptance gate + 04-VERIFICATION-pre.md + manual production-rep)
+- [ ] 04-pre-PLAN.md — notes/PRE_REGISTRATION.md AF-03 amendment (Carr-Madan 0.1% positivity tolerance, SOLO COMMIT, HEDGE-02 precondition)
+- [ ] 04-00-PLAN.md — dependence/ + hedge/ module scaffold + 3 HEDGE-05 fixture triplets + Quarto template + lint-artifacts five-track + 4 pre-commit grep gates + copulae==0.8.0 (Wave 0)
+- [ ] 04-01-PLAN.md — cross_correlogram_event_index on residuals.parquet :: rescaled_dt (DEPEND-01)
+- [ ] 04-02-PLAN.md — permutation_null_max_abs_rho 1000-rep within-window shuffle (DEPEND-01)
+- [ ] 04-03-PLAN.md — fit_5_families_bic via copulae==0.8.0 + lint_joint_dist_json (DEPEND-01/02; vine fallback deferred)
+- [ ] 04-04-PLAN.md — four-condition convex-dominance gate (HEDGE-01; SC-2 USDT framing; Pattern F canonical-LL; literature_range_stipulation source)
+- [ ] 04-05-PLAN.md — Carr-Madan FFT strip + 2^11→2^12 escalation + abort-to-strip_degenerate (HEDGE-02; polymorphic payoff per RESEARCH Pattern 5)
+- [ ] 04-06-PLAN.md — notes/usdt_depeg_calibration.md (literature_range_stipulation non-citation discipline) + load_calibration + generate_lhs_samples N=64 (HEDGE-03)
+- [ ] 04-07-PLAN.md — run_three_way_stress (independence + fitted_joint + comonotone Frechet upper bound, divergence_flag at 30%) (HEDGE-04)
+- [ ] 04-08-PLAN.md — run_hedge orchestrator + hedge CLI subcommand + HEDGE-05 firing decision + Quarto null-result PDF (DEPEND-01/02 + HEDGE-01..05)
+- [ ] 04-09-PLAN.md — Phase 4 acceptance gate + 04-VERIFICATION-pre.md (16-row grid + manual production-rep on real ICHI panel)
 
 ### Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)
 **Goal**: Ship the Iteration-1 PDF deliverable (`reports/ichi.pdf`) via Quarto/nbconvert with the spot-check checklist, cost-leg prior sensitivity sweep, and reproducibility manifest — completing Iteration 1 with either a positive convex-hedge result or a documented null-result, in PDF form (per memory `feedback_pdf_deliverable.md`).
@@ -243,7 +244,7 @@
 | 1. L1 Data-Fetch Skeleton | 9/9 | Complete    | 2026-05-26 | 2026-05-26 |
 | 2. Panel Build (ICHI cKES/USDT) | 10/11 | Complete    | 2026-05-26 | - |
 | 3. DGP Estimation | 9/9 | Complete    | 2026-05-27 | - |
-| 4. Dependence + Falsification + Strip | 0/0 | Not started | pending / pending | - |
+| 4. Dependence + Falsification + Strip | 0/11 | Planned     | pending / pending | - |
 | 5. Reporting + Iteration-1 PDF | 0/0 | Not started | pending / pending | - |
 | 6. Iteration-2 Steer Swap | 0/0 | Not started | pending / pending | - |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
