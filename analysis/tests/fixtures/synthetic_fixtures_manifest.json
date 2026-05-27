@@ -1,0 +1,53 @@
+{
+  "capture_phase": "03-00",
+  "polars_version": "1.41.0",
+  "synthetic_hawkes_eta_05": {
+    "adjacency": [
+      [
+        0.025,
+        0.025
+      ],
+      [
+        0.025,
+        0.025
+      ]
+    ],
+    "baseline": [
+      0.00013,
+      0.00013
+    ],
+    "decays": 0.1,
+    "end_time_seconds": 2592000.0,
+    "expected_branching_ratio": 0.5,
+    "n_leg_0": 354,
+    "n_leg_1": 332,
+    "path": "/home/jmsbpp/apps/d2p/abrigo/abrigo-x402/analysis/tests/fixtures/synthetic_hawkes_eta_05.parquet",
+    "seed": 20260526,
+    "sha256": "3bc7eb46872a615e62cd5c66a8e845a075cee3fbdb9ef626b4c7f0d7bc7e10bc"
+  },
+  "synthetic_nhpp_baseline_only": {
+    "adjacency": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ]
+    ],
+    "baseline": [
+      0.00013,
+      0.00013
+    ],
+    "decays": 0.1,
+    "end_time_seconds": 2592000.0,
+    "expected_branching_ratio": 0.0,
+    "n_leg_0": 337,
+    "n_leg_1": 316,
+    "path": "/home/jmsbpp/apps/d2p/abrigo/abrigo-x402/analysis/tests/fixtures/synthetic_nhpp_baseline_only.parquet",
+    "seed": 20260527,
+    "sha256": "5897776b1de6432bbeda024dbae2d719df91c265c8d293bcd44c74ce50bdc1c9"
+  },
+  "tick_version": "0.8.0.2"
+}
