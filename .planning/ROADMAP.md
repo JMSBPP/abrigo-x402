@@ -166,7 +166,7 @@
 **Goal:** Close the Phase 2→Phase 3 column-wire gap surfaced in Plan 04-09. Backport `block_timestamp` into the Phase 2 ingest path (`analysis/src/abrigo_x402/ingest.py`), regenerate the real ICHI cKES/USDT panel from cached JSONL sidecars (no Forno/Blockscout re-fetch), rerun Phase 3 fit + Phase 4 production rep on the augmented real panel, and append a side-by-side synthetic-vs-real comparison to `04-VERIFICATION-pre.md` so Phase 5 PDF deliverable consumes real-data findings as canonical v1.0 substrate (synthetic `0afc6af38e24` archived as methodology-validation evidence).
 **Requirements**: (no new IDs; re-validates existing PANEL-01 zero-null invariant + DEPEND-01/02 + HEDGE-01..05 on real data)
 **Depends on:** Phase 4
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 04.1-00-PLAN.md — ingest.py PROVENANCE_COLS + block_timestamp Int64 + zero-null invariant extension + 2 sanity tests + 2 fixture extensions + scripts/lint_artifacts.py ICHI_PANEL_REQUIRED_COLUMNS
