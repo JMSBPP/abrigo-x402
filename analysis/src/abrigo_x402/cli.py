@@ -149,6 +149,34 @@ def _cmd_fit(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_hedge(args: argparse.Namespace) -> int:
+    """Phase-4 hedge orchestrator subcommand (Plan 04-08).
+
+    Single `hedge` subcommand with `--stage` flag per CONTEXT.md Claude's
+    Discretion -- one subcommand keeps the orchestrator surface simpler than
+    four per-stage subcommands; the `--stage` choice still allows step-by-step
+    debugging.
+
+    Invokes `run_hedge(run_id, stage=...)` and prints a JSON summary of the
+    resulting artifact paths + firing_condition.
+    """
+    import json as _json
+
+    # Absolute import for symbol-surface acceptance grep (Plan 04-08 §verify):
+    #   grep -q "from abrigo_x402.hedge.orchestrator import run_hedge"
+    from abrigo_x402.hedge.orchestrator import run_hedge
+
+    result = run_hedge(
+        run_id=args.run_id,
+        stage=args.stage,
+        run_dir_root=Path(args.run_dir_root),
+        cost_leg_bound_path=Path(args.cost_leg_bound) if args.cost_leg_bound else None,
+        reports_pdf=Path(args.reports_pdf),
+    )
+    print(_json.dumps(result, indent=2, default=str))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="abrigo_x402")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -197,6 +225,41 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     fit_parser.set_defaults(func=_cmd_fit)
+
+    # Phase-4 hedge subcommand (Plan 04-08). Single subcommand with --stage
+    # flag per CONTEXT.md Claude's Discretion. Six stage values cover the
+    # five Phase-4 artifacts plus the composite 'all' (default).
+    hedge_parser = sub.add_parser(
+        "hedge",
+        help="Phase-4 hedge orchestrator: dependence + gate + strip + stress + null-result PDF",
+    )
+    hedge_parser.add_argument(
+        "--run-id",
+        required=True,
+        help="Phase-3 run identifier; reads data/fits/ichi/<run_id>/fit_report.json + residuals.parquet",
+    )
+    hedge_parser.add_argument(
+        "--stage",
+        default="all",
+        choices=["dependence", "gate", "strip", "stress", "null", "all"],
+        help="Run a single stage or the full pipeline (default: all)",
+    )
+    hedge_parser.add_argument(
+        "--run-dir-root",
+        default="data/fits/ichi",
+        help="Per-protocol fits root (default: data/fits/ichi; Steer iter-2 passes data/fits/steer)",
+    )
+    hedge_parser.add_argument(
+        "--cost-leg-bound",
+        default=None,
+        help="Optional path to notes/<protocol>_cost_leg_bound.md for HEDGE-05 firing condition (a)",
+    )
+    hedge_parser.add_argument(
+        "--reports-pdf",
+        default="reports/ichi.pdf",
+        help="Output PDF path (default: reports/ichi.pdf); only written when HEDGE-05 fires",
+    )
+    hedge_parser.set_defaults(func=_cmd_hedge)
 
     ns = parser.parse_args(argv)
     return ns.func(ns)
