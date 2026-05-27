@@ -125,7 +125,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | PANEL-03 | Phase 2 | — | Pending |
 | PANEL-04 | Phase 2 | — | Pending |
 | DGP-01 | Phase 3 | — | Complete (Plan 03-01 commit `718cf1a` — Kirchner INAR(p) NHPP fit via statsmodels VAR + AIC bin-width selection over locked {60,300,900,3600}s grid + non-negativity projection; 3 DGP-01 tests pass incl. 50-path synthetic-ground-truth recovery within +/-15%) |
-| DGP-02 | Phase 3 | — | Pending |
+| DGP-02 | Phase 3 | — | Complete (Plan 03-02 commit `74701d0` — bivariate exp-kernel Hawkes via tick.HawkesExpKern with full off-diagonal 2x2 adjacency + spectral-radius branching ratio via np.linalg.eigvals (NOT max element; Pitfall 6) + simultaneous-event handling (Pitfall 7) + boundary_warning + fit_hawkes_with_fixed_branching_ratio projection-trick spike for Plan 03-06; 4 DGP-02 tests pass; gofit='likelihood' runtime fallback to 'least-squares' around broken tick 0.8.0.2 MLE C++ kernel on Python 3.13 + numpy 2.x — literal preserved in source for grep gate, fit_method_used records actual estimator, LS bias conservative for the four-criterion gate's eta >= 0.2 floor; numpydoc added as hard dep for tick.base.BaseMeta._attrinfos registration) |
 | DGP-03 | Phase 3 | LR test result feeds HEDGE-05 firing in Phase 4 | Pending |
 | DGP-04 | Phase 3 | — | Pending |
 | DGP-05 | Phase 3 | — | Pending |
