@@ -244,7 +244,7 @@
 | 1. L1 Data-Fetch Skeleton | 9/9 | Complete    | 2026-05-26 | 2026-05-26 |
 | 2. Panel Build (ICHI cKES/USDT) | 10/11 | Complete    | 2026-05-26 | - |
 | 3. DGP Estimation | 9/9 | Complete    | 2026-05-27 | - |
-| 4. Dependence + Falsification + Strip | 0/11 | Planned     | pending / pending | - |
+| 4. Dependence + Falsification + Strip | 8/11 | In Progress|  | - |
 | 5. Reporting + Iteration-1 PDF | 0/0 | Not started | pending / pending | - |
 | 6. Iteration-2 Steer Swap | 0/0 | Not started | pending / pending | - |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
