@@ -344,48 +344,90 @@ def run_hedge(
 
     # ----- Dependence (DEPEND-01) -----
     if stage in {"dependence", "all"}:
-        xcorr = cross_correlogram_event_index(leg_0, leg_1)
-        perm = permutation_null_max_abs_rho(leg_0, leg_1)
-        # Rule-1 fix (Plan 04-09 production-rep): copulae u_data must have equal
-        # row counts across columns; truncate to min(len(leg_0), len(leg_1))
-        # using the same Bowsher-2007 convention cross_correlogram applies
-        # internally. Without this, real (held-out) residuals with even
-        # one-event leg differences trip np.column_stack.
-        _n_u = min(len(leg_0), len(leg_1))
-        _leg_0_u = leg_0[:_n_u]
-        _leg_1_u = leg_1[:_n_u]
-        u_data = np.column_stack(
-            [
-                (np.argsort(np.argsort(_leg_0_u)) + 1) / (max(_n_u, 1) + 1),
-                (np.argsort(np.argsort(_leg_1_u)) + 1) / (max(_n_u, 1) + 1),
-            ]
-        )
-        cop = fit_5_families_bic(u_data)
-        joint_dist = {
-            **prov,
-            "cross_correlogram": xcorr,
-            "permutation_null": {
-                "n_reps": perm["n_reps"],
-                "p_value": perm["p_value"],
-                "max_abs_rho_observed": perm["max_abs_rho_observed"],
-            },
-            "empirical_copula": {
-                "family": cop["winner"],
-                "params": cop["all_candidates"][cop["winner"]]["params"],
-                "bic": cop["all_candidates"][cop["winner"]]["bic"],
-                "all_candidates_bic": {
-                    f: cop["all_candidates"][f]["bic"] for f in cop["all_candidates"]
+        # Rule-3 fix (Plan 04.1-03 real-data rerun): when per-leg residual count
+        # falls below the DEPEND-01 lag-radius floor (n_min <= 2*max_lag+1 = 101
+        # for default max_lag=50), the cross-correlogram is mathematically
+        # undefined. The fail-loud ValueError from cross_correlogram_event_index
+        # is correct at the function level, but at the orchestrator level we
+        # want to route to the HEDGE-05 null-result firing tree (decide_firing_
+        # condition will fire null_lr from fit_report.lr_test.p_value >= 0.05,
+        # or null_strip_unavailable from the strip_degenerate.json that follows).
+        # Emit a degenerate joint_dist.json carrying the insufficient-sample
+        # diagnostic; strip stage will subsequently fail in
+        # _build_char_func_from_winner and route to strip_degenerate.json with
+        # reason="build_failed_upstream".
+        _n_min_check = min(len(leg_0), len(leg_1))
+        if _n_min_check <= 2 * 50 + 1:  # DEPEND-01 max_lag=50 floor
+            joint_dist = {
+                **prov,
+                "cross_correlogram": {"lags": [], "values": []},
+                "permutation_null": {
+                    "n_reps": 0,
+                    "p_value": float("nan"),
+                    "max_abs_rho_observed": float("nan"),
                 },
-            },
-            "vine_fallback_used": cop["vine_fallback_used"],
-        }
-        missing = [k for k in REQUIRED_JOINT_DIST_KEYS if k not in joint_dist]
-        if missing:
-            raise KeyError(f"joint_dist.json assembly bug: missing keys: {missing}")
-        (run_dir / "joint_dist.json").write_text(
-            json.dumps(joint_dist, indent=2, default=float)
-        )
-        results["artifacts"]["joint_dist"] = str(run_dir / "joint_dist.json")
+                "empirical_copula": {
+                    "family": "degenerate",
+                    "params": {},
+                    "bic": float("nan"),
+                    "all_candidates_bic": {},
+                },
+                "vine_fallback_used": False,
+                "degenerate_reason": (
+                    f"insufficient_sample: n_min={_n_min_check} <= 2*max_lag+1 = 101 "
+                    "(DEPEND-01 lag-radius floor); cross-correlogram undefined on "
+                    "real-data per-leg held-out residuals. HEDGE-05 firing tree handles."
+                ),
+            }
+            (run_dir / "joint_dist.json").write_text(
+                json.dumps(joint_dist, indent=2, default=float)
+            )
+            results["artifacts"]["joint_dist"] = str(run_dir / "joint_dist.json")
+            # Skip the cross_correlogram/copula path below.
+            xcorr = None  # noqa: F841 (sentinel; downstream stages don't read xcorr)
+        else:
+            xcorr = cross_correlogram_event_index(leg_0, leg_1)
+            perm = permutation_null_max_abs_rho(leg_0, leg_1)
+            # Rule-1 fix (Plan 04-09 production-rep): copulae u_data must have equal
+            # row counts across columns; truncate to min(len(leg_0), len(leg_1))
+            # using the same Bowsher-2007 convention cross_correlogram applies
+            # internally. Without this, real (held-out) residuals with even
+            # one-event leg differences trip np.column_stack.
+            _n_u = min(len(leg_0), len(leg_1))
+            _leg_0_u = leg_0[:_n_u]
+            _leg_1_u = leg_1[:_n_u]
+            u_data = np.column_stack(
+                [
+                    (np.argsort(np.argsort(_leg_0_u)) + 1) / (max(_n_u, 1) + 1),
+                    (np.argsort(np.argsort(_leg_1_u)) + 1) / (max(_n_u, 1) + 1),
+                ]
+            )
+            cop = fit_5_families_bic(u_data)
+            joint_dist = {
+                **prov,
+                "cross_correlogram": xcorr,
+                "permutation_null": {
+                    "n_reps": perm["n_reps"],
+                    "p_value": perm["p_value"],
+                    "max_abs_rho_observed": perm["max_abs_rho_observed"],
+                },
+                "empirical_copula": {
+                    "family": cop["winner"],
+                    "params": cop["all_candidates"][cop["winner"]]["params"],
+                    "bic": cop["all_candidates"][cop["winner"]]["bic"],
+                    "all_candidates_bic": {
+                        f: cop["all_candidates"][f]["bic"] for f in cop["all_candidates"]
+                    },
+                },
+                "vine_fallback_used": cop["vine_fallback_used"],
+            }
+            missing = [k for k in REQUIRED_JOINT_DIST_KEYS if k not in joint_dist]
+            if missing:
+                raise KeyError(f"joint_dist.json assembly bug: missing keys: {missing}")
+            (run_dir / "joint_dist.json").write_text(
+                json.dumps(joint_dist, indent=2, default=float)
+            )
+            results["artifacts"]["joint_dist"] = str(run_dir / "joint_dist.json")
 
     # ----- Falsification gate (HEDGE-01) -----
     if stage in {"gate", "all"}:
@@ -521,9 +563,36 @@ def run_hedge(
         )
         results["firing_condition"] = firing
         if firing is not None:
-            render_null_result_pdf(
-                firing, fit_report, gate_report_dict, output_path=reports_pdf
+            # Rule-3 fix (Plan 04.1-03 real-data rerun): quarto CLI may be
+            # unavailable in the executor environment (mirrors Plan 04-09's
+            # documented `quarto_skipped: true` posture). Persist the firing
+            # decision regardless so it is auditable from disk, then attempt
+            # the PDF render; on RuntimeError("quarto CLI not found ...")
+            # record a quarto_skipped sentinel and continue. The firing
+            # decision itself is the load-bearing scientific result;
+            # the PDF rendering is downstream cosmetic.
+            (run_dir / "firing_condition.json").write_text(
+                json.dumps(
+                    {
+                        **prov,
+                        "firing_condition": firing,
+                        "decided_by": "abrigo_x402.hedge.null_result.decide_firing_condition",
+                    },
+                    indent=2,
+                    default=float,
+                )
             )
-            results["artifacts"]["pdf"] = str(reports_pdf)
+            results["artifacts"]["firing_condition"] = str(run_dir / "firing_condition.json")
+            try:
+                render_null_result_pdf(
+                    firing, fit_report, gate_report_dict, output_path=reports_pdf
+                )
+                results["artifacts"]["pdf"] = str(reports_pdf)
+            except RuntimeError as e:
+                if "quarto CLI not found" in str(e):
+                    results["quarto_skipped"] = True
+                    results["quarto_skipped_reason"] = str(e).splitlines()[0]
+                else:
+                    raise
 
     return results

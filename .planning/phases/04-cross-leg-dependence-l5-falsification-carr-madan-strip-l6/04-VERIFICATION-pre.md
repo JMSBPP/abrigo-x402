@@ -14,6 +14,10 @@ production_rep_char_func_source: frank_sobol_qmc
 plan_file_mtime: 1779893398
 run_log_mtime: 1779907978
 created: 2026-05-27
+real_data_rerun_run_id: "ae9e3ba17900"
+real_data_rerun_artifacts_complete: true
+real_data_rerun_firing_condition: "null_lr"
+substrate_substitution_resolved: true
 ---
 
 # Phase 4 Plan 09 — Acceptance Gate Verification
@@ -99,6 +103,56 @@ The execution environment for this verification run does not have the `quarto` C
 | 04-07 | `dff34ff` | GREEN — three-way stress test (Frechet upper bound; divergence_flag at 30%). |
 | 04-08 | `8badf8c` + `4c11df8` | feat — HEDGE-05 firing decision + Quarto PDF render (Task 1); run_hedge + _build_char_func_from_winner + hedge CLI (Task 2). |
 | 04-09 | (this verification) | acceptance gate + manual production-rep on synthetic-substituted ICHI panel; verification_pass=true / quarto_skipped=true. |
+
+---
+
+## 04.1 Real-Data Rerun
+
+**Closed:** 2026-05-27 (Phase 04.1 gap-closure cycle)
+
+**Substrate substitution resolved.** The Plan 04-09 synthetic-stacked substrate substitution was driven by a Phase 2→Phase 3 column-wire gap on `block_timestamp`. Phase 04.1 backported the column into the Phase 2 ingest path (Plan 04.1-00), regenerated the real ICHI panel (Plan 04.1-01), reran the Phase 3 fit producing real-data run_id (Plan 04.1-02), and reran the Phase 4 hedge orchestrator on that real-data run_id (this plan).
+
+**New canonical run_id:** `ae9e3ba17900` — supersedes synthetic `0afc6af38e24` for Phase 5 v1.0 publication. The synthetic run is archived (NOT deleted) at `data/fits/ichi/0afc6af38e24/README.md` with a pointer forward to the real-data run_id.
+
+### Side-by-Side Comparison: Synthetic vs Real
+
+| Dimension | Synthetic substrate (`0afc6af38e24`) | Real panel (`ae9e3ba17900`) |
+|-----------|----------------------------------------|------------------------------|
+| firing_condition | `null` (positive-result path; no HEDGE-05 fire) | `null_lr` (HEDGE-05 condition (b): lr_test.p_value=0.58 ≥ α=0.05 → DGP indistinguishable from NHPP) |
+| BIC winner (`winner ± Δ`) | frank ± 0.009 (BIC 5.2705 vs Gaussian 5.2791; **Δ_BIC < 5 = noise-floor regime per `VINE_FALLBACK_DELTA_BIC_THRESHOLD` — no statistically distinguishable winner**) | `degenerate` (n_min=79 ≤ 101 = DEPEND-01 lag-radius floor; cross-correlogram + copula BIC undefined on real held-out per-leg residuals; **degenerate sentinel is itself the v1.0 finding — noise-floor regime per Δ_BIC unevaluable**) |
+| Gate condition pass count | 3-of-4 (vol_of_vol=False; skew_fat_tails+hawkes_self_excitation+usdt_depeg_basis_jump=True); any_condition_passed=True | 3-of-4 (vol_of_vol=True; positive_skew_fat_tails=True; hawkes_self_excitation=False; usdt_depeg_basis_jump=True); any_condition_passed=True |
+| divergence_pct | 46.36% > 30% → divergence_flag=True (HEDGE-04 finding) | `NaN` (degenerate ProductCopula stress path on n=79 per-leg — divergence_pct unevaluable; HEDGE-04 stress test undefined on insufficient-sample substrate) |
+| char_func_source | `frank_sobol_qmc` (Sobol-QMC fallback per Pattern J library-bug surface) | `build_failed` (upstream copula degenerate → `_build_char_func_from_winner` exception → `strip_degenerate.json` with `reason="build_failed_upstream"`; expected per HEDGE-05 firing-condition-(d) wiring iter-3) |
+| Strip emission path | `strip.json` (2^11 grid; no escalation; no degenerate path) | `strip_degenerate.json` (build_failed_upstream; null_strip sentinel per HEDGE-05 four-condition firing tree iter-3) |
+
+**HEDGE-05 expected-fire framing (Reality Checker review, iter 2/3).** Real-data HEDGE-05 firing on condition (b) ("DGP-03 LR indistinguishability at α=0.05") is the EXPECTED scientific outcome on n=778 events (382 leg_0 + 396 leg_1), NOT an anomaly. The synthetic substrate (n=2058 with controlled Hawkes η=0.5 properties) cleared the Q-9 identifiability floor by ~6.9×; the real panel at n=778 swap events (split asymmetrically between leg_0 and leg_1, with held-out per-leg counts of 83 and 79) is below the 300-event minimum locked in PRE_REGISTRATION AND below the DEPEND-01 max_lag=50 floor of 101 events/leg. The `null_lr` value in the `real_data_rerun_firing_condition` frontmatter field IS the v1.0 scientific result — exactly what the entire HEDGE-05 architecture (Plan 04-08 Path A + null-result PDF firing) exists to handle. Phase 5 narrative cites the real-data verdict, NOT the synthetic one; the synthetic run is methodology-validation evidence cited in the methodology section only.
+
+**BIC-noise-floor footnote (Reality Checker review).** The `BIC winner (winner ± Δ)` row in the comparison table is annotated with the `|Δ|` magnitude. Per `VINE_FALLBACK_DELTA_BIC_THRESHOLD` (the project-wide constant for vine-copula vs Gaussian-vs-Frank discriminability), **Δ_BIC < 5 indicates sample-noise-floor regime where the BIC winner is NOT statistically distinguishable from the runner-up**. The synthetic Δ_BIC = 0.009 (Frank vs Gaussian) is firmly in this regime — and the real-data column carries a `degenerate` family marker because n_min=79 ≤ 101 (DEPEND-01 lag-radius floor) renders the cross-correlogram + copula BIC mathematically undefined. Phase 5 narrative MUST treat both columns as "no strong copula winner" (synthetic: noise-floor regime; real: degenerate-by-construction) and avoid framing either as a scientific finding on family selection.
+
+**Methodology-validation framing for Phase 5:** The architecture works as designed on data with known properties (synthetic Hawkes η=0.5) AND on data with unknown properties (real on-chain). The two columns above ARE the load-bearing methodology-validation evidence Phase 5 cites — divergence between the two columns IS itself a v1.0 scientific finding, NOT a methodology failure. The real-data column firing `null_lr` (with degenerate copula and degenerate stress as consequences of n<101) is the expected scientific outcome on n=778 real ICHI cKES/USDT swap events; the architecture's four-condition firing tree routes this correctly.
+
+**Divergence policy (CONTEXT.md `<decisions>` "Divergence policy"):** Real-data is canonical for v1.0 publication. The real-panel produced a different firing_condition than synthetic (real fires `null_lr` where synthetic did not). Real wins. Phase 5 PDF cites the real-data verdict; the synthetic substrate is referenced in the methodology section only.
+
+### Phase 5 unblocking signals (machine-readable in frontmatter)
+
+- `real_data_rerun_run_id: "ae9e3ba17900"` — pointer to canonical Phase 5 input
+- `real_data_rerun_artifacts_complete: true` — Phase 5 reads this to confirm artifact set is intact (all 4 primary artifacts + run_log.txt + firing_condition.json sentinel emitted)
+- `real_data_rerun_firing_condition: "null_lr"` — scientific outcome enum matching `decide_firing_condition` four-value contract; HEDGE-05 condition (b) DGP-03 LR indistinguishability
+- `substrate_substitution_resolved: true` — explicit closure of Plan 04-09's documented substrate-substitution caveat (carried in existing `real_panel_substituted: true` field, now flipped to "resolved")
+
+### Out-of-scope guardrails honored (AF-12)
+
+- No deletion of synthetic `0afc6af38e24` run (archived via README only)
+- No modification of existing 18-row acceptance grid above (preserved verbatim)
+- No modification of existing **15** frontmatter fields (4 new fields APPENDED below `created: 2026-05-27`)
+- No PANEL-02 header schema bump; no new lint hooks beyond the ICHI_PANEL_REQUIRED_COLUMNS column-presence check
+- No Forno/Blockscout re-fetch (Plan 04.1-01 used cached JSONL sidecars)
+- No new firing conditions; no new Quarto template branches; no new dependencies
+
+Source-code deviation (Rule-3 fix, scoped):
+- `analysis/src/abrigo_x402/hedge/orchestrator.py`: added two minimal Rule-3 patches — (a) dependence stage guards on `n_min <= 2*max_lag+1 = 101` (DEPEND-01 lag-radius floor) and emits a degenerate `joint_dist.json` with `degenerate_reason` sentinel rather than crashing, so the orchestrator can reach `decide_firing_condition`; (b) the null stage's PDF render now records a `quarto_skipped: true` sentinel on `RuntimeError("quarto CLI not found ...")` instead of raising, mirroring the existing `quarto_skipped: true` frontmatter convention. These patches make the existing HEDGE-05 four-condition firing tree reachable on real-data n<101 substrates; they do NOT introduce new firing conditions, new Quarto template branches, or new dependencies. The architectural intent (Plan 04-08 Path A null-result handling) is preserved verbatim.
+
+*Real-data rerun authored 2026-05-27 by GSD execute-phase executor against `04.1-03-PLAN.md`.*
 
 ---
 

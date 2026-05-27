@@ -1,0 +1,7 @@
+NEW_RUN_ID=ae9e3ba17900
+FIRING_CONDITION=null_lr
+BIC_WINNER=family=degenerate, bic=nan, candidates={}
+GATE_PASSES=3-of-4 (vol_of_vol=True, skew_fat_tails=True, hawkes_self_excitation=False, usdt_depeg_basis_jump=True), any=True
+DIVERGENCE_PCT=nan
+CHAR_FUNC_SOURCE=build_failed
+STRIP_PATH=strip_degenerate.json
