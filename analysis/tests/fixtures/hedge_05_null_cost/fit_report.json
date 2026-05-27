@@ -1,0 +1,30 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x0000000000000000000000000000000000000000",
+  "blockRange": [0, 100],
+  "fetchTimestamp": "2026-05-27T00:00:00+00:00",
+  "dataHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "gitCommit": "0000000000000000000000000000000000000000",
+  "run_id": "000000000000",
+  "tick_lib_version": "0.8.0.2",
+  "nhpp_inar_params": {"p_star_leg_0": 2, "p_star_leg_1": 2, "bin_width_seconds": 60.0},
+  "hawkes_mv_params": {
+    "baseline": [0.001, 0.001],
+    "adjacency": [[0.1, 0.05], [0.05, 0.1]],
+    "decays": 0.5,
+    "branching_ratio": 0.3
+  },
+  "lr_test": {"statistic": 12.5, "p_value": 0.001, "n_reps": 1000, "method": "parametric_bootstrap"},
+  "ks_rescaled_time": {"leg_0_p_value": 0.4, "leg_1_p_value": 0.35},
+  "held_out_loglik": {"hawkes": -100.0, "nhpp": -110.0},
+  "branching_ratio_ci": {"lower": 0.25, "upper": 0.35, "method": "profile_likelihood"},
+  "baseline_stationarity_check": {"ratio": 1.1, "passed": true},
+  "input_diagnostics": {"n_events_leg_0": 200, "n_events_leg_1": 200},
+  "gate_passes": true,
+  "gate_criteria": {
+    "lr_rejects_at_alpha_0_05": true,
+    "eta_floor_met": true,
+    "ks_passes": true,
+    "stationarity_passes": true
+  }
+}

@@ -110,6 +110,118 @@ def lint_fit_reports(root: Path) -> list[tuple[Path, list[str]]]:
     return failures
 
 
+# ----- Phase 4 extensions (mirror REQUIRED_*_KEYS tuples from owning modules) -----
+#
+# These frozensets MUST stay in sync with the corresponding REQUIRED_*_KEYS tuples
+# in analysis/src/abrigo_x402/{dependence,hedge}/*.py. The scaffold-time test
+# analysis/tests/test_required_keys_sync.py asserts the equality at every run;
+# any drift will fail that test before Wave 1 can land.
+
+# Sync source: analysis/src/abrigo_x402/dependence/copula.py :: REQUIRED_JOINT_DIST_KEYS
+JOINT_DIST_REQUIRED_KEYS = frozenset({
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+    "cross_correlogram", "permutation_null", "empirical_copula", "vine_fallback_used",
+})
+
+# Sync source: analysis/src/abrigo_x402/hedge/falsification.py :: REQUIRED_GATE_REPORT_KEYS
+GATE_REPORT_REQUIRED_KEYS = frozenset({
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+    "vol_of_vol_gt_zero", "positive_skew_fat_tails",
+    "hawkes_self_excitation", "usdt_depeg_basis_jump",
+    "any_condition_passed",
+})
+
+# Sync source: analysis/src/abrigo_x402/hedge/stress_test.py :: REQUIRED_STRESS_REPORT_KEYS
+STRESS_REPORT_REQUIRED_KEYS = frozenset({
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+    "independence_price", "fitted_joint_price", "comonotone_price",
+    "divergence_pct", "divergence_flag", "comonotone_method",
+})
+
+# Sync source: analysis/src/abrigo_x402/hedge/carr_madan_strip.py :: REQUIRED_STRIP_KEYS
+STRIP_REQUIRED_KEYS = frozenset({
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+    "strip_prices", "strikes", "n_grid_used", "escalated_to_2_12",
+    "negative_mass_fraction", "positivity_tolerance",
+})
+
+# Sync source: analysis/src/abrigo_x402/hedge/carr_madan_strip.py :: STRIP_DEGENERATE_KEYS
+STRIP_DEGENERATE_REQUIRED_KEYS = frozenset({
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+    "max_negative_value", "total_negative_mass",
+    "characteristic_function_decay_rate", "recommended_method",
+})
+
+
+def _lint_json_against_keys(path: Path, required: frozenset[str], artifact_name: str) -> list[str]:
+    """Shared helper: parse JSON at `path`, verify all `required` keys are present."""
+    import json
+    try:
+        payload = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        return [f"{path}: invalid JSON ({exc})"]
+    if not isinstance(payload, dict):
+        return [f"{path}: {artifact_name} root must be an object, got {type(payload).__name__}"]
+    missing = required - set(payload.keys())
+    if missing:
+        return [f"{path}: missing required {artifact_name} keys: {sorted(missing)}"]
+    return []
+
+
+def lint_joint_dist_json(path: Path) -> list[str]:
+    """Verify a joint_dist.json against REQUIRED_JOINT_DIST_KEYS (mirror)."""
+    return _lint_json_against_keys(path, JOINT_DIST_REQUIRED_KEYS, "joint_dist.json")
+
+
+def lint_gate_report_json(path: Path) -> list[str]:
+    """Verify a gate_report.json against REQUIRED_GATE_REPORT_KEYS (mirror)."""
+    return _lint_json_against_keys(path, GATE_REPORT_REQUIRED_KEYS, "gate_report.json")
+
+
+def lint_stress_report_json(path: Path) -> list[str]:
+    """Verify a stress_report.json against REQUIRED_STRESS_REPORT_KEYS (mirror)."""
+    return _lint_json_against_keys(path, STRESS_REPORT_REQUIRED_KEYS, "stress_report.json")
+
+
+def lint_strip_json(path: Path) -> list[str]:
+    """Verify a strip.json against REQUIRED_STRIP_KEYS (mirror)."""
+    return _lint_json_against_keys(path, STRIP_REQUIRED_KEYS, "strip.json")
+
+
+def lint_strip_degenerate_json(path: Path) -> list[str]:
+    """Verify a strip_degenerate.json against STRIP_DEGENERATE_REQUIRED_KEYS (mirror)."""
+    return _lint_json_against_keys(path, STRIP_DEGENERATE_REQUIRED_KEYS, "strip_degenerate.json")
+
+
+_PHASE_4_ARTIFACT_LINTERS: dict[str, callable] = {
+    "joint_dist.json": lint_joint_dist_json,
+    "gate_report.json": lint_gate_report_json,
+    "stress_report.json": lint_stress_report_json,
+    "strip.json": lint_strip_json,
+    "strip_degenerate.json": lint_strip_degenerate_json,
+}
+
+
+def lint_phase_4_artifacts(root: Path) -> list[tuple[Path, list[str]]]:
+    """Walk data/fits/**/{joint_dist,gate_report,stress_report,strip,strip_degenerate}.json
+    under `root` and apply the corresponding linter to each.
+
+    Returns aggregated (path, errors) failures. Dormant pre-Wave-2 (no artifacts yet).
+    """
+    failures: list[tuple[Path, list[str]]] = []
+    for artifact_name, linter in _PHASE_4_ARTIFACT_LINTERS.items():
+        for artifact_path in sorted(root.glob(f"data/fits/**/{artifact_name}")):
+            errs = linter(artifact_path)
+            if errs:
+                failures.append((artifact_path, errs))
+    return failures
+
+
 def _find_repo_root(start: Path) -> Path:
     """Walk up from `start` until a directory containing `data/` is found.
 
@@ -152,8 +264,23 @@ def main(argv: list[str]) -> int:
     repo_root = _find_repo_root(Path.cwd())
     fit_report_paths = sorted(repo_root.glob("data/fits/**/fit_report.json"))
 
-    if not parquet_paths and not fit_report_paths:
-        print("lint_artifacts: no .parquet or fit_report.json files found to lint (this is OK pre-panel-build)")
+    # Phase 4 artifact sweep: joint_dist / gate_report / stress_report / strip / strip_degenerate.
+    # Dormant pre-Wave-2 (no artifacts on disk yet).
+    phase_4_failures = lint_phase_4_artifacts(repo_root)
+    phase_4_paths_found = sum(
+        1 for _ in repo_root.glob("data/fits/**/joint_dist.json")
+    ) + sum(
+        1 for _ in repo_root.glob("data/fits/**/gate_report.json")
+    ) + sum(
+        1 for _ in repo_root.glob("data/fits/**/stress_report.json")
+    ) + sum(
+        1 for _ in repo_root.glob("data/fits/**/strip.json")
+    ) + sum(
+        1 for _ in repo_root.glob("data/fits/**/strip_degenerate.json")
+    )
+
+    if not parquet_paths and not fit_report_paths and phase_4_paths_found == 0:
+        print("lint_artifacts: no .parquet, fit_report.json, or Phase-4 artifacts found to lint (this is OK pre-panel-build)")
         return 0
 
     failures: list[tuple[Path, list[str]]] = []
@@ -186,9 +313,14 @@ def main(argv: list[str]) -> int:
             # entries (e.g. both missing header keys AND missing SC-1 keys).
             failures.append((fit_json_path, errors))
 
+    # Aggregate Phase-4 artifact failures (dormant pre-Wave-2)
+    failures.extend(phase_4_failures)
+
+    total_files = len(parquet_paths) + len(fit_report_paths) + phase_4_paths_found
+
     if failures:
         print(
-            f"lint_artifacts: {len(failures)} of {len(parquet_paths) + len(fit_report_paths)} files FAILED PANEL-02 / SC-1:",
+            f"lint_artifacts: {len(failures)} of {total_files} files FAILED schema check:",
             file=sys.stderr,
         )
         for p, missing in failures:
@@ -200,6 +332,8 @@ def main(argv: list[str]) -> int:
         parts.append(f"{len(parquet_paths)} parquet PASS PANEL-02")
     if fit_report_paths:
         parts.append(f"{len(fit_report_paths)} fit_report.json PASS SC-1")
+    if phase_4_paths_found:
+        parts.append(f"{phase_4_paths_found} phase-4 artifacts PASS")
     print("lint_artifacts: " + "; ".join(parts))
     return 0
 

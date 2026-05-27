@@ -1,0 +1,15 @@
+<!-- Wave-0 placeholder. Plan 04-08 (Wave 2) implements the four firing-condition branches.
+
+Each branch reads the substrate JSON files injected by render_null_result_pdf and renders
+a condition-specific evidence block:
+
+  - null_cost: notes/cost_leg_bound_<protocol>.md frontmatter (verdict + threshold + measured)
+  - null_lr: fit_report.json :: lr_test (statistic, p_value, n_reps, method) + held_out_loglik table
+  - null_convex: gate_report.json :: four-condition pass/fail grid + evidence dicts
+  - null_strip_unavailable: data/fits/<run_id>/strip_degenerate.json (max_negative_value,
+    total_negative_mass, characteristic_function_decay_rate, recommended_method)
+
+Branching is via Quarto conditional content blocks keyed off `params$firing_condition`.
+-->
+
+*Evidence block placeholder — Plan 04-08 (Wave 2) implements.*

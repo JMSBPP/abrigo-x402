@@ -5,7 +5,8 @@
 
 .PHONY: schema-frozen-check leak-check verify-reproducibility help \
         fetch-ichi lint-artifacts verify-cache-idempotency schema-probe \
-        render-lr-diagnostic
+        render-lr-diagnostic render-null-result-pdf render-strip-diagnostic \
+        phase-4-acceptance
 
 help:
 	@echo "Available targets:"
@@ -138,3 +139,49 @@ leg_0 = df.filter(pl.col('leg')==0).select('event_time').to_numpy().ravel().asty
 leg_1 = df.filter(pl.col('leg')==1).select('event_time').to_numpy().ravel().astype(np.float64);\
 r = parametric_bootstrap_lr(leg_0, leg_1, panel_data_hash='03-03-diagnostic-render', window_start=0.0, window_end=2_592_000.0, n_reps=200, diagnostic_plot_path='../reports/_diagnostics/lr_null_dist.png');\
 print(f'render-lr-diagnostic: PASS ({r[\"n_successful_bootstrap\"]}/{r[\"n_reps\"]} successful reps, seed={r[\"seed\"]})')"
+
+# -------- Phase 4 targets --------
+
+# Render the null-result PDF for a given firing condition. Wave 2 wires the full
+# substrate-injection path; Wave 0 scaffolds the target so the command surface is
+# present for plan-04-08 to land against.
+render-null-result-pdf:
+	@if [ -z "$$FIRING" ]; then \
+		echo "Usage: make render-null-result-pdf FIRING={null_cost|null_lr|null_convex|null_strip_unavailable}"; \
+		exit 1; \
+	fi
+	cd reports && quarto render _templates/null_result.qmd --no-cache \
+		--execute-param firing_condition:$$FIRING --output ichi.pdf
+
+# Re-render the Carr-Madan strip diagnostic for a given run_id. Wave 2 wires the
+# CLI hedge --stage strip subcommand; Wave 0 scaffolds the target.
+render-strip-diagnostic:
+	@if [ -z "$$RUN_ID" ]; then echo "Usage: make render-strip-diagnostic RUN_ID=<id>"; exit 1; fi
+	cd analysis && uv run python -m abrigo_x402.cli hedge --stage strip --run-id $$RUN_ID
+
+# Phase 4 acceptance gate. Wave 3 (Plan 04-09) closes against this. At Wave 0 the
+# tests are skip-marked so this exits 0 trivially; once Wave 1 lands, the targets
+# become load-bearing.
+phase-4-acceptance:
+	@echo "=== Phase 4 acceptance gate ==="
+	cd analysis && uv run pytest \
+		tests/test_cross_correlogram.py \
+		tests/test_permutation_null.py \
+		tests/test_copula_bic.py \
+		tests/test_falsification.py \
+		tests/test_carr_madan_strip.py \
+		tests/test_stress_test.py \
+		tests/test_usdt_depeg_lhs.py \
+		tests/test_null_result_template.py \
+		tests/test_joint_dist_provenance.py \
+		tests/test_gate_report_provenance.py \
+		tests/test_stress_report_provenance.py \
+		tests/test_byte_identical_phase_4.py \
+		tests/test_required_keys_sync.py \
+		-x
+	@! grep -i "^[^#]*usdc" analysis/src/abrigo_x402/hedge/falsification.py
+	@! grep -E "scipy\.integrate\.quad|np\.trapz" analysis/src/abrigo_x402/hedge/carr_madan_strip.py
+	@! grep -rE "loglik_in_sample_raw" analysis/src/abrigo_x402/hedge/
+	@! grep -E "port from Hernandez Cruz" notes/usdt_depeg_calibration.md 2>/dev/null || true
+	$(MAKE) lint-artifacts
+	@echo "=== Phase 4 acceptance: PASS ==="

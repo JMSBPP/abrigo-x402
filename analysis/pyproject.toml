@@ -14,11 +14,13 @@ dependencies = [
   "eth-utils>=6.0.0",
   "eth-hash[pycryptodome]>=0.8.0",
   "numpydoc>=1.10.0",
+  "copulae==0.8.0",
 ]
 
 [dependency-groups]
 dev = [
   "pytest>=9.0.3",
+  "jupyter",
 ]
 
 [build-system]
