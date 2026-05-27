@@ -1,13 +1,177 @@
-"""Plan 04-05 (Wave 1) implements; Wave-0 stub validates symbol surface only."""
+"""Plan 04-05 (Wave 1) — HEDGE-02 Carr-Madan strip tests.
+
+Covers: schema (success), schema (degenerate), Gaussian-baseline-passes-2^11,
+fat-tail-escalation, anti-pattern grep guards, iter-3 reason field for
+fourth-firing-condition routing, and iter-3 Carr-Madan-2001 citation grep.
+"""
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+import numpy as np
 import pytest
 
-pytestmark = pytest.mark.skip(reason="Plan 04-05 (Wave 1) implements HEDGE-02 Carr-Madan strip")
+from abrigo_x402.hedge.carr_madan_strip import (
+    POSITIVITY_TOLERANCE,
+    REQUIRED_STRIP_KEYS,
+    STRIP_DEGENERATE_KEYS,
+    compute_strip,
+)
 
 
-def test_smoke_imports():
-    from abrigo_x402.hedge.carr_madan_strip import (  # noqa: F401
-        compute_strip,
-        REQUIRED_STRIP_KEYS,
-        STRIP_DEGENERATE_KEYS,
-        POSITIVITY_TOLERANCE,
+# ---------------------------------------------------------------------------
+# Test fixtures: characteristic functions and payoffs
+# ---------------------------------------------------------------------------
+
+# Provenance keys are injected by the orchestrator (Plan 04-08), not by
+# compute_strip itself; this set is excluded from the per-call schema check.
+_PROVENANCE_KEYS = {
+    "chainId", "contractAddress", "blockRange",
+    "fetchTimestamp", "dataHash", "gitCommit", "run_id",
+}
+
+
+def gaussian_char_func(sigma: float = 1.0):
+    """Well-behaved Gaussian phi(u) = exp(-sigma^2 u^2 / 2)."""
+    def phi(u):
+        return np.exp(-0.5 * sigma**2 * u**2)
+    return phi
+
+
+def slow_decay_char_func(alpha: float = 0.3):
+    """Pathological fat-tail surrogate: |phi(u)| ~ exp(-|u|^alpha).
+
+    alpha small (e.g. 0.3) => extremely slow decay => negative-mass blowup
+    persists even at 2^12 => abort-to-strip_degenerate path.
+    alpha moderate (e.g. 1.5) => may pass at 2^11 or 2^12.
+    """
+    def phi(u):
+        return np.exp(-(np.abs(u)) ** alpha)
+    return phi
+
+
+def linear_payoff(x):
+    return x
+
+
+def call_option_payoff(x, strike=1.0):
+    return np.maximum(x - strike, 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Test 1 — Gaussian + linear payoff: schema success on 2^11 grid
+# ---------------------------------------------------------------------------
+
+def test_strip_schema_success_gaussian_baseline():
+    result = compute_strip(
+        payoff=linear_payoff,
+        char_func=gaussian_char_func(1.0),
     )
+    # Schema check (excluding orchestrator-injected provenance keys)
+    for k in REQUIRED_STRIP_KEYS:
+        if k in _PROVENANCE_KEYS:
+            continue
+        assert k in result, f"missing required strip key: {k}"
+    assert result["n_grid_used"] == 2**11
+    assert result["escalated_to_2_12"] is False
+    assert result["negative_mass_fraction"] < POSITIVITY_TOLERANCE
+    assert result["positivity_tolerance"] == POSITIVITY_TOLERANCE
+
+
+# ---------------------------------------------------------------------------
+# Test 2 — Borderline fat-tail (alpha=1.5): escalation OR degenerate
+# ---------------------------------------------------------------------------
+
+def test_strip_escalation_to_2_12():
+    char = slow_decay_char_func(alpha=1.5)
+    result = compute_strip(payoff=linear_payoff, char_func=char)
+    # Plan-locked behavior: either success on 2^11 or 2^12, OR degenerate.
+    if "n_grid_used" in result:
+        assert result["n_grid_used"] in (2**11, 2**12)
+        # If we escalated, the escalation flag must be set.
+        if result["n_grid_used"] == 2**12:
+            assert result["escalated_to_2_12"] is True
+    else:
+        # degenerate result has different schema
+        for k in STRIP_DEGENERATE_KEYS:
+            if k in _PROVENANCE_KEYS:
+                continue
+            assert k in result
+
+
+# ---------------------------------------------------------------------------
+# Test 3 — Pathological fat-tail (alpha=0.3): abort to strip_degenerate
+# ---------------------------------------------------------------------------
+
+def test_strip_degenerate_path():
+    char = slow_decay_char_func(alpha=0.3)
+    result = compute_strip(payoff=linear_payoff, char_func=char)
+    # Expect strip_degenerate schema:
+    for k in STRIP_DEGENERATE_KEYS:
+        if k in _PROVENANCE_KEYS:
+            continue
+        assert k in result, f"missing degenerate key: {k}"
+    assert result["recommended_method"] in {"COS", "PROJ", "none"}
+
+
+# ---------------------------------------------------------------------------
+# Test 4 — Polymorphic payoff (RESEARCH Pattern 5)
+# ---------------------------------------------------------------------------
+
+def test_polymorphic_payoff_call_option():
+    result = compute_strip(
+        payoff=lambda x: call_option_payoff(x, 1.0),
+        char_func=gaussian_char_func(1.0),
+    )
+    # Either success (strip_prices) or graceful degenerate (max_negative_value).
+    assert "strip_prices" in result or "max_negative_value" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 5 — Anti-pattern grep gate: no scipy quadrature / np trapezoid
+# ---------------------------------------------------------------------------
+
+def test_anti_pattern_grep_no_scipy_quad_no_trapz():
+    repo_root = Path(__file__).resolve().parents[2]
+    target = repo_root / "analysis" / "src" / "abrigo_x402" / "hedge" / "carr_madan_strip.py"
+    r = subprocess.run(
+        [
+            "grep",
+            "-E",
+            r"scipy\.integrate\.(quad|fixed_quad|romberg)|np\.trapz",
+            str(target),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode != 0, f"Anti-pattern hit:\n{r.stdout}"
+
+
+# ---------------------------------------------------------------------------
+# Test 6 — iter-3 Issue 1: strip_degenerate carries `reason` field
+# ---------------------------------------------------------------------------
+
+def test_strip_degenerate_reason_field():
+    """null_result.decide_firing_condition (Plan 04-08) reads `reason` to route
+    the fourth firing condition `null_strip_unavailable`. compute_strip injects
+    `positivity_fail_after_2_12` when FFT inversion exhausts escalation."""
+    char = slow_decay_char_func(alpha=0.3)
+    result = compute_strip(payoff=linear_payoff, char_func=char)
+    assert "reason" in result
+    assert result["reason"] == "positivity_fail_after_2_12"
+
+
+# ---------------------------------------------------------------------------
+# Test 7 — iter-3 Issue 1: Carr & Madan 2001 citation present in module
+# ---------------------------------------------------------------------------
+
+def test_carr_madan_citation_grep():
+    repo_root = Path(__file__).resolve().parents[2]
+    target = repo_root / "analysis" / "src" / "abrigo_x402" / "hedge" / "carr_madan_strip.py"
+    r = subprocess.run(
+        ["grep", "-q", "Carr & Madan 2001", str(target)],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, "Module docstring must cite 'Carr & Madan 2001' as canonical strip-formula source"
