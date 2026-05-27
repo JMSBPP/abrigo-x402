@@ -37,6 +37,18 @@ Scope anchors (verbatim from `.planning/PROJECT.md` post-correction block + `STA
 - **Profile-likelihood η-CI:** Profile likelihood for branching-ratio confidence intervals per PITFALLS §4 (Hessian-based MLE standard errors known to under-cover for Hawkes with small samples — Ogata 1978). EM-based estimator (`tick.hawkes` EM solver) is an acceptable alternative.
 - **Cross-correlogram + permutation null:** DEPEND-01 spec: cross-correlogram between `dK_revenue(t)` and `dK_cost(t)` arrivals at lags from `-T` to `+T` with permutation null (1000 reps). Empirical copula fit follows; vine copula fallback only if BIC prefers.
 
+## Carr-Madan Grid Numerical Tolerances
+
+Amendment date: 2026-05-27. This sub-section is added as an AF-03 amendment to lock numerical tolerances for the HEDGE-02 Carr-Madan replicating-strip implementation in Phase 4.
+
+Positivity tolerance: negative implied-density mass < 0.1% of total integrated |q(k)|. Implementation: compute total ∫ |q(k)| dk on the FFT grid; if (sum of negative q(k)) / (sum of |q(k)|) < 0.001, treat as numerical FFT-truncation noise and proceed; otherwise escalate per the grid-escalation policy below. Rationale: under fat-tailed joint distributions (Hawkes self-excitation + USDT depeg jump), the characteristic function decays slowly and 2^11/2^12 FFT grids exhibit small FFT-truncation artifacts at extreme strikes; the 0.1% threshold is calibrated to absorb these artifacts without masking genuine fat-tail blowups. This tolerance is load-bearing for the HEDGE-02 acceptance decision and is therefore pre-registered here per AF-03 discipline.
+
+Grid-escalation policy: start at 2^11 = 2048 points. If positivity tolerance fails at 2^11, escalate to 2^12 = 4096 points. If 2^12 still fails the positivity tolerance, abort to strip_degenerate.json (do NOT silently switch to COS or PROJ methods). The strip_degenerate.json payload must include {max_negative_value, total_negative_mass, characteristic_function_decay_rate, recommended_method: 'COS' or 'PROJ' or 'none'} so the Phase 5 report can document the failure publicly.
+
+Consumers: analysis/src/abrigo_x402/hedge/carr_madan_strip.py (Phase 4 implementation); reports/_templates/null_result.qmd (Phase 4 null-result branch); reports/ichi.pdf (Phase 5 deliverable). Any code path that bypasses the 0.001 tolerance constant, the 2^11->2^12 single-escalation policy, or the abort-to-strip_degenerate.json fallback is an AF-03 violation.
+
+Ordering invariant: this amendment commit MUST predate every commit under analysis/src/abrigo_x402/hedge/ and analysis/src/abrigo_x402/dependence/ (verifiable via `git log --pretty=format:'%H %s' -- notes/PRE_REGISTRATION.md analysis/src/abrigo_x402/hedge/ analysis/src/abrigo_x402/dependence/`). Honored by Plan 04-pre.
+
 ## Acceptance Regions
 
 A Hawkes-positive claim requires ALL FOUR of the PITFALLS §4 four-criterion gate to hold simultaneously:
@@ -153,6 +165,7 @@ Other Phase-0 plans and downstream phases consume specific elements of this pre-
 - **Plan 00-07 (`protocols/steer.toml`):** consumes the REPRO-03 threshold and the cost-leg framing for the `cost_leg_lower_bound_verified` flag default.
 - **Phase 3 (DGP Estimation):** consumes §Kernel Forms (Hawkes specification, Kirchner INAR(p) baseline), §Test Statistics (bootstrap LR, time-rescaling KS, profile-likelihood η-CI), and §Acceptance Regions (four-criterion gate).
 - **Phase 4 (Carr–Madan + falsification):** consumes §Decision Rules condition-4 framing (USDT depeg + USDT/USDC basis) for the jump-leg overlay calibration.
+  - consumes the §Carr-Madan Grid Numerical Tolerances amendment above (positivity tolerance, grid-escalation policy, abort-fallback) for the HEDGE-02 Carr-Madan strip implementation.
 - **Phase 5/6 (Reporting + Iteration 2):** consumes the entire document as the canonical pre-registration audit reference; the PDF deliverable cites this file's commit hash to anchor the AF-03 timeline.
 
 ---
