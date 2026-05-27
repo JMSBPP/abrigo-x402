@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 10
-status: verifying
-last_updated: "2026-05-27T19:15:39.972Z"
+current_plan: Not started
+status: planning
+last_updated: "2026-05-27T19:31:41.982Z"
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 47
-  completed_plans: 46
-  percent: 81
+  completed_plans: 47
+  percent: 98
 ---
 
 # State: abrigo-x402
@@ -28,7 +28,7 @@ progress:
 ## Current Position
 
 **Phase:** 4 — Cross-Leg Dependence (L5) + Falsification + Carr-Madan Strip (L6) — **PLAN 04-09 COMPLETE; PHASE 4 READY FOR GOAL VERIFICATION (all 11 plans incl. 04-pre landed; acceptance gate verification_pass:true, quarto_skipped:true)**
-**Current Plan:** 10 (final — Plan 04-09 closes Phase 4)
+**Current Plan:** Not started
 **Total Plans in Phase:** 10 (excluding 04-pre)
 **Last completed:** Plan 04-09 (Wave 3 acceptance gate). Authored `.planning/phases/04-cross-leg-dependence-l5-falsification-carr-madan-strip-l6/04-VERIFICATION-pre.md` with frontmatter `verification_pass: true` AND `quarto_skipped: true` (distinct fields per iter-3 Issue 4 fix); 18-row acceptance grid covering DEPEND-01/02 + HEDGE-01..05 + SC-1..6 + AF-03 PR-amendment ordering invariant + iter-3 row 13a Sobol-QMC char_func gate + iter-3 row 13b helper-test gate + iter-3 row 13c fourth-firing-condition wiring (`null_strip_unavailable`) + iter-3 row 16 mtime guard (run_log.txt mtime 1779907978 > plan-file mtime 1779893398, delta +14580s). 17 PASS + 1 SKIP-NO-QUARTO (row 13 — quarto CLI not in execution env; the SKIP is legitimate because frontmatter carries `quarto_skipped:true` distinct from `verification_pass:true`, AND firing_condition was `null` on this rep so no PDF would have rendered even with quarto available). Production-rep run_id `0afc6af38e24` on **synthetic-stacked substrate** (3-time-shifted-stack of `analysis/tests/fixtures/synthetic_hawkes_eta_05.parquet` at `data/raw/ichi/.../synthetic_p4_09_stacked_67000000_67002058.parquet` — substitution required because the real Phase-2 ICHI panel at `data/raw/ichi/0x61Ef.../67378253_67896653.parquet` lacks the `block_timestamp` column the DGP fit requires; this is a documented Phase-2-to-Phase-3 column-wire gap, out of Plan 04-09 scope, recorded as follow-up). **Headline scientific finding**: BIC-winning empirical copula is **Frank** (BIC 5.2705 vs Gaussian 5.2791; Δ=0.009 noise-floor caveat — "no strong copula winner" on n=996-min legs is the honest take); orchestrator builds `char_func_source=frank_sobol_qmc` via Sobol-QMC fallback through Frank's `cop.random` path (Frank's `cdf_inverse` not exposed by `copulae==0.8.0`, the Pattern J library-bug surface documented in Plan 04-08); four-condition gate has 3-of-4 conditions passing (vol_of_vol=False; skew_fat_tails=True + hawkes_self_excitation=True + usdt_depeg_basis_jump=True → any_condition_passed=True); **HEDGE-05 does NOT fire** (positive-result path; firing_condition=null); strip emits successfully on 2^11 grid with no positivity-tolerance escalation; three-way stress `divergence_pct=46.36%` > 30% → divergence_flag=True (HEDGE-04 finding — joint-distribution stress IS itself a finding even when no individual scenario fails). Plan 04-08 Path A architecture validated end-to-end on real production run. **2 source-edit deviations** committed alongside VERIFICATION-pre.md in single `docs(04-09):` commit `9ed4170`: (a) Rule-1 fix in `analysis/src/abrigo_x402/hedge/orchestrator.py` — truncate `leg_0`/`leg_1` to `min(len)` before `np.column_stack` for copulae u_data (production residuals have one-event leg differences that trip column_stack without truncation); (b) Rule-3 sentinel in `analysis/src/abrigo_x402/cli.py` — print `"hedge.orchestrator.run_hedge completed"` after JSON dump so Plan 04-09 row-16 mtime guard's greppable orchestrator-completion sentinel landed in `data/fits/ichi/<run_id>/run_log.txt`. Full Phase 2+3+4 test suite under thread-pinned BLAS: **191 passed / 3 skipped / 0 failures / 136.68s** (3 skips: byte-identity rerun stub now exercised by row 16; copulae==0.8.0 Student-t SPSD library bug; quarto unavailable). Pre-commit hooks AF-01..AF-12 + 4 Phase-4 grep gates PASS on the docs commit. **Phase 4 ready for `/gsd:verify-phase 4` goal verification.** Documented follow-ups out of scope: (i) Phase 2→3 `block_timestamp` column-wire gap (DGP fit input contract), (ii) HEDGE-04 divergence_flag=true (46.36%) headline for Phase 5 PDF rendering.
 
@@ -55,7 +55,7 @@ Plan 01-08 detail: Plan 01-08 (Wave 3 — Phase 1 acceptance gate; commit `f5e3d
 (Original last-completed Plan 01-07 block retained below for full chain context).
 
 Plan 01-07 detail: Three atomic 01-07 commits: `4718946` (feat — node:http 402 mock with x402 v2 PaymentRequirements + structural X-PAYMENT validation + X-PAYMENT-RESPONSE settlement echo) / `27176ce` (fix — v1-protocol named-network drift adaptation; STACK drift discovered via live probe: @x402/evm v2.13 ExactEvmSchemeV1 registers on NAMED networks like 'base-sepolia', NOT CAIP-2 'eip155:84532' — plan-body proposal overridden; added `extra: {name: 'USDC', version: '2'}` to PaymentRequirements for EIP-712 domain, load-bearing for ExactEvmScheme.createPaymentPayload) / `e62b694` (feat — client bridge wires @x402/fetch x402Client + @x402/evm/exact/client registerExactEvmScheme with viem privateKeyToAccount; 3-test integration suite: bare 402 → PaymentRequirements / wrapFetchWithPayment round-trip → 200 + 32-byte tx hash / malformed-network rejection with errorReason; cost-ledger row written for x402-mock-sepolia endpoint with paid_real=false, chain='base-sepolia'). 3 new vitest tests green; full Phase-1 suite at end of 01-07: **11 passed / 0 skipped / 80 tests passing / 0 fail**; `tsc --noEmit` clean. 2 Rule-3 deviations auto-fixed (both library wire-format drifts the plan body explicitly authorized adapting). Header-only mode is the Phase-1 default; X402_MOCK_REAL_SETTLE=1 env-toggle reserved for manual developer-machine validation against a faucet-funded Base Sepolia wallet (not exercised in CI). Previously completed: Plan 01-06 (Wave 2 — FETCH-02 SC-6 dry-run budget estimator + CLI ichi/steer subcommand wiring; commits `f8b7df8`+`388379f`+`1d8c515`+`1321d11`); Plan 01-05 (FETCH-01 blockscout + decoder + dormant subgraph + SC-5 leak gate; commits `3d7bb04`+`b24f8d5`+`969676d`+`d3f1c64`); Plan 01-03 (FETCH-03 freshness wrappers; commits `d48b51f`+`ceec9c4`+`92eab70`+`c477604`); Plan 01-04 (FETCH-04 content-addressed cache; commits `e394cf1`+`5129ef7`+`a1daf97`+`0496df8`); Plan 01-02 (cost-ledger + 90k budget gate; commits `b951b22`+`e569d2f`+`729a17e`); Plan 01-01 (stack-pins + protocol-spec + viem-clients); Plan 01-00 (workspace bootstrap).
-**Status:** Phase complete — ready for verification
+**Status:** Ready to plan
 
 ```
 Progress: [██████████] 98% (46/47 plans complete; 9/9 Phase-1 + 10/10 Phase-2 + 9/9 Phase-3 + 7/7 Phase-0 + 1/1 Phase-init + 1/1 Phase-4-pre + 10/10 Phase-4 (all plans landed incl. 04-09 acceptance gate); Phase 4 ready for `/gsd:verify-phase 4` goal verification — once verified, Phases 0-4 are 4/8 verified-complete and Phase 5 (Iteration-1 PDF deliverable) unblocked)
