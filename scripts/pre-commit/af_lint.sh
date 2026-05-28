@@ -67,7 +67,14 @@ fi
 # per-phase by plan-level acceptance gates (e.g., Plan 04-09's acceptance grid), not here.
 if [ -f notes/PRE_REGISTRATION.md ] && [ -d analysis/src ]; then
   PRE_REG_SUBJECT=$(git log -1 --format=%s -- notes/PRE_REGISTRATION.md 2>/dev/null || echo "")
-  if ! echo "$PRE_REG_SUBJECT" | grep -q "^docs(pre-reg):"; then
+  # Accept both the bare AF-03 amendment subject `docs(pre-reg):` AND the
+  # phase-suffixed variant `docs(pre-reg:<phase>):` introduced by Plan
+  # 04.1.1-00. Phase-suffixed amendments are required when multiple in-flight
+  # phases each add their own AF-03 amendment section — the suffix
+  # disambiguates the audit trail (e.g. `docs(pre-reg:04.1.1):` for the LL-fit
+  # acceptance & fallback chain amendment vs `docs(pre-reg):` for the original
+  # Carr-Madan grid amendment).
+  if ! echo "$PRE_REG_SUBJECT" | grep -qE "^docs\(pre-reg(:[^)]+)?\):"; then
     PRE_REG_TS=$(git log -1 --format=%ct -- notes/PRE_REGISTRATION.md 2>/dev/null || echo 0)
     ANALYSIS_FIRST_TS=$(git log --reverse --format=%ct -- analysis/src 2>/dev/null | head -1 || echo 0)
     # Default empty results to 0 so the numeric comparison never receives an empty operand

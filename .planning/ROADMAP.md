@@ -174,6 +174,16 @@ Plans:
 - [ ] 04.1-02-PLAN.md — `cli.py fit` on augmented real panel; new run_id under data/fits/ichi/; first-ever real-data Phase 3 fit
 - [ ] 04.1-03-PLAN.md — `cli.py hedge --run-id <new> --stage all`; 4 primary Phase 4 artifacts + run_log.txt; 0afc6af38e24/README.md archival pointer; 04-VERIFICATION-pre.md "04.1 Real-Data Rerun" appended section + 3 new greppable frontmatter fields (real_data_rerun_run_id, real_data_rerun_passed, substrate_substitution_resolved); Phase 5 unblocking signal
 
+### Phase 04.1.1: Fix Hawkes likelihood-mode fit on real ICHI cKES/USDT panel — investigate LL failure, restore canonical MLE, re-derive LR result without LS-fallback degeneracy (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4.1
+**Plans:** 1/4 plans executed
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 04.1.1 to break down)
+
 ### Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)
 **Goal**: Ship the Iteration-1 PDF deliverable (`reports/ichi.pdf`) via Quarto/nbconvert with the spot-check checklist, cost-leg prior sensitivity sweep, and reproducibility manifest — completing Iteration 1 with either a positive convex-hedge result or a documented null-result, in PDF form (per memory `feedback_pdf_deliverable.md`).
 **Depends on**: Phase 4 (gate report + strip OR null-result template fire must be resolved)
