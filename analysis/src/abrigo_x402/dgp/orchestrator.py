@@ -223,7 +223,7 @@ def run_fit(
     panel_path: str | Path,
     out_dir: str | Path,
     bootstrap_reps: int = PRODUCTION_N_REPS,
-    decays: float = 0.1,
+    decays: float | None = None,
     chain_id: int = _DEFAULT_CHAIN_ID,
     contract_address: str = _DEFAULT_CONTRACT,
 ) -> FitOutput:
@@ -251,7 +251,10 @@ def run_fit(
         out_dir: parent directory. Output lands at <out_dir>/<run_id>/.
         bootstrap_reps: bootstrap LR replicate count. Defaults to PRE_REGISTRATION
             lock 1000. Unit tests may pass 10..50 to stay within timeout budget.
-        decays: Hawkes exponential-kernel decay. Default 0.1 per DECAY_GRID.
+        decays: Hawkes exponential-kernel decay. Default None -> free-β AIC-min
+            over DECAY_GRID (the canonical v2 estimator; Plan 04.1.1-02b). The
+            AIC-selected β propagates to the CI / KS / held-out-LL legs via
+            hawkes_train["decays"]. Pass a float to pin β (diagnostics only).
         chain_id: EIP-155 chain ID. Default 42220 (Celo mainnet).
         contract_address: pool address. Default cKES/USDT ICHI vault.
 
