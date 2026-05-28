@@ -179,7 +179,7 @@ Plans:
 **Goal:** Restore canonical MLE on the real ICHI cKES/USDT panel via free-β AIC-selected scipy joint-MLE (`fit_method_used=scipy_canonical_ll`), superseding the LS-degenerate `ae9e3ba17900`; regenerate the genuinely-η=0.5 synthetic regression fixture; re-derive the LR test (α=0.01, Option A) + a genuine constrained-MLE η-CI; record the four-criterion gate verdict (NOT pre-committed — may be positive OR null).
 **Requirements**: DGP-02, DGP-03, DGP-06, DEPEND-01, DEPEND-02, HEDGE-01..05 (re-validation; no new IDs)
 **Depends on:** Phase 4.1
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 - [ ] 04.1.1-00-PLAN.md — commit pre-reg v2 supersession (retract v1 bands; AF-03 anchor)
