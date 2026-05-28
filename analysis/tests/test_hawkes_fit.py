@@ -95,11 +95,11 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 from pathlib import Path  # noqa: E402
 import polars as pl  # noqa: E402
 
-# Phase 04.1.1-v2: the v1 bands are RETRACTED. The [0.283, 0.371] real-panel band
+# Phase 04.1.1-v2: the v1 bands are RETRACTED. The v1 real-panel projection band
 # was a constrained-projection artifact (profile_likelihood.py projection trick at
-# the LS-degenerate kernel-blind beta=0.1 point — NOT a joint-MLE CI); the [0.45,
-# 0.55] synthetic band tested a MISLABELED fixture (true eta=0.05 via tick's
-# normalized kernel, ρ(α) not ρ(α/β)). Source: notes/PRE_REGISTRATION.md
+# the LS-degenerate kernel-blind beta=0.1 point — NOT a joint-MLE CI); the v1
+# synthetic band tested a MISLABELED fixture (true eta=0.05 via tick's normalized
+# kernel, ρ(α) not ρ(α/β)). Source: notes/PRE_REGISTRATION.md
 # §Phase 04.1.1 (v2) — Supersession of the LL-fit acceptance bands.
 _V2_ETA_BAND_SYNTH = (0.40, 0.60)   # regenerated fixture (true η=0.5); ~13% downward-bias band at n≈700
 _V2_ETA_FLOOR_REAL = 0.2            # real panel: η is a LOWER BOUND ≥ η-floor; NO fixed band (post-hoc fishing)
@@ -156,7 +156,7 @@ def test_likelihood_mode_eta_within_v2_acceptance(
       (LOWER BOUND only; NO fixed real-panel band — registering one after seeing
       the η(β) profile would itself be AF-03 fishing).
 
-    The retracted v1 projection-CI band [0.283, 0.371] is GONE.
+    The retracted v1 projection-CI real-panel band is GONE.
     """
     from abrigo_x402.dgp.hawkes_fit import fit_hawkes_expkern
 

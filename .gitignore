@@ -53,3 +53,7 @@ fetch/data/
 # Phase 2 Plan 02-08 fixture generator (one-off; outputs are committed,
 # the generator script itself is reproducible scaffolding only).
 analysis/tests/fixtures/_gen_n100.py
+
+# Phase 04.1.1-01-v2 fixture regenerator (one-off; output parquet + manifest
+# are committed, the generator script itself is reproducible scaffolding only).
+analysis/tests/fixtures/_gen_synthetic_hawkes_eta_05_v2.py
