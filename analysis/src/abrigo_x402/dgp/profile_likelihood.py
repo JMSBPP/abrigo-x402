@@ -1,8 +1,15 @@
-"""DGP-06: Profile-likelihood branching-ratio eta-CI.
+"""DGP-06: Profile-likelihood branching-ratio eta-CI (genuine constrained MLE).
 
 LOCKED INVARIANTS (PRE_REGISTRATION + PITFALLS §4):
 
 - eta-CI via PROFILE LIKELIHOOD (Filimonov & Sornette 2014; Wheatley ETH thesis).
+- Phase 04.1.1-v2: the CI is a GENUINE CONSTRAINED MLE — at each grid eta the profile
+  LL is the max of the canonical Hawkes LL over (lambda_0, alpha) subject to
+  rho(alpha/beta) == eta (see `_constrained_profile_loglik`). The reference LL_max is the
+  UNCONSTRAINED joint-MLE LL and eta_hat is the unconstrained joint-MLE branching ratio.
+  This REPLACES the retracted projection trick (PRE_REGISTRATION §Phase 04.1.1 (v2);
+  DIAGNOSTIC §3 proved the prior [0.283, 0.371] band was a constrained-projection artifact
+  at the LS-degenerate kernel-blind beta=0.1). method == "constrained_mle_profile".
 - Bounded in [0, 1) by construction. Standard-error-based CI inversion (the
   classical normal-approximation interval from the inverse-Fisher-information
   matrix) is REJECTED here (Pitfall 4 — that family extends past 1 and the
@@ -24,10 +31,11 @@ scoped to `analysis/src/abrigo_x402/dgp/lr_test.py` only — NOT this file.
 from __future__ import annotations
 
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import brentq, minimize
 from scipy.stats import chi2
 
-from abrigo_x402.dgp.hawkes_fit import fit_hawkes_with_fixed_branching_ratio
+from abrigo_x402.dgp.hawkes_fit import compute_branching_ratio
+from abrigo_x402.dgp.lr_test import _hawkes_loglik_vectorized
 
 # PRE_REGISTRATION-locked Q-9 sample-size floor (non-negotiable).
 Q9_CI_WIDTH_THRESHOLD: float = 0.4
@@ -35,6 +43,68 @@ DEFAULT_ALPHA: float = 0.05
 # Coarse grid in (0, 1) for initial bracketing. scipy.optimize.brentq refines the
 # crossing of the deficit function once the grid identifies neighbours straddling 0.
 ETA_GRID_DEFAULT: tuple[float, ...] = tuple(np.linspace(0.02, 0.95, 30).tolist())
+
+
+def _constrained_profile_loglik(
+    eta_value: float,
+    leg_0: np.ndarray,
+    leg_1: np.ndarray,
+    decays: float,
+) -> float:
+    """Genuine constrained-MLE profile log-likelihood at a fixed branching ratio.
+
+    Phase 04.1.1-v2 (PRE_REGISTRATION §Phase 04.1.1 (v2); DIAGNOSTIC §3): this REPLACES
+    the retracted projection trick. At the fixed `eta_value`, we re-optimize the canonical
+    Hawkes log-likelihood `_hawkes_loglik_vectorized` over (lambda_0[2], alpha[2,2]) SUBJECT
+    TO rho(alpha/beta) == eta_value. The constraint is enforced exactly inside the objective:
+    the raw alpha is renormalized so its spectral radius equals `eta_value * beta` before the
+    LL is evaluated. Every evaluated point therefore satisfies the constraint exactly — a
+    genuine constrained re-optimization, NOT a one-shot rescale of the unconstrained fit.
+
+    Multi-start L-BFGS-B (Hawkes LL is flat near the optimum; single-start lands in a
+    sub-optimal basin — Pitfall 7). Returns the constrained-MLE LL at rho = eta_value.
+    """
+    T = float(max(leg_0.max(), leg_1.max()))
+    lam0_emp = np.array(
+        [max(leg_0.size, 1) / T, max(leg_1.size, 1) / T], dtype=np.float64
+    )
+    starts = [
+        (lam0_emp.copy(), np.full((2, 2), 0.1, dtype=np.float64)),
+        (lam0_emp / 2.0, np.full((2, 2), 0.2, dtype=np.float64)),
+        (lam0_emp / 4.0, np.full((2, 2), 0.05, dtype=np.float64)),
+    ]
+
+    def neg_ll(theta: np.ndarray) -> float:
+        lam0 = theta[:2]
+        araw = theta[2:].reshape(2, 2)
+        rho_raw = compute_branching_ratio(araw, float(decays))
+        if rho_raw < 1e-12:
+            return 1e18
+        # Renormalize so rho(anorm/beta) == eta_value exactly:
+        #   rho(anorm/beta) = (anorm scaled by s) => s = eta_value / rho_raw.
+        anorm = araw * (float(eta_value) / rho_raw)
+        ll = _hawkes_loglik_vectorized(lam0, anorm, float(decays), leg_0, leg_1)
+        return -ll if np.isfinite(ll) else 1e18
+
+    bounds = [(1e-12, None)] * 6
+    best_neg = float("inf")
+    for lam0_init, araw_init in starts:
+        theta0 = np.concatenate([lam0_init, araw_init.ravel()])
+        try:
+            res = minimize(
+                neg_ll,
+                theta0,
+                method="L-BFGS-B",
+                bounds=bounds,
+                options={"maxiter": 500, "ftol": 1e-9},
+            )
+        except Exception:
+            continue
+        if res.success and float(res.fun) < best_neg:
+            best_neg = float(res.fun)
+    if not np.isfinite(best_neg):
+        return float("nan")
+    return -best_neg
 
 
 def profile_likelihood_eta_ci(
@@ -45,9 +115,17 @@ def profile_likelihood_eta_ci(
     alpha: float = DEFAULT_ALPHA,
     eta_grid: tuple[float, ...] | np.ndarray | None = None,
 ) -> dict:
-    """Profile-likelihood eta-CI for the Hawkes branching ratio.
+    """Genuine constrained-MLE eta-CI for the Hawkes branching ratio.
 
-    Method: profile out all parameters except eta, evaluate the deficit
+    Phase 04.1.1-v2 (PRE_REGISTRATION §Phase 04.1.1 (v2); DIAGNOSTIC §3): the projection
+    trick is RETRACTED. The CI is now a genuine constrained MLE — at each grid eta the
+    profile LL is the MAXIMUM of the canonical Hawkes LL over (lambda_0, alpha) SUBJECT TO
+    rho(alpha/beta) == eta (via `_constrained_profile_loglik`). The reference `LL_max` is
+    the UNCONSTRAINED joint-MLE LL (recomputed at the scipy canonical fit params), NOT the
+    max over a projected family; `eta_hat` is the unconstrained joint-MLE branching ratio,
+    NOT the grid argmax.
+
+    Method: evaluate the deficit
         D(eta) = 2 * (LL_max - profile_LL(eta)) - chi2(1).ppf(1 - alpha)
     on a coarse grid; refine the lower and upper crossings of D(eta) = 0 via
     scipy.optimize.brentq. The CI is the set {eta : D(eta) <= 0}, clamped to
@@ -56,39 +134,45 @@ def profile_likelihood_eta_ci(
     Returns
     -------
     dict with keys:
-      method: literal "profile_likelihood"
-      eta_hat: fitted MLE branching ratio
+      method: literal "constrained_mle_profile"
+      eta_hat: unconstrained joint-MLE branching ratio (from hawkes_fit)
       lower, upper: CI endpoints in [0, 1)
       ci_width: upper - lower
       alpha: confidence-level parameter (0.05 -> 95% CI)
       q9_nullfire_triggered: bool (ci_width > Q9_CI_WIDTH_THRESHOLD)
       q9_threshold: the locked threshold 0.4 (for downstream provenance)
     """
-    eta_hat_unconstrained = float(hawkes_fit["branching_ratio"])
+    # eta_hat is the unconstrained joint-MLE branching ratio (the scipy_canonical_ll
+    # AIC-min eta from Plan 04.1.1-01), NOT the grid argmax of a projected family.
+    eta_hat = float(hawkes_fit["branching_ratio"])
     # chi2(1) critical value is correct HERE: interior-parameter CI inversion.
     # The boundary correction (50:50 mixture) applies to the LR test of eta=0 only.
     threshold = float(chi2(1).ppf(1.0 - alpha))
 
     def _profile_loglik(eta_value: float) -> float:
-        constrained = fit_hawkes_with_fixed_branching_ratio(
-            leg_0_times, leg_1_times, float(eta_value), decays=float(decays),
+        return _constrained_profile_loglik(
+            float(eta_value), leg_0_times, leg_1_times, float(decays),
         )
-        return float(constrained["loglik_in_sample"])
 
     if eta_grid is None:
         grid = np.asarray(ETA_GRID_DEFAULT, dtype=np.float64)
     else:
         grid = np.asarray(eta_grid, dtype=np.float64)
 
-    # Evaluate profile log-likelihood on the grid. NOTE: the unconstrained Hawkes
-    # fit's `loglik_in_sample` is on a DIFFERENT objective scale (tick's LS-fallback
-    # `score()` minimizes a least-squares functional, not the true log-likelihood)
-    # when the runtime falls back from gofit="likelihood" to "least-squares" per the
-    # 03-02 deviation. To keep the deficit function self-consistent, we define
-    #   LL_max := max_k profile_LL(eta_grid[k])
-    # i.e. the profile-likelihood MLE within the projection-trick family. The
-    # corresponding eta_hat_profile is the grid argmax — this is the eta we report
-    # back, and the deficit function inverts a chi2(1)-based confidence set around it.
+    # LL_max := the UNCONSTRAINED joint-MLE LL, recomputed via the canonical
+    # `_hawkes_loglik_vectorized` at the scipy-fitted params (hawkes_fit). This is the
+    # true MLE reference for the chi2(1) deficit — NOT the max over a projected family
+    # (the retracted projection-trick reference). The deficit D(eta) is then >= 0 by
+    # construction at eta != eta_hat, so the CI {D <= 0} is a proper profile-likelihood set.
+    LL_max = _hawkes_loglik_vectorized(
+        np.asarray(hawkes_fit["baseline"], dtype=np.float64),
+        np.asarray(hawkes_fit["adjacency"], dtype=np.float64),
+        float(decays),
+        leg_0_times,
+        leg_1_times,
+    )
+
+    # Evaluate the genuine constrained-MLE profile log-likelihood on the grid.
     profile_loglik = np.empty(grid.size, dtype=np.float64)
     for k, eta_k in enumerate(grid):
         try:
@@ -97,12 +181,12 @@ def profile_likelihood_eta_ci(
             profile_loglik[k] = float("nan")
 
     valid_ll_mask = ~np.isnan(profile_loglik)
-    if not valid_ll_mask.any():
-        # All grid evaluations failed; cannot construct a CI. Return a degenerate
-        # CI at 0 and surface via q9_nullfire_triggered=False (width 0).
+    if not valid_ll_mask.any() or not np.isfinite(LL_max):
+        # All grid evaluations failed or the joint-MLE LL is non-finite; cannot construct
+        # a CI. Return a degenerate CI at eta_hat and surface q9_nullfire_triggered=False.
         return {
-            "method": "profile_likelihood",
-            "eta_hat": float(min(max(eta_hat_unconstrained, 0.0), 0.999)),
+            "method": "constrained_mle_profile",
+            "eta_hat": float(min(max(eta_hat, 0.0), 0.999)),
             "lower": 0.0,
             "upper": 0.0,
             "ci_width": 0.0,
@@ -111,11 +195,7 @@ def profile_likelihood_eta_ci(
             "q9_threshold": float(Q9_CI_WIDTH_THRESHOLD),
         }
 
-    LL_max = float(np.nanmax(profile_loglik))
-    # The profile-likelihood eta_hat is the grid argmax. If the unconstrained fit's
-    # branching_ratio is interior and the grid contains it, prefer the grid argmax;
-    # otherwise report the grid argmax as the consistent profile-MLE.
-    eta_hat_profile = float(grid[int(np.nanargmax(profile_loglik))])
+    LL_max = float(LL_max)
 
     def deficit(eta_value: float) -> float:
         """D(eta) = 2*(LL_max - profile_LL(eta)) - chi2(1).ppf(1-alpha).
@@ -132,11 +212,11 @@ def profile_likelihood_eta_ci(
 
     if in_ci_etas.size == 0:
         # CI is empty on the grid (extreme misspec / degenerate optimization).
-        # Surface as a tight CI around eta_hat_profile; the Q-9 null-fire trigger
+        # Surface as a tight CI around the joint-MLE eta_hat; the Q-9 null-fire trigger
         # will NOT fire here (ci_width ~ 0). Upstream callers should inspect the
         # boundary_warning on the Hawkes fit + fit_method_used to diagnose.
-        ci_lower = float(max(0.0, eta_hat_profile - 1e-6))
-        ci_upper = float(min(0.999, eta_hat_profile + 1e-6))
+        ci_lower = float(max(0.0, eta_hat - 1e-6))
+        ci_upper = float(min(0.999, eta_hat + 1e-6))
     else:
         ci_lower_grid = float(in_ci_etas.min())
         ci_upper_grid = float(in_ci_etas.max())
@@ -180,9 +260,8 @@ def profile_likelihood_eta_ci(
     ci_width = float(ci_upper - ci_lower)
 
     return {
-        "method": "profile_likelihood",
-        "eta_hat": float(eta_hat_profile),
-        "eta_hat_unconstrained": float(eta_hat_unconstrained),
+        "method": "constrained_mle_profile",
+        "eta_hat": float(eta_hat),
         "lower": ci_lower,
         "upper": ci_upper,
         "ci_width": ci_width,
