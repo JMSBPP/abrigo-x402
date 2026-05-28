@@ -3,43 +3,39 @@
 Tests `profile_likelihood_eta_ci` (Filimonov & Sornette 2014 + Wheatley thesis):
 - CI structurally bounded in [0, 1) (NOT Wald — Pitfall 4)
 - Recovered CI covers either the truth (eta=0.5) OR the fitted eta_hat
-- Projection-trick `fit_hawkes_with_fixed_branching_ratio` realizes the target spectral radius
 - Q-9 null-fire trigger: ci_width > 0.4 -> q9_nullfire_triggered=True (PRE_REGISTRATION lock)
+- Phase 04.1.1-v2: GENUINE constrained MLE (re-optimize LL s.t. rho(alpha/beta)=eta at
+  each grid point), method == "constrained_mle_profile"; the projection-trick reference
+  (LL_max = max over the projected family; eta_hat = grid argmax) is RETRACTED.
 """
 from __future__ import annotations
 
-import numpy as np
+# Pattern I thread-pinning — MUST precede any numpy/scipy/tick import (SC-5 byte-identity).
+import os  # noqa: E402
 
-from abrigo_x402.dgp.hawkes_fit import (
-    fit_hawkes_expkern,
-    fit_hawkes_with_fixed_branching_ratio,
-)
-from abrigo_x402.dgp.profile_likelihood import (
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
+from abrigo_x402.dgp.hawkes_fit import fit_hawkes_expkern  # noqa: E402
+from abrigo_x402.dgp.profile_likelihood import (  # noqa: E402
     Q9_CI_WIDTH_THRESHOLD,
     profile_likelihood_eta_ci,
 )
 
 
-def test_fit_hawkes_with_fixed_branching_ratio_projection(synthetic_hawkes_eta_05_legs):
-    """Projection trick produces an adjacency whose spectral radius equals eta_target."""
-    leg_0, leg_1 = synthetic_hawkes_eta_05_legs
-    target = 0.3
-    result = fit_hawkes_with_fixed_branching_ratio(
-        leg_0, leg_1, eta_target=target, decays=0.1,
-    )
-    eigvals = np.linalg.eigvals(np.asarray(result["adjacency"]) / result["decays"])
-    actual = float(np.max(np.abs(eigvals)))
-    assert abs(actual - target) < 1e-4, (
-        f"Projection trick failed: target={target} actual={actual}"
-    )
-
-
 def test_ci_covers_truth(synthetic_hawkes_eta_05_legs):
-    """CI covers either truth (eta=0.5) or the fitted eta_hat (looser — finite-sample bias)."""
+    """CI covers either truth (eta=0.5) or the fitted eta_hat (looser — finite-sample bias).
+
+    Phase 04.1.1-v2: fit at the AIC-min beta (free-beta scipy canonical) — the genuine
+    joint-MLE eta is the reference, NOT the kernel-blind beta=0.1 projection.
+    """
     leg_0, leg_1 = synthetic_hawkes_eta_05_legs
-    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1, decays=0.1)
+    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
+    decays = float(hawkes_fit["decays"])
     ci = profile_likelihood_eta_ci(
-        leg_0, leg_1, hawkes_fit, decays=0.1, alpha=0.05,
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
     )
     truth = 0.5
     eta_hat = ci["eta_hat"]
@@ -53,23 +49,56 @@ def test_ci_covers_truth(synthetic_hawkes_eta_05_legs):
 def test_ci_bounded(synthetic_hawkes_eta_05_legs):
     """CI structurally bounded in [0, 1) — never extends past the stationarity boundary."""
     leg_0, leg_1 = synthetic_hawkes_eta_05_legs
-    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1, decays=0.1)
+    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
+    decays = float(hawkes_fit["decays"])
     ci = profile_likelihood_eta_ci(
-        leg_0, leg_1, hawkes_fit, decays=0.1, alpha=0.05,
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
     )
     assert 0.0 <= ci["lower"] <= ci["upper"] < 1.0, (
         f"CI extends past [0, 1): [{ci['lower']}, {ci['upper']}]"
     )
-    assert ci["method"] == "profile_likelihood"
+    assert ci["method"] == "constrained_mle_profile"
+
+
+def test_constrained_mle_ci_not_projection(synthetic_hawkes_eta_05_legs):
+    """Phase 04.1.1-v2: the eta-CI is a GENUINE constrained MLE, NOT the projection trick.
+
+    - method literal is "constrained_mle_profile" (the retracted "projection" / the prior
+      "profile_likelihood" projection-family literal does NOT appear)
+    - eta_hat is the unconstrained joint-MLE branching ratio (from the scipy canonical fit),
+      in a sane range for the regenerated true-eta=0.5 fixture at n~700 (downward-biased)
+    - the CI excludes zero (lower > 0): the branching_ci_excludes_zero gate criterion
+    """
+    leg_0, leg_1 = synthetic_hawkes_eta_05_legs
+    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
+    decays = float(hawkes_fit["decays"])
+    ci = profile_likelihood_eta_ci(
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
+    )
+    assert ci["method"] == "constrained_mle_profile"
+    assert ci["method"] != "projection"
+    # eta_hat is the joint-MLE eta, not the grid argmax of a projected family.
+    assert abs(ci["eta_hat"] - float(hawkes_fit["branching_ratio"])) < 1e-9, (
+        f"eta_hat={ci['eta_hat']} must equal the joint-MLE eta "
+        f"{hawkes_fit['branching_ratio']}"
+    )
+    assert 0.30 <= ci["eta_hat"] <= 0.70, (
+        f"eta_hat={ci['eta_hat']} outside the sane [0.30, 0.70] range for true eta=0.5 "
+        f"at n~700"
+    )
+    assert ci["lower"] > 0.0, (
+        f"CI lower endpoint {ci['lower']} must exclude zero (branching_ci_excludes_zero)"
+    )
 
 
 def test_q9_nullfire_trigger(synthetic_hawkes_eta_05_legs):
     """Q9_CI_WIDTH_THRESHOLD == 0.4 (PRE_REGISTRATION lock); flag fires iff ci_width > 0.4."""
     assert Q9_CI_WIDTH_THRESHOLD == 0.4
     leg_0, leg_1 = synthetic_hawkes_eta_05_legs
-    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1, decays=0.1)
+    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
+    decays = float(hawkes_fit["decays"])
     ci = profile_likelihood_eta_ci(
-        leg_0, leg_1, hawkes_fit, decays=0.1, alpha=0.05,
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
     )
     # Flag must match the structural definition (ci_width > threshold)
     assert ci["q9_nullfire_triggered"] == (ci["ci_width"] > Q9_CI_WIDTH_THRESHOLD)
