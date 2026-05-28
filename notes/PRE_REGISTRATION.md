@@ -191,3 +191,50 @@ Other Phase-0 plans and downstream phases consume specific elements of this pre-
 ---
 
 *Pre-registration committed 2026-05-25 by GSD plan 00-01 executor against `.planning/phases/00-candidate-eligibility-pre-registration/00-01-PLAN.md`. Pre-fit numerical thresholds, test statistics, decision rules, fallback paths, and deferred substrate enumeration are now locked. No downstream phase may revise without an AF-03 audit-trail entry.*
+
+---
+
+## Phase 04.1.1 (v2) — Supersession of the LL-fit acceptance bands after independent diagnostic
+
+Amendment date: 2026-05-28. This is the AF-03 audit-trail entry that supersedes the acceptance bands registered in the `## Phase 04.1.1 — LL-fit acceptance & fallback chain` sub-section above (committed `f7ae84d`, 2026-05-27). The v1 sub-section is retained verbatim as audit history; the bands it locked are RETRACTED here because an independent Model-QA diagnostic (`.planning/phases/04.1.1-*/04.1.1-DIAGNOSTIC.md`, 2026-05-28) established that BOTH bands rest on objectively-verifiable errors, not on substantive estimates. The verdict-deciding gate is NOT touched (see §Decision gate unchanged).
+
+### Why the v1 bands are retracted (both errors are result-independent and verifiable)
+
+1. **The η-coherence band [0.283, 0.371] is a constrained-projection artifact, not a joint-MLE CI.** Verified from `analysis/src/abrigo_x402/dgp/profile_likelihood.py` (L72–118): it calls `fit_hawkes_with_fixed_branching_ratio` (unconstrained fit, then **rescales the adjacency by `eta_target/eta_current`** — the "projection trick", L298–300), takes `LL_max := max_k profile_LL(grid)` over the *projected* family (not the true MLE LL), and inverts χ²(1) around the grid argmax. The underlying fit is the degenerate LS-fallback (`eta_hat_unconstrained = 0.000307`) at the **kernel-blind β=0.1**. The band is therefore an artifact of (a) LS degeneracy, (b) kernel-blind β, (c) the projection trick standing in for a constrained MLE. It is not a CI for the joint-MLE η.
+
+2. **The synthetic fixture `synthetic_hawkes_eta_05.parquet` is mislabeled — its true η is 0.05, not 0.5.** `tick.SimuHawkesExpKernels` uses the *normalized* kernel φ(t)=α·β·e^(−βt), so tick's branching ratio is ρ(α), NOT ρ(α/β). The committed fixture (`A=0.025, β=0.1`) carries `expected_branching_ratio=0.5` but `tick.spectral_radius()` reports **0.05**. The MLE recovering η≈0.05 was the MLE *correctly* recovering the η that was actually simulated. The synthetic-regression band [0.45, 0.55] tested against a panel that never had η=0.5.
+
+### Corrected canonical estimator (re-registered)
+
+- **tick likelihood mode is dead.** `tick.HawkesExpKern(gofit="likelihood")` raises `RuntimeError: The sum of the influence on someone cannot be negative` at every DECAY_GRID value, even with timestamp rescaling. It is removed from the live path.
+- **Canonical estimator = free-β AIC-selected scipy joint-MLE** wrapping `_hawkes_loglik_vectorized` (the same canonical LL the LR statistic uses; Pattern F preserved). β is selected by AIC-minimum over `DECAY_GRID = (0.0001, 0.001, 0.01, 0.1, 1.0, 10.0)`; η is read from `compute_branching_ratio` at the AIC-min β. `fit_method_used = "scipy_canonical_ll"`.
+- **Estimator soundness is pre-established (not assumed):** on a *genuinely* η=0.5 simulation (via `tick.adjust_spectral_radius(0.5)`) at matched β, n≈700, the estimator recovers mean η̂=0.540 (sd 0.076; 5 seeds). Finite-sample bias at n≈700 is downward ~13% (true 0.5 → η̂=0.43, sd 0.05) — therefore the **reported real-panel η is a LOWER BOUND**.
+
+### Corrected acceptance criteria (re-registered, locked BEFORE the corrected fit runs)
+
+- **Synthetic-regression band (corrected):** regenerate the fixture via `tick.adjust_spectral_radius(0.5)` at a β matched to its event spacing so the manifest label is true; acceptance is η̂ ∈ **[0.40, 0.60]** at n≈700 (accommodates the measured ~13% downward finite-sample bias). The OLD [0.45, 0.55] band against the mislabeled fixture is void.
+- **Real-panel η (corrected):** the joint-MLE η at the AIC-selected β supersedes the [0.283, 0.371] projection band entirely. No fixed η acceptance band is pre-registered for the real panel (registering one after seeing the η(β) profile would itself be AF-03 fishing); instead the AIC-min β selection rule + the η(β) curve are reported, and the **CI is re-derived as a genuine constrained MLE** (re-optimize the LL subject to ρ(α/β)=η at each grid point), NOT the projection trick.
+- **Decision gate UNCHANGED (the AF-03 safeguard):** the Phase-0 four-criterion gate — LR-bootstrap rejection at α=0.01, time-rescaling KS held-out, branching-CI-excludes-zero, η-floor ≥ 0.2 — remains the SOLE verdict criterion. The corrected fit clears η-floor and (pending the re-derived CI) branching-CI-excludes-zero; the **LR and KS criteria are NOT yet re-established** and could still land null. NO headline may flip to "positive" on η alone.
+
+### LR-test re-derivation + bootstrap performance (Option A authorized — AF-12 expansion)
+
+- The existing reported observed LR statistic (6.05M, p=0.58) is a separate LL-scale pathology: LS-fallback params evaluated under the canonical LL. The LR must be re-derived on the corrected scipy observed fit before any LR criterion can be claimed.
+- **Bootstrap performance:** scipy canonical fit = ~4.3s; 2×1000 null replicates = ~143 min (intractable). **Authorized mitigation (Option A):** use the cheap tick least-squares estimator for the 1000 NHPP null replicates (the null is η=0-by-construction, so LS bias on η is irrelevant to the null LR distribution) while the OBSERVED fit uses scipy canonical. ~0.8 min, no null-side statistical compromise. This authorizes a scoped edit to `analysis/src/abrigo_x402/dgp/lr_test.py` (previously AF-12 OUT-OF-SCOPE in v1) — limited strictly to the null-replicate estimator path and the observed-LL-scale fix.
+
+### AF-03 legitimacy of this supersession
+
+This amendment corrects two estimator/fixture errors that are verifiable independent of the result (`tick.spectral_radius()=0.05`; the projection-trick source in `profile_likelihood.py`; 1/β=10s vs the 666s pooled inter-arrival). It does NOT alter any verdict-deciding threshold — the Phase-0 four-criterion gate (LR α=0.01, KS, branching-CI-excludes-zero, η-floor 0.2) is unchanged and was locked before any data existed. The corrected LR + KS outcomes are genuinely undetermined as of this amendment; the result may still be a null. Fixing a demonstrably-wrong same-cycle acceptance band is the opposite of spec-swapping to escape a result.
+
+### Out-of-scope (AF-12, carried forward + expansion noted)
+
+Unchanged from v1 EXCEPT: the `lr_test.py` edit for Option A null-replicate estimator + observed-LL-scale fix is now IN scope (authorized above). Still OUT: no new kernel forms; no new firing conditions; no new gate criteria; no change to LR α 0.01 / KS α 0.05 / η-floor 0.2 / Q-9 floor 300; no re-fetch; no PANEL-02 schema bump; no Phase 5 PDF absorption; no synthetic-substrate deletion; no overwrite of `ae9e3ba17900`.
+
+### Ordering invariant
+
+This amendment commit MUST predate every commit under `analysis/src/abrigo_x402/dgp/{hawkes_fit.py, lr_test.py, profile_likelihood.py}` and every regenerated fixture from Plan 04.1.1-01-v2 onwards (verifiable via `git log --pretty=format:'%H %s %ai' -- notes/PRE_REGISTRATION.md analysis/src/abrigo_x402/dgp/ | head -15`).
+
+Consumers: `analysis/src/abrigo_x402/dgp/hawkes_fit.py` + `lr_test.py` + `profile_likelihood.py` (corrected-fit + corrected-CI + Option-A bootstrap); `analysis/tests/fixtures/synthetic_hawkes_eta_05.parquet` (regenerated via `adjust_spectral_radius`); the replanned Phase 04.1.1 plan set; `data/fits/ichi/<new-run-id>/fit_report.json` (must satisfy `fit_method_used = "scipy_canonical_ll"` AND a genuine constrained-MLE η-CI AND the unchanged four-criterion gate fields).
+
+---
+
+*Phase 04.1.1 (v2) supersession committed 2026-05-28. The v1 LL-fit bands are retracted per the independent diagnostic; the Phase-0 verdict gate is unchanged.*
