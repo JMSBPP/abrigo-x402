@@ -176,6 +176,41 @@ def _nhpp_pointprocess_loglik(
     )
 
 
+def _fit_hawkes_ls_for_null(
+    sim_0: np.ndarray,
+    sim_1: np.ndarray,
+    decays: float,
+) -> dict:
+    """Cheap tick least-squares Hawkes fit for the NHPP null bootstrap replicates (Option A).
+
+    Phase 04.1.1-v2 / PRE_REGISTRATION §Phase 04.1.1 (v2) §LR-test re-derivation:
+    the null is eta=0-by-construction (pure-NHPP sims), so the LS estimator's known
+    downward eta-bias is IRRELEVANT to the null LR distribution. tick-LS is ~178x
+    cheaper than the scipy canonical fit (DIAGNOSTIC §Q4: 0.024s vs 4.29s), making
+    the 2x1000-replicate bootstrap tractable (~minutes vs ~143 min). The OBSERVED
+    fit still uses the scipy canonical estimator — only the null replicates are LS.
+
+    Returns the same {baseline, adjacency, decays, branching_ratio, fit_method_used}
+    shape the bootstrap loop consumes; the LL is then computed on these LS params via
+    the canonical `_hawkes_loglik_vectorized` (so the null LR is on the same scale).
+    """
+    from abrigo_x402.dgp.hawkes_fit import _fit_with_gofit, compute_branching_ratio
+
+    t0 = float(min(sim_0.min(), sim_1.min()))
+    s0 = (sim_0 - t0).astype(np.float64)
+    s1 = (sim_1 - t0).astype(np.float64)
+    learner = _fit_with_gofit(s0, s1, float(decays), gofit="least-squares")
+    baseline = np.asarray(learner.baseline, dtype=np.float64)
+    adjacency = np.asarray(learner.adjacency, dtype=np.float64)
+    return {
+        "baseline": baseline.tolist(),
+        "adjacency": adjacency.tolist(),
+        "decays": float(decays),
+        "branching_ratio": float(compute_branching_ratio(adjacency, float(decays))),
+        "fit_method_used": "least-squares-null-replicate",
+    }
+
+
 def _simulate_nhpp_under_null(
     nhpp_baseline_per_sec: np.ndarray,
     end_time: float,
@@ -265,6 +300,15 @@ def parametric_bootstrap_lr(
     # log-likelihood, so we recompute the Hawkes LL at the fitted parameters via the same
     # closed-form formula used for the NHPP rate. Hawkes_LL and NHPP_LL therefore differ
     # only in the adjacency they integrate against (fitted alpha vs zeros).
+    # Phase 04.1.1-v2 observed-LL-scale fix: `hawkes_obs` is the scipy_canonical_ll
+    # free-beta AIC fit (fit_hawkes_expkern is now scipy-only — tick.likelihood is DEAD).
+    # Because ll_hawkes_obs is computed from `hawkes_obs["baseline"]/["adjacency"]` (the
+    # SCIPY-fitted params) under the SAME canonical `_hawkes_loglik_vectorized`, the
+    # observed Hawkes LL and the NHPP LL share one probability space. The prior reported
+    # observed_stat (~6.05M) was an LS-fallback-params-into-canonical-LL pathology: it fed
+    # the degenerate least-squares fit (adjacency ~1e-5) through the canonical LL on a
+    # different objective scale. With the scipy observed fit the observed_stat is finite
+    # and physically scaled (DIAGNOSTIC §Q4 note; PRE_REGISTRATION §Phase 04.1.1 (v2)).
     decays_obs = float(hawkes_obs["decays"])
     hawkes_baseline_obs = np.asarray(hawkes_obs["baseline"], dtype=np.float64)
     hawkes_adjacency_obs = np.asarray(hawkes_obs["adjacency"], dtype=np.float64)
@@ -278,12 +322,19 @@ def parametric_bootstrap_lr(
 
     # 2. Parametric bootstrap UNDER THE NULL (NHPP, NOT Hawkes — Pitfall 2).
     #
-    # Performance: pin the AIC-selected hyperparameters from the observed-data fit so that
+    # Phase 04.1.1-v2 Option A performance: the OBSERVED Hawkes fit (above) uses the scipy
+    # canonical estimator (~4.3s, run ONCE); the 1000 NHPP null replicates use the CHEAP
+    # tick least-squares fitter `_fit_hawkes_ls_for_null` (~0.024s/rep). Since the null is
+    # eta=0-by-construction, the LS estimator's downward eta-bias is irrelevant to the null
+    # LR distribution (DIAGNOSTIC §Q4; PRE_REGISTRATION §Phase 04.1.1 (v2) authorizes this
+    # scoped null-replicate estimator split). This makes the 2x1000-replicate bootstrap run
+    # in ~minutes (was ~143 min if scipy were called per replicate). The n_reps=1000
+    # PRODUCTION LOCK (AF-04) is UNCHANGED — Option A only makes each replicate cheap.
+    #
+    # The AIC-selected hyperparameters are still pinned from the observed-data fit so that
     # bootstrap replicates skip the bin-width / decay grid searches. The bootstrap is a
     # SIZE-CALIBRATION rig for the LR statistic *at the chosen hyperparameter regime*; the
     # grid search is for model selection on the observed data, not for each null replicate.
-    # This drops per-rep cost from ~2s to ~0.3s (PRE_REGISTRATION 1000-rep production stays
-    # tractable; SC-3 unit test smoke runs stay under the pytest timeout budget).
     #
     # Pinning the AR order to the observed-data p_star is the bootstrap convention for VAR
     # null calibration — refit with the same order so that the LR statistic compares the
@@ -317,7 +368,15 @@ def parametric_bootstrap_lr(
                 bin_width_seconds=nhpp_bin_width,
                 max_p=nhpp_max_p_pinned,
             )
-            hawkes_b = fit_hawkes_expkern(sim_0_abs, sim_1_abs, decays=hawkes_decays_pinned)
+            # Phase 04.1.1-v2 Option A: the 1000 NHPP null replicates are fit with the
+            # CHEAP tick least-squares estimator at the pinned observed decay, NOT scipy.
+            # The null is eta=0-by-construction so the LS eta-bias is irrelevant to the
+            # null LR distribution (DIAGNOSTIC §Q4; PRE_REGISTRATION §Phase 04.1.1 (v2)).
+            # This is ~178x cheaper than scipy per replicate, making the 2x1000-replicate
+            # bootstrap tractable (~minutes vs ~143 min). The downstream canonical-LL is
+            # still computed via _hawkes_loglik_vectorized, so the null LR_b is on the
+            # same scale as the scipy-observed LR.
+            hawkes_b = _fit_hawkes_ls_for_null(sim_0_abs, sim_1_abs, decays=hawkes_decays_pinned)
             decays_b = float(hawkes_b["decays"])
             ll_nhpp_b = _nhpp_pointprocess_loglik(
                 nhpp_b, sim_0_abs, sim_1_abs, decays_b,
