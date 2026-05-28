@@ -176,13 +176,18 @@ Plans:
 
 ### Phase 04.1.1: Fix Hawkes likelihood-mode fit on real ICHI cKES/USDT panel — investigate LL failure, restore canonical MLE, re-derive LR result without LS-fallback degeneracy (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Restore canonical MLE on the real ICHI cKES/USDT panel via free-β AIC-selected scipy joint-MLE (`fit_method_used=scipy_canonical_ll`), superseding the LS-degenerate `ae9e3ba17900`; regenerate the genuinely-η=0.5 synthetic regression fixture; re-derive the LR test (α=0.01, Option A) + a genuine constrained-MLE η-CI; record the four-criterion gate verdict (NOT pre-committed — may be positive OR null).
+**Requirements**: DGP-02, DGP-03, DGP-06, DEPEND-01, DEPEND-02, HEDGE-01..05 (re-validation; no new IDs)
 **Depends on:** Phase 4.1
-**Plans:** 1/4 plans executed
+**Plans:** 1/6 plans executed
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 04.1.1 to break down)
+- [ ] 04.1.1-00-PLAN.md — commit pre-reg v2 supersession (retract v1 bands; AF-03 anchor)
+- [ ] 04.1.1-01-PLAN.md — regenerate η=0.5 fixture + scipy_canonical_ll PRIMARY estimator + revised tests
+- [ ] 04.1.1-02-PLAN.md — lr_test.py Option A (tick-LS null + scipy observed + LL-scale fix) + profile_likelihood.py genuine constrained-MLE CI
+- [ ] 04.1.1-03-PLAN.md — real-panel production-rep → new scipy_canonical_ll run_id + four-criterion gate verdict
+- [ ] 04.1.1-04-PLAN.md — hedge rerun on new run_id → 6-artifact set
+- [ ] 04.1.1-05-PLAN.md — 04-VERIFICATION append (v2) + ls_fallback_artifact_supersession_resolved:true + STATE/ROADMAP close
 
 ### Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)
 **Goal**: Ship the Iteration-1 PDF deliverable (`reports/ichi.pdf`) via Quarto/nbconvert with the spot-check checklist, cost-leg prior sensitivity sweep, and reproducibility manifest — completing Iteration 1 with either a positive convex-hedge result or a documented null-result, in PDF form (per memory `feedback_pdf_deliverable.md`).
