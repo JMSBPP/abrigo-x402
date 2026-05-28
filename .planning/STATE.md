@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 04.1.1-01 (Phase 04.1.1 Wave 1 — LL-fit retry + scipy fallback + synthetic regression)
-status: verifying
+current_plan: 04.1.1-02 (Phase 04.1.1 Wave 2 — lr_test.py Option A + profile_likelihood.py constrained-MLE CI)
+status: executing
 last_updated: "2026-05-28T11:17:48.816Z"
 progress:
   total_phases: 10
