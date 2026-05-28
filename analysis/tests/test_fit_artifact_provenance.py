@@ -141,3 +141,61 @@ def test_full_offdiag_adjacency(small_panel_path, tmp_path):
     assert len(adjacency) == 2
     assert len(adjacency[0]) == 2
     assert len(adjacency[1]) == 2
+
+
+# ---- Phase 04.1.1 fit_report.json schema provenance (AF-03) ----
+
+from pathlib import Path  # noqa: E402
+
+# Pre-04.1.1-01 historical LS-fallback artifacts on disk. Each carries
+# fit_method_used='least-squares' by design (the broken-estimator era this plan
+# fixes). All are EXEMPTED from the post-04.1.1-01 invariant; the AF-03 lock
+# applies only to fits produced AFTER the Plan 04.1.1-01 source patch lands.
+#   - ae9e3ba17900: Phase 04.1-02 real-data run (the load-bearing LS-fallback
+#     evidence superseded by Plan 04.1.1-01's new run_id).
+#   - 0afc6af38e24: Phase 04-09 synthetic-stacked substrate (archived as
+#     "LS-fallback methodology-validation evidence" per CONTEXT.md).
+#   - de46bb72de52: pre-04.1 earlier real-data run (legacy; pre-block_timestamp
+#     panel-augmentation era).
+# Post-04.1.1-01 run_ids (driven by Pattern H _derive_run_id with the new
+# gitCommit) will NOT collide with any of these and MUST satisfy the no-LS
+# invariant.
+_ARCHIVED_LS_FALLBACK_RUN_IDS = frozenset({
+    "ae9e3ba17900",
+    "0afc6af38e24",
+    "de46bb72de52",
+})
+
+
+def test_fit_method_used_not_ls_after_04_1_1():
+    """Every fit_report.json not in the LS-fallback archive must carry
+    fit_method_used != 'least-squares' (AF-03 Plan 04.1.1-00 lock).
+    """
+    # Resolve relative to repo root rather than CWD so the test works regardless
+    # of invocation site (cd analysis && pytest vs pytest from repo root).
+    repo_root = Path(__file__).resolve().parents[2]
+    fits_dir = repo_root / "data/fits/ichi"
+    if not fits_dir.exists():
+        pytest.skip("data/fits/ichi does not exist in this environment")
+    offenders = []
+    checked = 0
+    for run_dir in fits_dir.iterdir():
+        if not run_dir.is_dir():
+            continue
+        if run_dir.name in _ARCHIVED_LS_FALLBACK_RUN_IDS:
+            continue
+        report_path = run_dir / "fit_report.json"
+        if not report_path.exists():
+            continue
+        payload = json.loads(report_path.read_text())
+        method = payload.get("hawkes_mv_params", {}).get("fit_method_used")
+        checked += 1
+        if method == "least-squares":
+            offenders.append(f"{run_dir.name}: fit_method_used={method!r}")
+    if checked == 0:
+        pytest.skip("no post-04.1.1-01 fit_report on disk yet")
+    assert not offenders, (
+        f"AF-03 Plan 04.1.1-00 violation - the following fit_report.json files "
+        f"carry fit_method_used='least-squares' outside the archived LS-fallback "
+        f"run_ids {sorted(_ARCHIVED_LS_FALLBACK_RUN_IDS)}: {offenders}"
+    )
