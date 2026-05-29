@@ -64,7 +64,7 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 - [x] **REPRO-01**: Protocol-spec layer (`protocols/*.toml`) must be the only file class that changes between Iteration 1 (ICHI) and Iteration 2 (Steer); a `grep -r "ichi" fetch/src analysis/src` must return zero hits before Iteration 2 starts
 - [x] **REPRO-02**: Iteration 2 must run the same Phase 2–5 pipeline end-to-end on Steer-on-cCOP/USDT with no edits to `fetch/src` or `analysis/src`, demonstrating the parameter-driven re-runnability invariant (per FEATURES.md TS-12 + D-08)
-- [ ] **REPRO-03**: Steer-on-Celo cost-leg lower-bound check must run as the first step of Iteration 2 (per CANDIDATES §6 Q6b); if the check fails, Steer drops to a documented null-result and Iteration 2 either defers or substitutes a replacement candidate — neither path involves modifying the pipeline code
+- [x] **REPRO-03**: Steer-on-Celo cost-leg lower-bound check must run as the first step of Iteration 2 (per CANDIDATES §6 Q6b); if the check fails, Steer drops to a documented null-result and Iteration 2 either defers or substitutes a replacement candidate — neither path involves modifying the pipeline code
 - [x] **REPRO-04**: cCOP panel construction decision must be made and documented before Phase 6 estimation begins — either V3-anchor-only (~625 swaps/30d) or unified across V3 + V4 PoolManager + Mento V2 Broker (~900 events/30d per CANDIDATES.md §7). If unified, the pooling assumption (common arrival-process structure across the three event classes) must be either argued from primary sources or tested empirically (cross-class permutation test) before joint Hawkes estimation
 
 ## v2 Requirements
