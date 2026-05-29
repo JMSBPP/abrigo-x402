@@ -60,17 +60,26 @@ def compute_branching_ratio(adjacency: np.ndarray, decays: float) -> float:
 def _reject_nonstationary(adjacency: np.ndarray, decays: float) -> float:
     """Stationarity guard for the scipy canonical MLE (Plan 04.1.1-02c, NEEDS WORK #2a).
 
-    Returns the +inf-class penalty 1e18 if rho(alpha/beta) >= 1 (the non-stationary /
-    explosive region), else 0.0. Wired into `_fit_with_scipy_canonical_ll.neg_ll` BEFORE
-    the LL computation so the optimizer cannot evaluate or settle in the explosive region.
+    Returns a >= 1e18 penalty if rho(alpha/beta) >= 1 (the non-stationary / explosive
+    region), else 0.0. Wired into `_fit_with_scipy_canonical_ll.neg_ll` BEFORE the LL
+    computation so the optimizer cannot settle in the explosive region.
 
     This ENFORCES the pre-registered §Kernel Forms condition ||alpha/beta||_inf < 1
     (PRE_REGISTRATION §Phase 04.1.1 (v2) §02c). It is NOT a new gate criterion — the
-    existing `stationary` gate input is reused; explosive fits are simply rejected at fit
-    time so an artifactual eta >= 1 cannot pass the eta-floor gate.
+    existing `stationary` gate input is reused; explosive fits are rejected at fit time so
+    an artifactual eta >= 1 cannot pass the eta-floor gate.
+
+    The penalty is the violation-scaled `1e18 * (1 + (rho - 1))` rather than a flat 1e18.
+    A flat plateau has zero gradient, so an L-BFGS-B path that enters the explosive region
+    (which is easy at small beta, where rho = rho(alpha)/beta) gets STUCK and the genuine
+    stationary optimum at that beta is lost (the synthetic eta=0.5 fixture, true beta=0.001,
+    regressed to eta~0.16 at a wrong beta with the flat penalty). The violation-scaled
+    barrier gives a descent direction back toward feasibility while still being >> any finite
+    LL, so the optimizer is pushed back into the stationary region and converges there.
     """
-    if compute_branching_ratio(adjacency, float(decays)) >= 1.0:
-        return 1e18
+    rho = compute_branching_ratio(adjacency, float(decays))
+    if rho >= 1.0:
+        return 1e18 * (1.0 + (rho - 1.0))
     return 0.0
 
 
@@ -136,21 +145,47 @@ def _fit_with_scipy_canonical_ll(
         [max(leg_0_rs.size, 1) / T, max(leg_1_rs.size, 1) / T], dtype=np.float64
     )
     # Pitfall 7 multi-start: 3 initial points.
+    # Plan 04.1.1-02c: the initial alpha is scaled to a fixed INITIAL BRANCHING RATIO
+    # eta_init (0.1, 0.3, 0.5), independent of beta. A uniform 2x2 with entry c has spectral
+    # radius 2c, so rho(alpha/beta) = 2c/beta == eta_init  =>  c = eta_init * beta / 2. Fixed
+    # alpha entries (the prior 0.01/0.1/0.3) were EXPLOSIVE at small beta (e.g. beta=0.001:
+    # rho(0.01/0.001)=20 >= 1), which the new stationarity guard rejects with a flat 1e18
+    # plateau — L-BFGS-B then cannot descend and the (genuine, stationary) optimum at that
+    # beta is lost. Scaling the start to a stationary eta_init keeps every multi-start inside
+    # the feasible region at every DECAY_GRID value.
+    def _alpha_init_for_eta(eta_init: float) -> np.ndarray:
+        return np.full((2, 2), eta_init * float(decays) / 2.0, dtype=np.float64)
+
     starts = [
-        (lam0_emp.copy(), np.full((2, 2), 0.01, dtype=np.float64)),
-        (lam0_emp / 2.0, np.full((2, 2), 0.1, dtype=np.float64)),
-        (lam0_emp / 4.0, np.full((2, 2), 0.3, dtype=np.float64)),
+        (lam0_emp.copy(), _alpha_init_for_eta(0.1)),
+        (lam0_emp / 2.0, _alpha_init_for_eta(0.3)),
+        (lam0_emp / 4.0, _alpha_init_for_eta(0.5)),
     ]
 
     def neg_ll(theta):
         lam0 = theta[:2]
         alpha = theta[2:].reshape(2, 2)
-        # Plan 04.1.1-02c (NEEDS WORK #2a): reject the non-stationary region rho(alpha/beta)
-        # >= 1 BEFORE the LL computation — enforces the pre-registered ||alpha/beta|| < 1
-        # (§Kernel Forms). bounds stay (1e-12, None); this is the stationarity guard.
-        penalty = _reject_nonstationary(alpha, float(decays))
-        if penalty:
-            return penalty
+        # Plan 04.1.1-02c (NEEDS WORK #2a): enforce the non-explosive region rho(alpha/beta)
+        # < 1 — the pre-registered ||alpha/beta||_inf < 1 (§Kernel Forms). bounds stay
+        # (1e-12, None); this is the stationarity guard.
+        #
+        # A hard +inf/1e18 plateau in the explosive region has zero gradient and is unscaled
+        # vs the ~O(10^3) LL, which wrecks L-BFGS-B (line-search failure -> the genuine
+        # stationary optimum at small beta is lost; see _reject_nonstationary docstring).
+        # Instead, when explosive we evaluate the LL at alpha CLIPPED back to a stationary
+        # point (rho = 0.999) and ADD a smooth quadratic barrier in the violation. The
+        # objective stays finite and well-scaled with a gradient pushing back toward the
+        # feasible region, so the optimizer converges INSIDE rho < 1 (the returned best fit
+        # is always stationary; _reject_nonstationary still rejects explosive params hard for
+        # any external caller / test contract).
+        rho = compute_branching_ratio(alpha, float(decays))
+        if rho >= 1.0:
+            alpha_clipped = alpha * (0.999 / rho)
+            ll = _hawkes_loglik_vectorized(
+                lam0, alpha_clipped, float(decays), leg_0_rs, leg_1_rs
+            )
+            barrier = 1e6 * (rho - 1.0 + 1e-9) ** 2 + 1e3 * (rho - 1.0)
+            return (-ll if np.isfinite(ll) else 1e12) + barrier
         ll = _hawkes_loglik_vectorized(
             lam0, alpha, float(decays), leg_0_rs, leg_1_rs
         )
