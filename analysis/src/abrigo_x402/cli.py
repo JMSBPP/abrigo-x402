@@ -12,7 +12,8 @@ Usage:
       [--forno-head <int>]   # defaults to to-block + 120 (panel pre-cutoff)
 
 The Parquet output lands at
-  data/raw/ichi/<pool>/<from_block>_<to_block>.parquet
+  data/raw/<protocol>/<pool>/<from_block>_<to_block>.parquet
+where <protocol> is the slug from the loaded --protocol-toml (spec.protocol.name),
 with the six PANEL-02 required keys (chainId, contractAddress, blockRange,
 fetchTimestamp, dataHash, gitCommit) embedded in the footer.
 """
@@ -64,7 +65,14 @@ def materialize(args: argparse.Namespace) -> int:
     if not protocol_toml.is_absolute():
         protocol_toml = repo_root / protocol_toml
 
-    pool_dir = repo_root / "data" / "raw" / "ichi" / pool
+    # Derive the data namespace from the loaded protocol spec, NOT a hardcoded
+    # slug: a Steer materialize then writes data/raw/steer/<pool>/... with no
+    # further code edit (REPRO-02 swap-surface invariant; Plan 06-03 relies on
+    # this). The fetch side already namespaces identically (parquet-writer.ts).
+    spec = load_protocol(protocol_toml)
+    protocol_slug = spec.protocol.name
+
+    pool_dir = repo_root / "data" / "raw" / protocol_slug / pool
     events_path = pool_dir / "pool_events.jsonl"
     tx_logs_path = pool_dir / "tx_logs.jsonl"
     vault_state_path = pool_dir / "vault_state.jsonl"
@@ -77,8 +85,6 @@ def materialize(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 2
-
-    spec = load_protocol(protocol_toml)
     # Default forno_head to (to_block + finality_lag_blocks) so every row in
     # [from_block, to_block] survives the cutoff. The driver script pins
     # to_block at (forno_head_snapshot - 120) precisely for this reason; if

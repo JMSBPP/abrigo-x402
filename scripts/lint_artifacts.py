@@ -3,7 +3,7 @@
 
 Usage:
   python scripts/lint_artifacts.py <path>...
-  python scripts/lint_artifacts.py data/raw/ichi/panels/*.parquet
+  python scripts/lint_artifacts.py data/raw/<protocol>/panels/*.parquet
 
 Exits 0 if every file has all six PANEL-02 required keys in its Parquet footer.
 Exits non-zero with a diagnostic listing missing keys per file.
@@ -12,6 +12,7 @@ Standalone (no abrigo_x402 import) so the script can run from repo-root via
 `uv run python scripts/lint_artifacts.py ...` without configuring sys.path.
 """
 import glob
+import re
 import sys
 from pathlib import Path
 
@@ -24,11 +25,14 @@ REQUIRED_KEYS = (
     "gitCommit",
 )
 
-# Phase 04.1 extension: column-presence requirements for ICHI panel parquets.
-# The single required column (initially) is `block_timestamp` — Phase 3 DGP fit
-# input contract (analysis/src/abrigo_x402/dgp/orchestrator.py :: _extract_legs_from_panel).
+# Phase 04.1 extension: column-presence requirements for any LP-aggregator panel
+# parquet (data/raw/<protocol>/). The single required column (initially) is
+# `block_timestamp` — Phase 3 DGP fit input contract
+# (analysis/src/abrigo_x402/dgp/orchestrator.py :: _extract_legs_from_panel).
 # Frozenset form for forward-compat (additional required columns may follow in v2).
-ICHI_PANEL_REQUIRED_COLUMNS = frozenset({
+# Generalized in Phase 6 (was the iter-1-specific name): the contract is
+# protocol-agnostic so Steer (and any future swap-surface) panels are linted too.
+LP_AGGREGATOR_PANEL_REQUIRED_COLUMNS = frozenset({
     "block_timestamp",
 })
 
@@ -209,13 +213,15 @@ def lint_strip_degenerate_json(path: Path) -> list[str]:
     return _lint_json_against_keys(path, STRIP_DEGENERATE_REQUIRED_KEYS, "strip_degenerate.json")
 
 
-def lint_ichi_panel_columns(path: Path) -> list[str]:
-    """Verify an ICHI panel parquet carries all ICHI_PANEL_REQUIRED_COLUMNS.
+def lint_panel_columns(path: Path) -> list[str]:
+    """Verify an LP-aggregator panel parquet carries all required columns.
 
     Reads only the parquet schema (no row materialization). Empty list on PASS;
-    one error string per missing column on FAIL.
+    one error string per missing column on FAIL. Applies to any
+    data/raw/<protocol>/ panel (ICHI, Steer, and future swap surfaces).
 
-    Phase 04.1 contract: the single required column is `block_timestamp`.
+    Phase 04.1 contract (generalized Phase 6): the single required column is
+    `block_timestamp`.
     """
     try:
         import polars as pl
@@ -225,9 +231,9 @@ def lint_ichi_panel_columns(path: Path) -> list[str]:
         cols = set(pl.read_parquet_schema(path).keys())
     except Exception as exc:
         return [f"{path}: failed to read parquet schema: {exc}"]
-    missing = ICHI_PANEL_REQUIRED_COLUMNS - cols
+    missing = LP_AGGREGATOR_PANEL_REQUIRED_COLUMNS - cols
     if missing:
-        return [f"{path}: missing required ICHI panel columns: {sorted(missing)}"]
+        return [f"{path}: missing required LP-aggregator panel columns: {sorted(missing)}"]
     return []
 
 
@@ -338,11 +344,14 @@ def main(argv: list[str]) -> int:
             missing = [k for k in REQUIRED_KEYS if k not in md]
             if missing:
                 failures.append((p, missing))
-            # Phase 04.1: ICHI panel column-presence check (block_timestamp required).
-            # Scope to data/raw/ichi/ panels only; non-ICHI panels (synthetic, Steer in
-            # future iter-2) are out of scope for this contract.
-            if "data/raw/ichi" in str(p):
-                col_errs = lint_ichi_panel_columns(p)
+            # Phase 04.1 (generalized Phase 6): LP-aggregator panel column-presence
+            # check (block_timestamp required). Applies to ANY data/raw/<protocol>/
+            # panel — Steer (data/raw/steer/) gets the same block_timestamp/column
+            # contract as ICHI, so an iter-2 panel can no longer silently skip the
+            # column lint. (Synthetic test fixtures live outside data/raw/<protocol>/
+            # and are unaffected.)
+            if re.search(r"data/raw/[^/]+/", str(p)):
+                col_errs = lint_panel_columns(p)
                 if col_errs:
                     failures.append((p, col_errs))
 
