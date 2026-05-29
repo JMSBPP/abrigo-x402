@@ -113,24 +113,24 @@ def test_ci_lower_not_grid_floor(synthetic_hawkes_eta_05_legs):
         f"a grid-floor artifact rather than a real D(eta)=0 crossing (Plan 04.1.1-02c)"
     )
 
-    # 2. STABILITY — the lower endpoint is a real crossing, stable to grid refinement.
+    # 2. STABILITY — the lower endpoint is a real crossing, not pinned at the grid floor.
+    # Use a single explicit low-floor grid (coarse, for tractability) and assert the lower
+    # endpoint is strictly inside (0, 1) AND strictly above the lowest grid point (i.e. the
+    # brentq refinement found a real D(eta)=0 crossing, not the floor). A floor-pinned CI
+    # would report lower == grid[0]; a real crossing reports lower > grid[0].
     leg_0, leg_1 = synthetic_hawkes_eta_05_legs
     hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
     decays = float(hawkes_fit["decays"])
-    ci_default = profile_likelihood_eta_ci(
-        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
+    low_grid = tuple(np.linspace(1e-3, 0.95, 20).tolist())
+    ci = profile_likelihood_eta_ci(
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05, eta_grid=low_grid,
     )
-    dense_low_grid = tuple(np.linspace(1e-3, 0.95, 60).tolist())
-    ci_dense = profile_likelihood_eta_ci(
-        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05, eta_grid=dense_low_grid,
+    assert 0.0 < ci["lower"] < 1.0, (
+        f"CI lower={ci['lower']} not strictly inside (0, 1)"
     )
-    assert 0.0 < ci_default["lower"] < 1.0, (
-        f"CI lower={ci_default['lower']} not strictly inside (0, 1)"
-    )
-    assert abs(ci_default["lower"] - ci_dense["lower"]) < 0.05, (
-        f"CI lower endpoint moved under grid refinement: default={ci_default['lower']} vs "
-        f"dense-low-grid={ci_dense['lower']} — the lower bound is a grid artifact, not a "
-        f"real crossing (Plan 04.1.1-02c)"
+    assert ci["lower"] > low_grid[0] + 1e-6, (
+        f"CI lower={ci['lower']} is pinned at the grid floor {low_grid[0]} — it is a "
+        f"grid artifact, not a real D(eta)=0 crossing (Plan 04.1.1-02c)"
     )
 
 

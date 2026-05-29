@@ -42,7 +42,11 @@ Q9_CI_WIDTH_THRESHOLD: float = 0.4
 DEFAULT_ALPHA: float = 0.05
 # Coarse grid in (0, 1) for initial bracketing. scipy.optimize.brentq refines the
 # crossing of the deficit function once the grid identifies neighbours straddling 0.
-ETA_GRID_DEFAULT: tuple[float, ...] = tuple(np.linspace(0.02, 0.95, 30).tolist())
+# Plan 04.1.1-02c (NEEDS WORK #2b): the floor is lowered below 0.02 (was 0.02) so the CI
+# lower endpoint reflects a real D(eta)=0 crossing found by the brentq refinement, NOT the
+# grid floor — `branching_ci_excludes_zero` (lower > 0) must not be a grid-floor artifact.
+# The chi2(1) inversion + brentq refinement basis is UNCHANGED (PRE_REGISTRATION-locked).
+ETA_GRID_DEFAULT: tuple[float, ...] = tuple(np.linspace(1e-3, 0.95, 40).tolist())
 
 
 def _constrained_profile_loglik(

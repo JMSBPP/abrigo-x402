@@ -57,6 +57,23 @@ def compute_branching_ratio(adjacency: np.ndarray, decays: float) -> float:
     return float(np.max(np.abs(eigvals)))
 
 
+def _reject_nonstationary(adjacency: np.ndarray, decays: float) -> float:
+    """Stationarity guard for the scipy canonical MLE (Plan 04.1.1-02c, NEEDS WORK #2a).
+
+    Returns the +inf-class penalty 1e18 if rho(alpha/beta) >= 1 (the non-stationary /
+    explosive region), else 0.0. Wired into `_fit_with_scipy_canonical_ll.neg_ll` BEFORE
+    the LL computation so the optimizer cannot evaluate or settle in the explosive region.
+
+    This ENFORCES the pre-registered §Kernel Forms condition ||alpha/beta||_inf < 1
+    (PRE_REGISTRATION §Phase 04.1.1 (v2) §02c). It is NOT a new gate criterion — the
+    existing `stationary` gate input is reused; explosive fits are simply rejected at fit
+    time so an artifactual eta >= 1 cannot pass the eta-floor gate.
+    """
+    if compute_branching_ratio(adjacency, float(decays)) >= 1.0:
+        return 1e18
+    return 0.0
+
+
 def _fit_with_gofit(
     leg_0_times: np.ndarray,
     leg_1_times: np.ndarray,
@@ -128,6 +145,12 @@ def _fit_with_scipy_canonical_ll(
     def neg_ll(theta):
         lam0 = theta[:2]
         alpha = theta[2:].reshape(2, 2)
+        # Plan 04.1.1-02c (NEEDS WORK #2a): reject the non-stationary region rho(alpha/beta)
+        # >= 1 BEFORE the LL computation — enforces the pre-registered ||alpha/beta|| < 1
+        # (§Kernel Forms). bounds stay (1e-12, None); this is the stationarity guard.
+        penalty = _reject_nonstationary(alpha, float(decays))
+        if penalty:
+            return penalty
         ll = _hawkes_loglik_vectorized(
             lam0, alpha, float(decays), leg_0_rs, leg_1_rs
         )
