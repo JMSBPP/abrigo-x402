@@ -30,7 +30,7 @@
 - [x] **Phase 2: Panel Build (L3) for ICHI cKES/USDT Anchor** — Event-level Parquet panel with provenance + FX-rate snap + phantom-transfer filter (re-opened 2026-05-26 — SC-1 real-data closure via Plan 02-10) (completed 2026-05-26)
 - [x] **Phase 3: DGP Estimation (L4) with Boundary-Correct LR Test** — Kirchner NHPP + tick Hawkes + boundary-correct LR test + KS rescaled-time + held-out evaluation (completed 2026-05-27)
 - [ ] **Phase 4: Cross-Leg Dependence (L5) + Falsification & Carr–Madan Strip (L6)** — Empirical copula + four-condition gate (USDT-reparameterized) + grid-verified Carr–Madan + null-result template
-- [ ] **Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)** — `reports/ichi.pdf` + spot-check + cost-leg sensitivity sweep + reproducibility manifest
+- [x] **Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)** — `reports/ichi.pdf` + spot-check + cost-leg sensitivity sweep + reproducibility manifest — COMPLETE (rendered 517KB, honest 3/4, merged upstream PR #1 `87991ac` 2026-05-29)
 - [ ] **Phase 6: Iteration-2 Swap-Surface Validation (Steer on cCOP/USDT)** — Cost-leg lower-bound check first; if pass, re-run Phases 2–5 with zero code edits
 - [ ] **Phase 7: Cross-Iteration Synthesis & Methodological Refinements** — Per-protocol-vs-per-vault retrospective + USDT-depeg overlay documentation + `notes/methodological-refinements.md`
 
@@ -270,7 +270,7 @@ Plans:
 | 4. Dependence + Falsification + Strip | 11/11 | Plans Complete (ready for `/gsd:verify-phase 4`)| pending / pending | - |
 | 4.1 Backport block_timestamp + real-panel rerun | 4/4 | Complete    | PASS / PASS | 2026-05-27 |
 | 4.1.1 Restore canonical MLE (LS-fallback degeneracy fix) | 6/6 | Plans Complete (ready for `/gsd:verify-phase 4.1.1`)| PASS / PASS | - |
-| 5. Reporting + Iteration-1 PDF | 1/5 | In Progress|  | - |
+| 5. Reporting + Iteration-1 PDF | 5/5 | Complete (Iteration 1 merged → upstream PR #1, `87991ac`) | PASS / PASS | 2026-05-29 |
 | 6. Iteration-2 Steer Swap | 0/0 | Not started | pending / pending | - |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
 
