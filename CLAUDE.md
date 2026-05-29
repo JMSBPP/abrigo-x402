@@ -31,6 +31,16 @@ Rules:
      --title "..." --body "..."
    ```
 
+### Cycle-closure integration (end of a development cycle)
+
+A **development cycle closes when its terminal deliverable lands** — e.g. the Iteration-1 PDF (`reports/ichi.pdf`, Phase 5), the Iteration-2 PDF (Phase 6), or any milestone whose verification has passed. At that point, closure is NOT optional housekeeping — it is the final step of the cycle:
+
+1. **Push the completed cycle to `origin`** (`JMSBPP/abrigo-x402`) — never to `upstream`.
+2. **Open a PR into `upstream`** (`wvs-finance/abrigo-x402:master`) for the cycle's branch, with a body summarizing the cycle's deliverable + verification outcome (honest verdict, including null/near-miss results).
+3. **Merge on `upstream`** only after the cycle is complete and verified (PDF rendered, `make verify-reproducibility` green, phase VERIFICATION passed).
+
+Sequence: **complete + verify the deliverable → push origin → PR to upstream → merge upstream.** This applies to every iteration/cycle going forward, not just Iteration 1. Do not merge a cycle to upstream with an unverified deliverable or a verdict that was narrowed/relabeled to look like a pass (AF-03 discipline carries into the merge decision).
+
 ## Domain non-negotiables (from SOMNIA_DRAFT)
 
 - Unit of account: `X = USD`; data-payment unit `Y_D = 1 USDC`; agent-payment unit `Y_AI = 1 SOMI`.
