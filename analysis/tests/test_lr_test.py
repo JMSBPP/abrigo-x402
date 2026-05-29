@@ -179,6 +179,73 @@ def test_bootstrap_observed_stat_finite_scale(synthetic_nhpp_baseline_only_legs)
     assert np.isfinite(result["observed_stat"])
 
 
+def test_observed_stat_is_not_epoch_scaled(synthetic_nhpp_baseline_only_legs):
+    """Plan 04.1.1-02c BLOCKER: the observed LR statistic must NOT be epoch-scaled.
+
+    The canonical Hawkes LL integral term is baseline·t_end. If the observed leg is
+    scored on ABSOLUTE epoch timestamps (~1.7e9) instead of a t0=0 origin, the integral
+    blows up and observed_stat is O(10^6+) (the 6.05M DIAGNOSTIC §Q4 signature). Build a
+    panel whose timestamps are offset by a large epoch and assert the observed_stat stays
+    finite + O(10^2-10^3). FAILS against absolute-time scoring.
+    """
+    leg_0, leg_1 = synthetic_nhpp_baseline_only_legs
+    epoch = 1.7e9
+    result = parametric_bootstrap_lr(
+        leg_0 + epoch,
+        leg_1 + epoch,
+        panel_data_hash="test-02c-epoch-scale",
+        window_start=WINDOW_START + epoch,
+        window_end=WINDOW_END + epoch,
+        n_reps=20,
+    )
+    assert np.isfinite(result["observed_stat"]), (
+        f"observed_stat is non-finite: {result['observed_stat']}"
+    )
+    # On this near-NHPP fixture the time-origin-correct observed_stat is O(1); an
+    # epoch-inflated integral term (baseline·t_end with t_end~1.7e9) pushes it to O(10^4+).
+    # Bound at 1e3 — comfortably above the correct O(1)-O(10^2) scale, far below the
+    # epoch-inflated regime.
+    assert abs(result["observed_stat"]) < 1e3, (
+        f"observed_stat={result['observed_stat']} is epoch-scaled (>=1e3) — the canonical "
+        f"LL is being evaluated on absolute epoch timestamps, not a common t0=0 origin "
+        f"(Plan 04.1.1-02c BLOCKER; the 6.05M signature)"
+    )
+
+
+def test_lr_common_time_origin_invariance(synthetic_nhpp_baseline_only_legs):
+    """Plan 04.1.1-02c: the observed LR statistic is time-origin invariant.
+
+    parametric_bootstrap_lr must return the SAME observed_stat (within tolerance) whether
+    the input timestamps start at 0 or are shifted by +1.7e9 — the LR is a difference of
+    two LLs that are each scored on a common t0=0 origin, so the absolute epoch must not
+    enter. FAILS now (the absolute-time integral term baseline·t_end differs by the offset).
+    """
+    leg_0, leg_1 = synthetic_nhpp_baseline_only_legs
+    epoch = 1.7e9
+    base = parametric_bootstrap_lr(
+        leg_0,
+        leg_1,
+        panel_data_hash="test-02c-origin-invariance",
+        window_start=WINDOW_START,
+        window_end=WINDOW_END,
+        n_reps=20,
+    )
+    shifted = parametric_bootstrap_lr(
+        leg_0 + epoch,
+        leg_1 + epoch,
+        panel_data_hash="test-02c-origin-invariance",
+        window_start=WINDOW_START + epoch,
+        window_end=WINDOW_END + epoch,
+        n_reps=20,
+    )
+    assert np.isfinite(base["observed_stat"]) and np.isfinite(shifted["observed_stat"])
+    assert abs(base["observed_stat"] - shifted["observed_stat"]) < 1.0, (
+        f"observed_stat is NOT time-origin invariant: base={base['observed_stat']} vs "
+        f"shifted={shifted['observed_stat']} (Plan 04.1.1-02c — the canonical LL must be "
+        f"scored on a common t0=0 origin for both legs)"
+    )
+
+
 def test_deterministic_seed(synthetic_nhpp_baseline_only_legs):
     """Same panel_data_hash -> byte-identical bootstrap null distribution."""
     leg_0, leg_1 = synthetic_nhpp_baseline_only_legs
