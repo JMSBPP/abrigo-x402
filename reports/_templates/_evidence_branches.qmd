@@ -1,6 +1,7 @@
 <!-- Plan 04-08 (Wave-2 fill of the Wave-0 placeholder).
 
-Four condition-branched evidence blocks, keyed off `params$firing_condition`.
+Four condition-branched evidence blocks, keyed off the firing_condition value
+(read from the HEDGE05_FIRING_CONDITION environment variable below).
 Each branch reads the relevant substrate (cost_leg_bound memo + fit_report.json
 + gate_report.json + strip_degenerate.json) and renders a condition-specific
 block of evidence text + small tables. The branches are mutually exclusive --
@@ -13,7 +14,9 @@ exactly one of {null_cost, null_lr, null_convex, null_strip_unavailable}.
 #| echo: false
 #| output: asis
 
-firing_condition = "{{< meta params.firing_condition >}}"
+import os
+
+firing_condition = os.environ.get("HEDGE05_FIRING_CONDITION", "")
 
 if firing_condition == "null_cost":
     # HEDGE-05 firing condition (a) -- Phase-0 cost-leg gate failed.

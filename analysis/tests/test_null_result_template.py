@@ -79,11 +79,17 @@ def test_pdf_dual_signature_when_quarto_available(tmp_path: Path) -> None:
     assert "HEDGE-05 NULL RESULT" in txt, (
         "visible H1 signature missing from rendered PDF text"
     )
+    # Some poppler builds only surface the /HEDGE05Marker \pdfinfo custom field
+    # under `pdfinfo -custom` (plain `pdfinfo` reports only `Custom Metadata: yes`).
+    # Query the custom block (and fall back to plain) so the genuine marker that
+    # the template injects is read on every build.
     info = subprocess.run(
-        ["pdfinfo", str(out)], capture_output=True, text=True
+        ["pdfinfo", "-custom", str(out)], capture_output=True, text=True
     ).stdout
-    # pdfinfo surfaces the /HEDGE05Marker custom field on most builds; some
-    # builds only expose the raw substring -- accept either form.
+    if HEDGE05_SIGNATURE not in info and "HEDGE05" not in info:
+        info += subprocess.run(
+            ["pdfinfo", str(out)], capture_output=True, text=True
+        ).stdout
     assert (
         HEDGE05_SIGNATURE in info or "HEDGE05" in info
     ), f"machine-readable marker missing from pdfinfo output: {info!r}"
