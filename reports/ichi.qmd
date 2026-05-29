@@ -2,6 +2,8 @@
 title: "Iteration 1: Falsifiable DGP Estimation for ICHI cKES/USDT on Celo — A Validated Method and an Honest 3/4"
 author: "abrigo-x402"
 date: 2026-05-29
+keywords:
+  - HEDGE05-NULL-RESULT-V1
 abstract: |
   We estimate the data-generating process (DGP) of swap arrivals for the ICHI
   cKES/USDT LP-aggregator pool on Celo using only free-tier data resources, and
@@ -25,6 +27,7 @@ abstract: |
 format:
   pdf:
     documentclass: article
+    pdf-engine: pdflatex
     toc: true
     number-sections: true
     include-in-header:
@@ -143,7 +146,7 @@ $$ {#eq-lr}
 The Hawkes null parameter $\eta = 0$ sits on the **boundary** of the parameter
 space, so the standard $\chi^2_{(1)}$ reference is invalid; under the boundary
 the asymptotic null is the $50\!:\!50$ mixture
-$\tfrac{1}{2}\chi^2_{(0)} + \tfrac{1}{2}\chi^2_{(1)}$ [@self1987]. We do not rely
+$\tfrac{1}{2}\chi^2_{(0)} + \tfrac{1}{2}\chi^2_{(1)}$ (Self & Liang, 1987). We do not rely
 on the asymptotic form: we calibrate the null distribution of $\Lambda$ by a
 parametric bootstrap over $1000$ NHPP replicates, scoring both legs on a common
 time origin $t_0 = 0$ to avoid the absolute-epoch integral inflation that
@@ -154,7 +157,7 @@ corrupted the earlier estimate (§4).
 Under a correctly specified intensity, the **compensator increments** between
 successive events are unit-rate exponential. Writing the compensator
 $\Lambda_i(t) = \int_0^t \lambda_i(u)\,\mathrm{d}u$, the time-rescaling theorem
-[@brown2002] gives, for event times $t_1 < t_2 < \cdots$ on leg $i$,
+of Brown et al. (2002) gives, for event times $t_1 < t_2 < \cdots$ on leg $i$,
 
 $$
 \Delta_k \;=\; \Lambda_i(t_k) - \Lambda_i(t_{k-1}) \;\overset{\text{i.i.d.}}{\sim}\;
@@ -170,7 +173,7 @@ split guards against in-sample overfit.
 ## Carr–Madan strip (the target the gate gates)
 
 Conditional on the gate passing, the convex hedge is priced by **static replication**
-of a payoff $H(\cdot)$ across a strip of out-of-the-money options [@carr1998].
+of a payoff $H(\cdot)$ across a strip of out-of-the-money options (Carr & Madan, 1998).
 For a log-return $x = \log(S_T / S_0)$ with risk-neutral characteristic function
 $\psi(u)$, the Carr–Madan transform prices a European claim of log-strike
 $k = \log K$ as
@@ -518,7 +521,6 @@ to recompute-and-match, and `make report-ichi` to re-render this document.
 
 ## References {.unnumbered}
 
-::: {#refs}
 - Brown, E. N., Barbieri, R., Ventura, V., Kass, R. E., & Frank, L. M. (2002).
   The time-rescaling theorem and its application to neural spike train data
   analysis. *Neural Computation*, 14(2), 325–346.
@@ -532,4 +534,3 @@ to recompute-and-match, and `make report-ichi` to re-render this document.
   Processes and their Applications*.
 - Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of MLE and LR tests
   under nonstandard conditions. *JASA*, 82(398), 605–610.
-:::

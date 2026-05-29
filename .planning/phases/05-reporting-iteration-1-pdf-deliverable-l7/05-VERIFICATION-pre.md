@@ -2,19 +2,38 @@
 phase: 05-reporting-iteration-1-pdf-deliverable-l7
 plan: 04
 artifact: VERIFICATION-pre
-verification_pass: pending-render
-quarto_skipped: true
+verification_pass: pass
+quarto_skipped: false
 requirements_covered: [REPORT-01, REPORT-02, REPORT-03, REPORT-04]
 canonical_run_id: "bdaf5c7ba5a2"
 verdict_reported: "gate_passes=false (3/4); firing_condition=null_strip_unavailable; eta~0.600 (lower bound); LR rejects NHPP (observed_stat=561.29, p=0.0); held-out Hawkes +114 nats; KS held-out leg-0 p=0.0474 (statistic D=0.148) -> ks_held_out_passes=false"
 numbers_match_consult: pass
-numbers_match_method: "qmd-source + on-disk artifact cross-check (PDF unrendered; render-time pdftotext confirmation pending-render)"
-pdf_rendered: false
-manifest_pdf_pin_resolved: false
+numbers_match_method: "qmd-source + on-disk artifact cross-check, CONFIRMED post-render via pdftotext/pdfinfo greps"
+pdf_rendered: true
+manifest_pdf_pin_resolved: content-checked  # PDF demoted from sha-byte-pin to content-check (B1 fix); not byte-pinnable across TeX toolchains
 verify_reproducibility_exit: 0
 verify_reproducibility_clean_checkout_exit: 0
 created: 2026-05-29
 ---
+
+## RESOLUTION (render completed 2026-05-29)
+
+`pending-render` is RESOLVED. quarto 1.9.38 was installed (to `~/.local`, outside
+the repo); `reports/ichi.pdf` rendered (517 KB) via `make report-ichi`. Render
+required 5 build-mechanics fixes (pdf-engine=pdflatex; drop `::: {#refs}`;
+keywords-surfaced HEDGE05 marker; QUARTO_PYTHON venv pin + drop `--execute-param`;
+SOURCE_DATE_EPOCH). A two-step review (Reality Checker + DevOps Automator) on the
+render diff returned NEEDS-WORK→resolved: AF-03 verdict integrity CLEARED; the PDF
+byte-pin was demoted to a CONTENT check (BLOCKER B1 — PDFs embed the pdfTeX engine
+banner, not byte-stable across toolchains); three literal `[@key]` citations
+converted to author-year prose. Post-fix gates: `make report-ichi` exit 0;
+`make verify-reproducibility` PASS (13/13 sha pins + PDF content-check), absent→PENDING
+and tamper→FAIL branches proven; AF-03 PDF greps GREEN (null_strip_unavailable,
+p=0.0474, gate FALSE present; forbidden narrowing strings absent; HEDGE05 marker in
+Keywords). One tracked follow-up: the GENERIC `render_null_result_pdf` (a prior-phase
+module, not this deliverable) has a latent path/papermill bug exposed by quarto —
+see `_artifacts/FOLLOWUP_generic_null_result_renderer_bug.md`. Review trail:
+`.planning/_reviews/05-render-fixes_{reality_checker,devops}.md`.
 
 # Phase 5 Plan 04 — Iteration-1 Acceptance Gate Verification (pre-render)
 

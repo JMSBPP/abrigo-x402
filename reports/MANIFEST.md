@@ -28,12 +28,13 @@ equality assertion (Pitfall 2 — never re-fit inside the verify gate).
 
 ## Pins
 
-Each line below is standard `sha256sum` format: `<64-hex><two spaces><relative-path>`.
+Each sha-pinned line below is standard `sha256sum` format: `<64-hex><two spaces><relative-path>`.
 `make verify-reproducibility` greps `^[a-f0-9]{64}  <path>`, recomputes the sha256,
-and matches. 3-state rule: a present+matching pin is OK; a present+mismatching pin
-FAILs (exit non-zero); an absent pin FAILs UNLESS it is `reports/ichi.pdf` (the ONLY
-allow-listed PENDING path — rendered in Plan 05-03, its sha finalized at render time
-in Plan 05-04).
+and matches. Rule for these byte-pinned inputs: a present+matching pin is OK; a
+present+mismatching pin FAILs (exit non-zero); an absent pinned path FAILs.
+`reports/ichi.pdf` is NOT in this sha set — it is content-checked (see the
+Deliverable section below), since a rendered PDF is not byte-stable across TeX
+toolchains.
 
 ### Inputs
 
@@ -54,15 +55,28 @@ f578b56624e9bc08f4cb6a1828ed5707fd9450f2fb46cd062e066a89700d0851  data/fits/ichi
 825b830404f5ad99cd0ed514d0cb2fa25319cb500ba617bd5908fb3e41a6af37  data/fits/ichi/bdaf5c7ba5a2/CORRECTIONS.md
 ebff6d9b2d4c7b0d533ba89640387613b1d007fef7c007b434cbf568d88d7d5d  data/fits/ichi/bdaf5c7ba5a2/run_log.txt
 
-### Deliverable (PENDING until rendered)
+### Deliverable — `reports/ichi.pdf` (CONTENT-checked, NOT byte-pinned)
 
-The Iteration-1 PDF is pinned but is the ONLY allow-listed PENDING path: until
-Plan 05-03 renders it, `verify-reproducibility` logs `PENDING: reports/ichi.pdf`
-and does NOT fail. Plan 05-04 replaces the all-zero placeholder sha with the real
-render sha. (The placeholder below is intentionally non-matching; the path is
-absent on a clone so the 3-state rule treats it as PENDING, never MISMATCH.)
+The Iteration-1 PDF is verified by CONTENT, not by sha256. A rendered PDF embeds
+the pdfTeX `/Producer` and `/PTEX.Fullbanner` (engine version, e.g.
+`pdfTeX-1.40.29 / TeX Live 2026`); `SOURCE_DATE_EPOCH` neutralizes the embedded
+timestamps but NOT these engine-banner bytes, so the sha differs across TeX
+toolchains (system pdflatex vs TinyTeX, version drift). Byte-pinning would make a
+fresh-clone operator's legitimately-re-rendered PDF MISMATCH-FAIL — the same
+cross-build instability this manifest already refuses to byte-pin for the scipy
+fit. `make report-ichi` still sets `SOURCE_DATE_EPOCH=1780012800`
+(2026-05-29T00:00:00Z, matching the qmd `date:`) for render-to-render stability
+on a fixed toolchain, but the reproducibility CONTRACT for the PDF is:
 
-0000000000000000000000000000000000000000000000000000000000000000  reports/ichi.pdf
+- present and > 50 KB,
+- carries the machine-readable `HEDGE05-NULL-RESULT-V1` marker (PDF metadata),
+- contains the verbatim 3/4 verdict (`null_strip_unavailable`, labeled
+  `p = 0.0474`, gate FALSE) and NONE of the AF-03 forbidden narrowing strings.
+
+`make verify-reproducibility` enforces exactly this (size + `pdftotext` verdict
+grep + `pdfinfo` marker grep), soft-degrading to size-only if poppler is absent,
+and treats an absent PDF as PENDING (run `make report-ichi`). The deterministic
+inputs/artifacts above remain strict sha256 byte-pins.
 
 ## Provenance (non-checksummed)
 

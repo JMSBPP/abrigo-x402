@@ -8,17 +8,22 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
 """Phase 5 REPORT-04 — reproducibility manifest (Plan 05-02, Wave 1 GREEN).
 
-``reports/MANIFEST.md`` pins sha256 checksums of the fresh-clone reproducibility
-set: the panel parquet, ``analysis/uv.lock``, ``pnpm-lock.yaml`` (NOT
-package-lock.json, NOT root uv.lock — CONTEXT decision 6), the subgraph
-block-pins [67378253, 67896653] + chainId 42220, the bdaf5c7ba5a2 artifact
-sha256s (incl. CORRECTIONS.md + sensitivity_sweep.json), the spot-check seed,
-and reports/ichi.pdf.
+``reports/MANIFEST.md`` sha256-byte-pins the fresh-clone reproducibility set: the
+panel parquet, ``analysis/uv.lock``, ``pnpm-lock.yaml`` (NOT package-lock.json,
+NOT root uv.lock — CONTEXT decision 6), the subgraph block-pins [67378253,
+67896653] + chainId 42220, the bdaf5c7ba5a2 artifact sha256s (incl.
+CORRECTIONS.md + sensitivity_sweep.json), and the spot-check seed.
 
-``make verify-reproducibility MANIFEST=<path>`` recomputes-and-matches with the
-canonical 3-state rule: an absent reports/ichi.pdf logs PENDING (not a failure);
-any OTHER absent pinned path is MISSING → exit 1; a sha mismatch → exit 1; a full
-match → exit 0. The OK_COUNT==PIN_COUNT guard closes the vacuous-PASS mode.
+``reports/ichi.pdf`` is NOT sha-byte-pinned: a rendered PDF embeds the pdfTeX
+engine banner (/Producer + /PTEX.Fullbanner) that SOURCE_DATE_EPOCH cannot
+neutralize, so the sha differs across TeX toolchains. It is CONTENT-checked
+instead (present + >50KB + HEDGE05 marker + verbatim verdict + no AF-03 forbidden
+string); absent → PENDING (run ``make report-ichi``).
+
+``make verify-reproducibility MANIFEST=<path>`` recomputes-and-matches: an absent
+sha-pinned path is MISSING → exit 1; a sha mismatch → exit 1; a full match + a
+valid (or PENDING) PDF → exit 0. The OK_COUNT==PIN_COUNT guard closes the
+vacuous-PASS mode.
 """
 import re
 import subprocess
@@ -54,7 +59,7 @@ def test_pins_present():
         "CORRECTIONS.md",
     ):
         assert f"data/fits/ichi/bdaf5c7ba5a2/{name}" in text, name
-    # the PDF deliverable (placeholder / PENDING-allowed)
+    # the PDF deliverable is referenced (content-checked, not sha-byte-pinned)
     assert "reports/ichi.pdf" in text
     # wrong lockfiles must NOT be pinned
     assert "package-lock.json" not in text
@@ -102,8 +107,12 @@ def test_verify_repro_exit_codes(tmp_path):
 
 
 def test_missing_committed_artifact_fails(tmp_path):
-    """3-state rule: an absent non-ichi.pdf pin → MISSING → exit 1; an absent
-    reports/ichi.pdf pin → PENDING → exit 0."""
+    """An absent sha-pinned (non-PDF) path → MISSING → exit 1. An absent
+    reports/ichi.pdf → content-check PENDING → exit 0 (the PDF is not sha-pinned;
+    its path is hardcoded in the recipe, so we move the rendered PDF aside to
+    exercise the absent→PENDING branch, then restore it)."""
+    import shutil
+
     missing_manifest = tmp_path / "MANIFEST.md"
     missing_manifest.write_text("0" * 64 + "  data/raw/ichi/does_not_exist.parquet\n")
     miss = subprocess.run(
@@ -116,16 +125,27 @@ def test_missing_committed_artifact_fails(tmp_path):
     assert miss.returncode != 0, miss.stdout + miss.stderr
     assert "MISSING" in miss.stdout
 
-    pending_manifest = tmp_path / "MANIFEST_pdf.md"
-    pending_manifest.write_text("0" * 64 + "  reports/ichi.pdf\n")
-    pend = subprocess.run(
-        ["make", "verify-reproducibility", f"MANIFEST={pending_manifest}"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert pend.returncode == 0, pend.stdout + pend.stderr
-    assert "PENDING" in pend.stdout
+    # PENDING: empty sha tier (0 pins) + PDF absent → content-check logs PENDING.
+    pending_manifest = tmp_path / "MANIFEST_empty.md"
+    pending_manifest.write_text("# no sha pins — exercises the PDF content-check PENDING branch\n")
+    pdf = REPO_ROOT / "reports/ichi.pdf"
+    backup = tmp_path / "ichi.pdf.bak"
+    moved = False
+    try:
+        if pdf.exists():
+            shutil.move(str(pdf), str(backup))
+            moved = True
+        pend = subprocess.run(
+            ["make", "verify-reproducibility", f"MANIFEST={pending_manifest}"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        assert pend.returncode == 0, pend.stdout + pend.stderr
+        assert "PENDING" in pend.stdout
+    finally:
+        if moved:
+            shutil.move(str(backup), str(pdf))
 
 
 def test_correct_lockfile_names():
