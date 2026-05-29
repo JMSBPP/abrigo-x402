@@ -45,6 +45,16 @@ data/raw/*/
 !data/raw/_cost_ledger.jsonl
 !data/raw/_cost_ledger.parquet
 
+# Phase 5 REPORT-04: commit the 128KB ICHI cKES/USDT panel parquet as the
+# fresh-clone reproducibility INPUT. The JSONL source cache is NOT tracked, so
+# cli.py materialize-on-absence is impossible offline; committing the panel is
+# the chosen path. Scoped re-include chain (only the parquet; JSONL siblings stay ignored).
+!data/raw/ichi/
+data/raw/ichi/*
+!data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/
+data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/*
+!data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/67378253_67896653.parquet
+
 # Vitest cwd is fetch/ — cost-ledger tests use relative `data/raw/*.test.jsonl`
 # paths which resolve to fetch/data/raw/. These are test scratch artifacts;
 # the real cost-ledger lives at repo-root data/raw/_cost_ledger.jsonl above.

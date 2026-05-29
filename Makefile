@@ -6,7 +6,7 @@
 .PHONY: schema-frozen-check leak-check verify-reproducibility help \
         fetch-ichi lint-artifacts verify-cache-idempotency schema-probe \
         render-lr-diagnostic render-null-result-pdf render-strip-diagnostic \
-        phase-4-acceptance
+        phase-4-acceptance report-ichi
 
 help:
 	@echo "Available targets:"
@@ -43,10 +43,35 @@ schema-frozen-check:
 		exit 1; \
 	fi
 
-# Phase 5 forward-looking stub
+# Phase 5 REPORT-04 — recompute-and-match reproducibility verification.
+# MANIFEST path is parameterized so tests can run against a tmp copy
+# (NEVER mutate the real reports/MANIFEST.md). 3-state per-line rule:
+#   absent + is reports/ichi.pdf  -> PENDING (skip, not a failure)
+#   absent + any other pinned path -> MISSING -> FAIL (exit 1)
+#   present + sha mismatch         -> MISMATCH -> FAIL (exit 1)
+#   present + sha match            -> OK
+# Final guard: OK_COUNT must equal PIN_COUNT (a silently-skipped pin fails).
+# Pin lines are standard sha256sum format (<64-hex><two spaces><path>); the awk
+# parse splits on whitespace runs so no leading space leaks into $$path.
+MANIFEST ?= reports/MANIFEST.md
 verify-reproducibility:
-	@echo "verify-reproducibility: STUB — Phase 5 deliverable"
-	@exit 0
+	@bash -c 'set -euo pipefail; \
+	  MANIFEST="$(MANIFEST)"; \
+	  if [ ! -f "$$MANIFEST" ]; then echo "verify-reproducibility: SKIP — $$MANIFEST absent (Wave 1 authors it)"; exit 0; fi; \
+	  FAIL=0; PINS=0; OKS=0; \
+	  while read -r expected path; do \
+	    [ -z "$$path" ] && continue; \
+	    PINS=$$((PINS+1)); \
+	    if [ ! -f "$$path" ]; then \
+	      if [ "$$path" = "reports/ichi.pdf" ]; then echo "PENDING: $$path (not yet rendered)"; PINS=$$((PINS-1)); continue; \
+	      else echo "MISSING (committed artifact absent): $$path"; FAIL=1; continue; fi; \
+	    fi; \
+	    actual=$$(sha256sum "$$path" | cut -d" " -f1); \
+	    if [ "$$actual" != "$$expected" ]; then echo "MISMATCH: $$path ($$actual != $$expected)"; FAIL=1; \
+	    else echo "OK: $$path"; OKS=$$((OKS+1)); fi; \
+	  done < <(grep -E "^[a-f0-9]{64}  " "$$MANIFEST" | awk "{print \$$1, \$$2}"); \
+	  if [ "$$OKS" != "$$PINS" ]; then echo "verify-reproducibility: FAIL — OK_COUNT($$OKS) != PIN_COUNT($$PINS)"; exit 1; fi; \
+	  [ "$$FAIL" = 0 ] && echo "verify-reproducibility: PASS ($$OKS/$$PINS pins matched)" || { echo "verify-reproducibility: FAIL"; exit 1; }'
 
 # -------- Phase 1 targets --------
 
@@ -152,6 +177,22 @@ render-null-result-pdf:
 	fi
 	cd reports && quarto render _templates/null_result.qmd --no-cache \
 		--execute-param firing_condition:$$FIRING --output ichi.pdf
+
+# Phase 5 REPORT-01 — render the Iteration-1 deliverable. quarto is an operator
+# build prerequisite (NOT auto-installed); only TinyTeX self-installs. Plan 05-03
+# finalizes the spot-check curl-logging body. The legacy render-null-result-pdf
+# target ALSO writes reports/ichi.pdf, so rm -f the stale PDF first — a stale or
+# wrong-source PDF must never satisfy the test -f / size gate (repro-trap guard).
+# Size gate uses portable `wc -c` (not GNU-only stat -c%s) for macOS operators.
+report-ichi:
+	@command -v quarto >/dev/null 2>&1 || { echo "report-ichi: FAIL — quarto binary required (build prerequisite, not auto-installed)"; exit 1; }
+	@quarto install tinytex 2>/dev/null || true
+	@test -f reports/ichi.qmd || { echo "report-ichi: FAIL — reports/ichi.qmd absent (Plan 05-03 authors it)"; exit 1; }
+	@rm -f reports/ichi.pdf
+	cd reports && quarto render ichi.qmd --to pdf --output ichi.pdf
+	@test -f reports/ichi.pdf || { echo "report-ichi: FAIL — no PDF emitted (markdown fallback rejected)"; exit 1; }
+	@SIZE=$$(wc -c < reports/ichi.pdf); [ "$$SIZE" -gt 51200 ] || { echo "report-ichi: FAIL — PDF $${SIZE}B < 50KB (SC-1)"; exit 1; }
+	@SIZE=$$(wc -c < reports/ichi.pdf); echo "report-ichi: PASS — reports/ichi.pdf ($${SIZE}B)"
 
 # Re-render the Carr-Madan strip diagnostic for a given run_id. Wave 2 wires the
 # CLI hedge --stage strip subcommand; Wave 0 scaffolds the target.
