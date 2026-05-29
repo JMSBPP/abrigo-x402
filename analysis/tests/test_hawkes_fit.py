@@ -200,6 +200,44 @@ def test_likelihood_mode_eta_within_v2_acceptance(
         )
 
 
+def test_scipy_fit_rejects_nonstationary(synthetic_hawkes_eta_05_legs):
+    """Plan 04.1.1-02c (NEEDS WORK #2a): the scipy canonical fit must reject the
+    non-stationary region rho(alpha/beta) >= 1, enforcing the pre-registered
+    §Kernel Forms condition ||alpha/beta||_inf < 1.
+
+    Two checks:
+      1. UNIT: the stationarity guard `_reject_nonstationary` returns the +inf-class
+         penalty (1e18) for an explosive alpha and 0.0 for a stationary one. FAILS now
+         (the symbol does not exist — neg_ll has no stationarity rejection).
+      2. INTEGRATION: a real-Hawkes panel fit returns a stationary branching_ratio < 1.0
+         (the guard keeps the optimizer inside the stationary region).
+    """
+    from abrigo_x402.dgp import hawkes_fit as hf
+
+    # 1. UNIT — the guard predicate must exist and reject the explosive region.
+    beta = 0.5
+    explosive_alpha = np.array([[0.9, 0.1], [0.1, 0.9]], dtype=np.float64)
+    # rho(explosive_alpha / 0.5) = (~1.0)/0.5 = ~2.0 >= 1 -> non-stationary.
+    assert hf.compute_branching_ratio(explosive_alpha, beta) >= 1.0
+    assert hf._reject_nonstationary(explosive_alpha, beta) >= 1e18, (
+        "stationarity guard must penalize the explosive region (rho(alpha/beta) >= 1)"
+    )
+    stationary_alpha = np.array([[0.1, 0.02], [0.02, 0.1]], dtype=np.float64)
+    assert hf.compute_branching_ratio(stationary_alpha, beta) < 1.0
+    assert hf._reject_nonstationary(stationary_alpha, beta) == 0.0, (
+        "stationarity guard must NOT penalize the stationary region (rho < 1)"
+    )
+
+    # 2. INTEGRATION — the real-Hawkes fit lands stationary.
+    leg_0, leg_1 = synthetic_hawkes_eta_05_legs
+    result = fit_hawkes_expkern(leg_0, leg_1)
+    eta = float(result["branching_ratio"])
+    assert eta < 1.0, (
+        f"fit returned non-stationary branching_ratio={eta} (>= 1.0); the scipy neg_ll "
+        f"stationarity rejection is not enforcing ||alpha/beta||<1"
+    )
+
+
 def test_scipy_canonical_ll_is_primary_path(synthetic_hawkes_eta_05_legs):
     """_fit_at_decay uses scipy_canonical_ll as the PRIMARY (and only) live estimator.
 

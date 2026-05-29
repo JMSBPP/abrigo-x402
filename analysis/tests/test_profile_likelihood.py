@@ -18,8 +18,11 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
+import numpy as np  # noqa: E402
+
 from abrigo_x402.dgp.hawkes_fit import fit_hawkes_expkern  # noqa: E402
 from abrigo_x402.dgp.profile_likelihood import (  # noqa: E402
+    ETA_GRID_DEFAULT,
     Q9_CI_WIDTH_THRESHOLD,
     profile_likelihood_eta_ci,
 )
@@ -88,6 +91,46 @@ def test_constrained_mle_ci_not_projection(synthetic_hawkes_eta_05_legs):
     )
     assert ci["lower"] > 0.0, (
         f"CI lower endpoint {ci['lower']} must exclude zero (branching_ci_excludes_zero)"
+    )
+
+
+def test_ci_lower_not_grid_floor(synthetic_hawkes_eta_05_legs):
+    """Plan 04.1.1-02c (NEEDS WORK #2b): the eta-CI lower endpoint is a real LL crossing,
+    NOT the ETA_GRID floor artifact.
+
+    The default eta-grid floor must be lowered below 0.02 so `branching_ci_excludes_zero`
+    (lower > 0) reflects a genuine D(eta)=0 crossing found by the brentq refinement, not the
+    coarse grid floor. Two checks:
+      1. CONSTANT: ETA_GRID_DEFAULT floor < 0.02. FAILS now (floor is 0.02).
+      2. STABILITY: the CI lower endpoint is stable to further grid refinement (a real
+         crossing does not move when the low-eta grid is densified) and strictly inside
+         (0, 1).
+    """
+    # 1. CONSTANT — the grid floor must be lowered below 0.02.
+    floor = float(min(ETA_GRID_DEFAULT))
+    assert floor < 0.02, (
+        f"ETA_GRID_DEFAULT floor={floor} is not below 0.02 — the CI lower endpoint can be "
+        f"a grid-floor artifact rather than a real D(eta)=0 crossing (Plan 04.1.1-02c)"
+    )
+
+    # 2. STABILITY — the lower endpoint is a real crossing, stable to grid refinement.
+    leg_0, leg_1 = synthetic_hawkes_eta_05_legs
+    hawkes_fit = fit_hawkes_expkern(leg_0, leg_1)
+    decays = float(hawkes_fit["decays"])
+    ci_default = profile_likelihood_eta_ci(
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05,
+    )
+    dense_low_grid = tuple(np.linspace(1e-3, 0.95, 60).tolist())
+    ci_dense = profile_likelihood_eta_ci(
+        leg_0, leg_1, hawkes_fit, decays=decays, alpha=0.05, eta_grid=dense_low_grid,
+    )
+    assert 0.0 < ci_default["lower"] < 1.0, (
+        f"CI lower={ci_default['lower']} not strictly inside (0, 1)"
+    )
+    assert abs(ci_default["lower"] - ci_dense["lower"]) < 0.05, (
+        f"CI lower endpoint moved under grid refinement: default={ci_default['lower']} vs "
+        f"dense-low-grid={ci_dense['lower']} — the lower bound is a grid artifact, not a "
+        f"real crossing (Plan 04.1.1-02c)"
     )
 
 
