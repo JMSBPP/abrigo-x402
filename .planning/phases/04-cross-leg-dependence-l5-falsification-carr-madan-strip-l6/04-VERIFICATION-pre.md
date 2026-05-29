@@ -18,6 +18,11 @@ real_data_rerun_run_id: "ae9e3ba17900"
 real_data_rerun_artifacts_complete: true
 real_data_rerun_firing_condition: "null_lr"
 substrate_substitution_resolved: true
+ll_fit_rerun_run_id: "bdaf5c7ba5a2"
+ll_fit_method_used: "scipy_canonical_ll"
+ll_fit_firing_condition: "null_strip_unavailable"
+ll_fit_gate_verdict: "gate_passes=false (3/4); lr_rejects=true, eta_floor_met=true, branching_ci_excludes_zero=true, ks_held_out_passes=false"
+ls_fallback_artifact_supersession_resolved: true
 ---
 
 # Phase 4 Plan 09 — Acceptance Gate Verification
@@ -153,6 +158,61 @@ Source-code deviation (Rule-3 fix, scoped):
 - `analysis/src/abrigo_x402/hedge/orchestrator.py`: added two minimal Rule-3 patches — (a) dependence stage guards on `n_min <= 2*max_lag+1 = 101` (DEPEND-01 lag-radius floor) and emits a degenerate `joint_dist.json` with `degenerate_reason` sentinel rather than crashing, so the orchestrator can reach `decide_firing_condition`; (b) the null stage's PDF render now records a `quarto_skipped: true` sentinel on `RuntimeError("quarto CLI not found ...")` instead of raising, mirroring the existing `quarto_skipped: true` frontmatter convention. These patches make the existing HEDGE-05 four-condition firing tree reachable on real-data n<101 substrates; they do NOT introduce new firing conditions, new Quarto template branches, or new dependencies. The architectural intent (Plan 04-08 Path A null-result handling) is preserved verbatim.
 
 *Real-data rerun authored 2026-05-27 by GSD execute-phase executor against `04.1-03-PLAN.md`.*
+
+---
+
+## 04.1.1 LL-Fit Rerun (v2)
+
+**Closed:** 2026-05-29 (Phase 04.1.1 v2 gap-closure cycle)
+
+**The v1 LL-fit acceptance bands were RETRACTED** per the independent diagnostic (`04.1.1-DIAGNOSTIC.md`) on result-independent grounds: (1) the η-coherence band `[0.283, 0.371]` was a constrained-**projection** artifact (`profile_likelihood.py` projection trick evaluated at the LS-degenerate, kernel-blind β=0.1 point — NOT a joint-MLE CI); (2) the synthetic regression band `[0.45, 0.55]` tested a **mislabeled** fixture (label `expected_branching_ratio=0.5` but `tick.spectral_radius()=0.05`). The canonical estimator is now the **free-β AIC-selected scipy joint-MLE** (`ll_fit_method_used = scipy_canonical_ll`), wrapping `_hawkes_loglik_vectorized` with a common-`t0=0` LL origin, stationarity rejection ρ(α/β)<1, and a genuine constrained-MLE CI. The new canonical run_id **`bdaf5c7ba5a2`** supersedes the LS-degenerate `ae9e3ba17900` for Phase 5 v1.0 publication.
+
+**The recorded verdict is the AS-OBSERVED result, NOT a flip.** Per the HALT disposition memo (`_artifacts/DISPOSITION_MEMO_04_1_1_ks_halt.md`, committed `03132cd`): the four-criterion gate is **`gate_passes = FALSE (3/4)`**. Three criteria pass (lr_rejects, eta_floor_met, branching_ci_excludes_zero); the held-out time-rescaling KS fails on the locked **min-leg aggregator** (leg-0 p=0.0474 < α=0.05, a knife-edge miss 0.0026 below). The pre-registration ANTICIPATED `gate_passes=FALSE` as a valid branch — shipping the realized 3/4 result faithfully needs NO pivot. The KS was NOT narrowed; the aggregator was NOT switched; the verdict was NOT relabeled "near-miss positive". The descriptive findings (η≈0.6, LR rejects NHPP, held-out Hawkes reversal) are real and reportable as DESCRIPTIVE EVIDENCE; the VERDICT remains gate-did-not-pass.
+
+### Corrected-Fit Verdict Table (real ICHI cKES/USDT panel, n=778 = 382 leg-0 + 396 leg-1)
+
+| Quantity | Value | Notes |
+|----------|-------|-------|
+| canonical run_id | `bdaf5c7ba5a2` | gitCommit `880ef38…`; supersedes LS-degenerate `ae9e3ba17900` AND stale β=0.1 `000c1cdce376` |
+| fit_method_used | `scipy_canonical_ll` | free-β AIC joint-MLE; both surfaces |
+| AIC-min β | **0.001** | 1/β=1000s; 6-entry `decay_aic_table`, AIC 9800.78 at β=0.001 (ΔAIC≈33 vs nearest β=0.01 @ 9833.86) |
+| η (branching_ratio) | **0.600 — LOWER BOUND** | ~13% downward n≈700 finite-sample bias per DIAGNOSTIC Q1/Q3 (Q2 predicted ≈0.628); reported as a lower bound, NOT a point estimate |
+| branching_ratio_ci | method=`constrained_mle_profile`, lower=0.001 (>0), upper=0.95, width=0.949 | genuine constrained MLE on the new run_id; grid-clamped/wide, recorded verbatim — NOT the retracted `[0.283,0.371]` projection band |
+| lr_test | observed_stat=**561.29** (FINITE O(10²)), p_value=**0.0**, rejects_at_alpha=**true** @ α=0.01, n_reps=1000, n_failed=0 | the 6.05M LS-into-canonical-LL pathology RESOLVED by the 02c common-t0 fix |
+| ks_rescaled_time (held-out) | combined p=0.0474; per-leg: leg-0 p=**0.0474**, leg-1 p=0.0564; **min-leg aggregator → FAILS** @ α=0.05 | knife-edge miss (0.0026 below); aggregator LOCKED |
+| held_out_loglik | Hawkes=**−1206.23** vs NHPP=−1320.63 → **Hawkes wins by 114.4 nats** | REVERSED vs `ae9e3ba17900` (where NHPP won by ~1005 nats) |
+| **Four-criterion gate** | lr_rejects=**true**, eta_floor_met=**true** (0.600≥0.2), branching_ci_excludes_zero=**true**, ks_held_out_passes=**false**, stationary=true → **`gate_passes = FALSE (3/4)`** | recorded AS-OBSERVED, NOT flipped; verdict NOT pre-committed — the four-criterion gate decided |
+| **DERIVED firing_condition** | **`null_strip_unavailable`** (condition d) | NOT pre-committed, NOT tuned; `decide_firing_condition` walked: (a) cost not fired; (b) lr NOT fired (LR rejects → old `null_lr` NOT carried); (c) convex NOT fired (gate 4/4 convex-dominance pass → `any_condition_passed=True`); (d) strip FIRED — `strip_degenerate.json` exists |
+
+### Divergence vs the LS run `ae9e3ba17900` — the v1.0 methodology story for Phase 5
+
+The old LS-fallback run fired **`null_lr`** (LR p=0.58 did NOT reject NHPP; η=0.0003 degenerate at kernel-blind β=0.1; held-out NHPP beat Hawkes by ~1005 nats). **That `null_lr` was an artifact** of the tick HawkesExpKern likelihood-mode silent failure → LS-degenerate η + kernel-blind β + epoch-inflated LR statistic. On the corrected scipy_canonical_ll estimator the **LR rejects** (observed_stat=561.29, p=0.0) and the **held-out Hawkes reverses to win by 114 nats** — genuine self-excitation IS detectable. Because lr_rejects=true on the corrected fit, the prior `null_lr` is NOT carried forward; the firing routes instead to **`null_strip_unavailable`** (condition d): all four convex-dominance gate conditions pass (vol_of_vol=1.18, skew=1.85/excess_kurt=3.60, branching_ratio=0.600≥0.2, usdt_depeg_basis_jump) so **the convex hedge dominates the linear hedge** — BUT the Carr-Madan strip is unbuildable because the held-out joint distribution is degenerate (`empirical_copula.family=degenerate`, n_min=79 ≤ 101 = the DEPEND-01 lag-radius floor), so `_build_char_func_from_winner` raised and emitted `strip_degenerate.json` with `reason=build_failed_upstream`. **Framing: convexity-justified (gate 4/4 → fat tails / self-excitation → convex strictly dominates linear), calibration-caveated (the Carr-Madan replication strip is not emittable on the n_min=79<101 degenerate joint_dist).** This LS→MLE reversal — `null_lr` (artifact) → `null_strip_unavailable` (real self-excitation, calibration-caveated) — IS the methodology story Phase 5 narrates.
+
+### Three-way provenance comparison
+
+| Run | Substrate / estimator | η | LR verdict | firing_condition | Gate |
+|-----|------------------------|---|------------|------------------|------|
+| `0afc6af38e24` | synthetic Hawkes (η_true=0.05 mislabeled "0.5"); Phase 4-09 stack | controlled | n/a (positive path, no fire) | `null` | 3/4 (vol_of_vol fail) |
+| `ae9e3ba17900` | real panel; **least-squares** (LS-fallback degenerate) | 0.0003 (degenerate) | p=0.58, does NOT reject — **artifact** | `null_lr` (artifact) | 3/4 (lr+ks fail) |
+| **`bdaf5c7ba5a2`** | real panel; **scipy_canonical_ll** (free-β AIC) | **0.600 (lower bound)** | observed_stat=561.29, p=0.0, **rejects** | **`null_strip_unavailable`** | **3/4 (ks knife-edge fail)** |
+
+The η was framed as a LOWER BOUND throughout; the verdict was NOT pre-committed (the four-criterion gate decided AS-OBSERVED); the HALT disposition memo blocks any post-hoc relabel of `gate_passes=FALSE` as a positive.
+
+### Phase 5 unblocking signals (machine-readable in frontmatter)
+
+- `ll_fit_rerun_run_id: "bdaf5c7ba5a2"` — pointer to the canonical v1.0 scipy_canonical_ll input (supersedes `ae9e3ba17900`)
+- `ll_fit_method_used: "scipy_canonical_ll"` — the corrected free-β AIC joint-MLE estimator
+- `ll_fit_firing_condition: "null_strip_unavailable"` — DERIVED (not pre-committed); convexity-justified, calibration-caveated
+- `ll_fit_gate_verdict: "gate_passes=false (3/4); …"` — the four-criterion verdict recorded AS-OBSERVED
+- `ls_fallback_artifact_supersession_resolved: true` — explicit closure of the LS-fallback degeneracy (analogous to 04.1's `substrate_substitution_resolved`); Phase 5 reads this to know the canonical v1.0 substrate is `bdaf5c7ba5a2`
+
+### Out-of-scope guardrails honored (AF-12, v2)
+
+- Append-only on `04-VERIFICATION-pre.md` (the 18-row acceptance grid + the 19 prior frontmatter fields + the `## 04.1 Real-Data Rerun` section are preserved verbatim; this section + 5 frontmatter fields are pure additions)
+- The retired v1 field `ll_fit_eta_in_profile_ci` (which referenced the retracted `[0.283,0.371]` band) is NOT present
+- NO source edits; NO verdict flip; NO new firing conditions / kernel forms / gate criteria; NO threshold-aggregator-tolerance changes; NO synthetic deletion; NO `ae9e3ba17900` fit_report.json / residuals.parquet overwrite (only its README archival pointer added)
+
+*04.1.1 LL-Fit Rerun (v2) authored 2026-05-29 by GSD execute-phase executor against `04.1.1-05-PLAN.md`.*
 
 ---
 
