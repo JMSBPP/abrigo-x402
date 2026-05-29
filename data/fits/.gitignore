@@ -1,0 +1,24 @@
+# Phase 3 fit artifacts (Plan 03-07).
+#
+# Per-run fit_report.json + residuals.parquet artifacts re-materialize
+# deterministically from the Phase-2 panel (run_id = sha256 of panel +
+# code + tick version, per CONTEXT.md). Only the manifest is committed.
+# Mirrors the data/raw/.gitignore allowlist pattern from Phase 2.
+
+*
+!.gitignore
+!manifest.json
+
+# Phase 5 REPORT-04 (Option C-hybrid): the canonical Iteration-1 run dir bdaf5c7ba5a2
+# is committed as reproducibility evidence (<50KB total). scipy MLE is not
+# byte-reproducible across BLAS, so verify-reproducibility checksums these
+# committed files rather than re-fitting. Directory-spanning allowlist: re-include
+# the dir chain, re-ignore the dir contents, then negate the kept artifacts.
+!ichi/
+ichi/*
+!ichi/bdaf5c7ba5a2/
+ichi/bdaf5c7ba5a2/*
+!ichi/bdaf5c7ba5a2/*.json
+!ichi/bdaf5c7ba5a2/*.parquet
+!ichi/bdaf5c7ba5a2/*.md
+!ichi/bdaf5c7ba5a2/*.txt

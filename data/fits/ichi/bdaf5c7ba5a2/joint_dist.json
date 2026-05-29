@@ -1,0 +1,29 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
+  "blockRange": [
+    67378253,
+    67896653
+  ],
+  "fetchTimestamp": "2026-05-29T14:40:58.790619+00:00",
+  "dataHash": "a72a4eeaf2805aaf6b89b993e25d6b9012b8a97d507ca7e40a2dac68ee9f412a",
+  "gitCommit": "03132cd",
+  "run_id": "bdaf5c7ba5a2",
+  "cross_correlogram": {
+    "lags": [],
+    "values": []
+  },
+  "permutation_null": {
+    "n_reps": 0,
+    "p_value": NaN,
+    "max_abs_rho_observed": NaN
+  },
+  "empirical_copula": {
+    "family": "degenerate",
+    "params": {},
+    "bic": NaN,
+    "all_candidates_bic": {}
+  },
+  "vine_fallback_used": false,
+  "degenerate_reason": "insufficient_sample: n_min=79 <= 2*max_lag+1 = 101 (DEPEND-01 lag-radius floor); cross-correlogram undefined on real-data per-leg held-out residuals. HEDGE-05 firing tree handles."
+}

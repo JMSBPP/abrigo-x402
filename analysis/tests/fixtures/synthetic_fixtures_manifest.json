@@ -1,0 +1,55 @@
+{
+  "capture_phase": "03-00",
+  "polars_version": "1.41.0",
+  "synthetic_hawkes_eta_05": {
+    "adjacency": [
+      [
+        0.25,
+        0.25
+      ],
+      [
+        0.25,
+        0.25
+      ]
+    ],
+    "baseline": [
+      6.8e-05,
+      6.8e-05
+    ],
+    "decays": 0.001,
+    "end_time_seconds": 2592000.0,
+    "expected_branching_ratio": 0.5,
+    "spectral_radius_set_via": "tick.adjust_spectral_radius(0.5)",
+    "n_leg_0": 359,
+    "n_leg_1": 362,
+    "path": "/home/jmsbpp/apps/d2p/abrigo/abrigo-x402/analysis/tests/fixtures/synthetic_hawkes_eta_05.parquet",
+    "seed": 20260528,
+    "sha256": "c73a9ca3e7f7ba5e5747abcadd2422457a566ae4226eff7f9520d79b3bcd2e25",
+    "regen_note": "Phase 04.1.1-v2: v1 fixture was MISLABELED (true \u03b7=0.05 via \u03c1(\u03b1)); regenerated so tick.spectral_radius()==0.5 is genuinely true."
+  },
+  "synthetic_nhpp_baseline_only": {
+    "adjacency": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ]
+    ],
+    "baseline": [
+      0.00013,
+      0.00013
+    ],
+    "decays": 0.1,
+    "end_time_seconds": 2592000.0,
+    "expected_branching_ratio": 0.0,
+    "n_leg_0": 337,
+    "n_leg_1": 316,
+    "path": "/home/jmsbpp/apps/d2p/abrigo/abrigo-x402/analysis/tests/fixtures/synthetic_nhpp_baseline_only.parquet",
+    "seed": 20260527,
+    "sha256": "5897776b1de6432bbeda024dbae2d719df91c265c8d293bcd44c74ce50bdc1c9"
+  },
+  "tick_version": "0.8.0.2"
+}

@@ -1,0 +1,536 @@
+---
+title: "Iteration 1: Falsifiable DGP Estimation for ICHI cKES/USDT on Celo — A Validated Method and an Honest 3/4"
+author: "abrigo-x402"
+date: 2026-05-29
+keywords:
+  - HEDGE05-NULL-RESULT-V1
+abstract: |
+  We estimate the data-generating process (DGP) of swap arrivals for the ICHI
+  cKES/USDT LP-aggregator pool on Celo using only free-tier data resources, and
+  evaluate a pre-registered four-criterion falsification gate for a convex
+  (Panoptic-replicated) hedge against a linear alternative. The estimation
+  pipeline works end-to-end and, decisively, *corrected a false null*: an earlier
+  least-squares fit reported no self-excitation, but the canonical
+  maximum-likelihood estimator finds strong self-excitation — branching ratio
+  $\eta \approx 0.600$ (reported as a lower bound), with the likelihood-ratio
+  test rejecting the inhomogeneous-Poisson null ($p = 0.0$) and the held-out
+  Hawkes log-likelihood beating the Poisson baseline by $\approx 114$ nats. Three
+  of the four gate criteria pass. The fourth — the held-out time-rescaling
+  Kolmogorov–Smirnov goodness-of-fit test — misses the $\alpha = 0.05$ threshold
+  by a knife-edge (leg-0 $p = 0.0474$ under the locked min-leg aggregator). The
+  verdict is therefore `gate_passes = FALSE` (3/4), with derived
+  `firing_condition = null_strip_unavailable`. We report this honestly: the data
+  *demand* a convex hedge shape (all four convex-dominance conditions pass), but
+  the priced Carr–Madan strip is not calibratable on the degenerate joint
+  distribution at $n \approx 700$. We frame v1.0 as a validated method and an
+  honest near-miss, and name exactly what unlocks certification.
+format:
+  pdf:
+    documentclass: article
+    pdf-engine: pdflatex
+    toc: true
+    number-sections: true
+    include-in-header:
+      text: |
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \usepackage{mathtools}
+        \usepackage{bm}
+        \pdfinfo{
+          /HEDGE05Marker (HEDGE05-NULL-RESULT-V1)
+        }
+execute:
+  freeze: false
+  cache: false
+  echo: false
+params:
+  firing_condition: null_strip_unavailable
+---
+
+<!-- Dual signature: \pdfinfo HEDGE05-NULL-RESULT-V1 marker in PDF metadata (greppable
+     via `pdfinfo reports/ichi.pdf | grep HEDGE05Marker`) + the visible verdict banner
+     printed in §5. This is the Iteration-1 deliverable (REPORT-01), a research-paper-style
+     near-miss report specializing the HEDGE-05 null-result template. -->
+
+```{python}
+#| label: load-substrate
+import json
+from pathlib import Path
+
+# Pattern 1: read-only consume of the canonical run_id artifacts. The fit is NEVER
+# recomputed here — every number is loaded from the on-disk bdaf5c7ba5a2/ artifacts
+# produced by Phase 04.1.1. The firing_condition is also threaded from the render
+# param for the included evidence branch (belt-and-suspenders with the YAML default).
+firing_condition = "{{< meta params.firing_condition >}}"
+
+RUN_DIR = Path("../data/fits/ichi/bdaf5c7ba5a2")
+fit = json.loads((RUN_DIR / "fit_report.json").read_text())
+gate = json.loads((RUN_DIR / "gate_report.json").read_text())
+firing = json.loads((RUN_DIR / "firing_condition.json").read_text())
+sweep = json.loads((RUN_DIR / "sensitivity_sweep.json").read_text())
+
+RUN_ID = fit["run_id"]
+```
+
+# Introduction
+
+The thesis of this project is that a *falsifiable* data-generating-process
+estimate for a real decentralized-exchange LP-aggregator pool can be produced
+using only free-tier data resources, and that a **null result is a valid
+deliverable**. Treating a null as a project failure is itself a discipline
+violation: a pre-registered gate that does not pass is information, not defeat.
+
+Iteration 1 anchors on the **ICHI** cKES/USDT pool on Celo (contract
+`0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F`). The economic question is whether
+the swap-arrival process exhibits self-excitation strong enough — together with
+fat tails, vol-of-vol, and stablecoin-depeg jump risk — to justify a *convex*
+(Panoptic-replicated) hedge over a *linear* hedge. The unit of account is USD;
+the data-payment unit is one USDT (the only stablecoin leg in this substrate).
+
+The contribution of v1.0 is twofold. First, a **methodology** that detected and
+corrected its own false null (§4). Second, an **honest near-miss verdict**: three
+of the four pre-registered criteria pass on real data, the fourth misses by a
+knife-edge, and we refuse to narrow the verdict to manufacture a pass (§6).
+
+# Model
+
+We model the bivariate swap-arrival process as a marked point process and test a
+**Hawkes** self-exciting specification against an **inhomogeneous Poisson (NHPP)**
+baseline.
+
+## Bivariate Hawkes intensity
+
+Let $N_j(t)$ count arrivals on leg $j \in \{0, 1\}$ (the two directions of the
+cKES/USDT pair) over $[0, T]$. The conditional intensity of leg $i$ is
+
+$$
+\lambda_i(t) \;=\; \mu_i \;+\; \sum_{j} \int_{0}^{t} \alpha_{ij}\,
+  e^{-\beta\,(t - s)}\; \mathrm{d}N_j(s),
+\qquad i \in \{0, 1\},
+$$ {#eq-hawkes}
+
+where $\mu_i > 0$ is the baseline (exogenous) arrival rate, $\alpha_{ij} \ge 0$
+is the excitation that a leg-$j$ event exerts on leg-$i$ intensity, and
+$\beta > 0$ is the common exponential-kernel decay rate. The kernel
+$\phi(u) = e^{-\beta u}$ is *un-normalized*: its time integral is
+$\int_0^\infty e^{-\beta u}\,\mathrm{d}u = 1/\beta$, so the per-event excitation
+mass scales as $\alpha_{ij}/\beta$ (this normalization convention is the crux of
+the §4 fixture bug). Setting $\alpha_{ij} \equiv 0$ recovers the NHPP baseline,
+under which the legs are conditionally independent with time-varying rates.
+
+## Branching ratio
+
+The endogeneity of the process is summarized by the **branching ratio**
+
+$$
+\eta \;=\; \rho\!\left( \frac{\bm{\alpha}}{\beta} \right),
+$$ {#eq-eta}
+
+the spectral radius of the normalized adjacency matrix
+$\bm{\alpha}/\beta = (\alpha_{ij}/\beta)_{ij}$. Here $\eta$ is the expected number
+of direct offspring per event; $\eta \in [0, 1)$ is the stationarity (sub-critical)
+region, and $\eta = 0$ is the Poisson limit. We enforce $\rho(\bm{\alpha}/\beta) < 1$
+inside the likelihood optimization. Because of the finite-sample downward bias
+documented in §4, the reported $\eta$ is a **lower bound** on the true value.
+
+## Boundary-correct likelihood-ratio test
+
+To test $H_0$: NHPP ($\eta = 0$) against $H_1$: Hawkes ($\eta > 0$), we use the
+likelihood-ratio statistic
+
+$$
+\Lambda \;=\; 2\bigl[\,\ell_{\text{Hawkes}}(\hat{\theta}_1) -
+  \ell_{\text{NHPP}}(\hat{\theta}_0)\,\bigr].
+$$ {#eq-lr}
+
+The Hawkes null parameter $\eta = 0$ sits on the **boundary** of the parameter
+space, so the standard $\chi^2_{(1)}$ reference is invalid; under the boundary
+the asymptotic null is the $50\!:\!50$ mixture
+$\tfrac{1}{2}\chi^2_{(0)} + \tfrac{1}{2}\chi^2_{(1)}$ (Self & Liang, 1987). We do not rely
+on the asymptotic form: we calibrate the null distribution of $\Lambda$ by a
+parametric bootstrap over $1000$ NHPP replicates, scoring both legs on a common
+time origin $t_0 = 0$ to avoid the absolute-epoch integral inflation that
+corrupted the earlier estimate (§4).
+
+## Time-rescaling goodness-of-fit (KS)
+
+Under a correctly specified intensity, the **compensator increments** between
+successive events are unit-rate exponential. Writing the compensator
+$\Lambda_i(t) = \int_0^t \lambda_i(u)\,\mathrm{d}u$, the time-rescaling theorem
+of Brown et al. (2002) gives, for event times $t_1 < t_2 < \cdots$ on leg $i$,
+
+$$
+\Delta_k \;=\; \Lambda_i(t_k) - \Lambda_i(t_{k-1}) \;\overset{\text{i.i.d.}}{\sim}\;
+  \mathrm{Exp}(1)
+\quad\text{under correct specification.}
+$$ {#eq-rescale}
+
+We compare the held-out (last-20%-temporal-block) rescaled increments against
+$\mathrm{Exp}(1)$ with a one-sample Kolmogorov–Smirnov test per leg and aggregate
+by the **minimum leg p-value** (a conservative, pre-registered choice). The held-out
+split guards against in-sample overfit.
+
+## Carr–Madan strip (the target the gate gates)
+
+Conditional on the gate passing, the convex hedge is priced by **static replication**
+of a payoff $H(\cdot)$ across a strip of out-of-the-money options (Carr & Madan, 1998).
+For a log-return $x = \log(S_T / S_0)$ with risk-neutral characteristic function
+$\psi(u)$, the Carr–Madan transform prices a European claim of log-strike
+$k = \log K$ as
+
+$$
+C(k) \;=\; \frac{e^{-r T}}{\pi} \int_{0}^{\infty}
+  \operatorname{Re}\!\bigl[\, e^{-i u k}\, \psi(u)\, \bigr]\, \mathrm{d}u,
+$$ {#eq-carrmadan}
+
+with $r$ the risk-free rate and $T$ the maturity. The strip requires a calibrated
+joint characteristic function $\psi$ for the two legs. When the empirical joint
+distribution is degenerate (insufficient overlapping sample; §5), $\psi$ is not
+estimable, the strip integral cannot be formed, and the run terminates in the
+`null_strip_unavailable` firing condition — *not* in a claim of "no hedge."
+
+# Data
+
+The panel is the ICHI cKES/USDT swap stream over Celo block range
+$[67{,}378{,}253,\, 67{,}896{,}653]$ (about six days of Celo proof-of-stake),
+materialized from cached free-tier sources with content-addressed provenance
+(`dataHash a72a4ee…`). The raw parquet carries **832 rows**; after the PANEL-04
+phantom-transfer filter these reduce to **778 arrival events** (leg-0 = 382,
+leg-1 = 396). The held-out temporal block holds 83 + 79 events; the training
+block holds 299 + 317. The five-row Blockscout spot-check (§7) anchors the panel
+to on-chain transactions; the reproducibility manifest (§10) pins the panel by
+sha256.
+
+# Methodology — the v1.0 contribution
+
+The headline scientific result of Iteration 1 is that the pipeline **corrected a
+false null**. The verdict on the same real cKES/USDT panel moved from "no
+self-excitation detectable" to "strong self-excitation, gate 3/4" once three
+distinct estimator bugs were found and fixed by an independent diagnostic. We
+present the three runs side by side.
+
+```{python}
+#| label: tbl-three-run
+#| output: asis
+print("| run_id | data / estimator | $\\eta$ | verdict | root-cause bug fixed |")
+print("|---|---|---|---|---|")
+print("| `0afc6af38e24` | synthetic, tick normalized-kernel | 0.05 (true) | — | (1) mislabeled fixture: label said $\\eta=0.5$, `tick.spectral_radius()` was 0.05 |")
+print("| `ae9e3ba17900` | real, least-squares fallback | 0.0003 (degenerate) | `null_lr` (artifact) | (2) projection-trick CI + (3) kernel-blind $\\beta = 0.1$ |")
+print(f"| `{RUN_ID}` | real, scipy canonical free-$\\beta$ AIC | {fit['hawkes_mv_params']['branching_ratio']:.3f} | **3/4, `null_strip_unavailable`** | (corrected estimator) |")
+```
+
+The **three root-cause bugs**, each falsified on result-independent grounds by
+the independent diagnostic:
+
+1. **Mislabeled fixture.** The synthetic validation fixture
+   `synthetic_hawkes_eta_05.parquet` was labeled `expected_branching_ratio = 0.5`,
+   but `tick.SimuHawkesExpKernels` uses the *normalized* kernel
+   $\phi(t) = \alpha\beta e^{-\beta t}$, so tick's branching ratio is $\rho(\bm{\alpha})$,
+   not $\rho(\bm{\alpha}/\beta)$. The fixture's actual spectral radius was 0.05 — a
+   near-Poisson panel. The estimator "failing" to recover $\eta = 0.5$ was the
+   estimator *correctly* recovering the $\eta = 0.05$ that was actually simulated.
+
+2. **Projection-trick CI.** The earlier branching-ratio confidence interval
+   $[0.283, 0.371]$ was not a joint-MLE interval: it fit *unconstrained*, then
+   rescaled the adjacency by $\eta_{\text{target}}/\eta_{\text{current}}$ at each
+   grid point and inverted a $\chi^2_{(1)}$ deficit around the *projected* surface.
+   It is a constrained-projection artifact, now replaced by a genuine
+   `constrained_mle_profile` that re-optimizes the canonical log-likelihood
+   subject to $\rho(\bm{\alpha}/\beta) = \eta$.
+
+3. **Kernel-blind $\beta = 0.1$.** The production fit was pinned at a decay
+   $\beta = 0.1$ ($1/\beta = 10$s), far below the data's $\approx 665$s pooled
+   inter-arrival timescale, so the kernel could not see across events and
+   understated $\eta$ roughly fourfold. The corrected estimator selects $\beta$
+   by AIC over a free grid; the minimum sits at $\beta = 0.001$ ($1/\beta = 1000$s),
+   a physically sensible, well-separated interior trough.
+
+The corrected estimator is `scipy_canonical_ll`: a free-$\beta$ AIC-selected
+joint maximum-likelihood fit wrapping the canonical Hawkes log-likelihood, with a
+common-$t_0$ likelihood, a stationarity-rejecting objective, and a genuine
+constrained-MLE confidence interval. Estimator soundness was independently
+validated: on a *genuine* $\eta = 0.5$ simulation at $n \approx 700$, the
+estimator recovers $\hat\eta \approx 0.54$ (s.d. 0.076), biased *toward zero* —
+which is why the real-panel estimate is reported as a lower bound.
+
+# Results
+
+```{python}
+#| label: load-results
+hp = fit["hawkes_mv_params"]
+eta = hp["branching_ratio"]
+beta = hp["decays"]
+aic_tbl = hp["decay_aic_table"]
+lr = fit["lr_test"]
+ho = fit["held_out_loglik"]
+ks = fit["ks_rescaled_time"]
+gc = fit["gate_criteria"]
+leg0_p = ks["per_leg"][0]["p_value"]
+leg0_D = ks["per_leg"][0]["ks_statistic"]
+leg1_p = ks["per_leg"][1]["p_value"]
+```
+
+```{python}
+#| label: verdict-banner
+#| output: asis
+# Visible verdict banner (the human-readable companion to the \pdfinfo dual-signature
+# marker). States the honest 3/4 verdict and firing_condition verbatim — NEVER narrowed.
+print("::: {.callout-important}")
+print("## Verdict")
+print()
+print(f"**`gate_passes = {str(fit['gate_passes']).upper()}` (3/4).** "
+      f"Strong self-excitation ($\\eta \\approx {eta:.3f}$, LR rejects NHPP at $p = {lr['p_value']:.1f}$, "
+      f"held-out Hawkes wins by $\\approx 114$ nats), but the held-out time-rescaling KS "
+      f"misses $\\alpha = 0.05$ by a knife-edge (leg-0 $p = {leg0_p:.4f}$, statistic $D = {leg0_D:.3f}$). "
+      f"Derived `firing_condition = {firing['firing_condition']}`. This is reported as a "
+      f"near-miss / null result; the verdict is NOT a pass and is NOT narrowed.")
+print(":::")
+```
+
+## Branching ratio and decay selection
+
+The AIC-selected decay is $\beta = 0.001$ ($1/\beta = 1000$s), with branching
+ratio $\eta \approx 0.600$ reported as a **lower bound** (about 13% downward
+finite-sample bias at $n \approx 700$). The decay-AIC table shows a clean,
+well-separated interior minimum:
+
+```{python}
+#| label: tbl-aic
+#| output: asis
+print("| decay $\\beta$ | $1/\\beta$ (s) | AIC |")
+print("|---|---|---|")
+order = ["0.0001", "0.001", "0.01", "0.1", "1.0", "10.0"]
+for b in order:
+    v = aic_tbl[b]
+    inv = "—" if float(b) == 0 else f"{1.0/float(b):.0f}"
+    aic_str = "$\\infty$" if v == float("inf") else f"{v:.2f}"
+    star = " **(AIC-min)**" if b == "0.001" else ""
+    print(f"| {b} | {inv} | {aic_str}{star} |")
+```
+
+## Likelihood-ratio test and held-out reversal
+
+The bootstrap LR test (1000 NHPP replicates, common $t_0 = 0$, $\alpha = 0.01$)
+yields an observed statistic of $\Lambda = 561.29$ with $p = 0.0$ — the NHPP
+null is **rejected**. Out of sample, the Hawkes log-likelihood
+($-1206.23$) beats the NHPP baseline ($-1320.63$) by $\approx 114$ nats — a
+reversal of the earlier least-squares run, in which NHPP won out of sample.
+
+```{python}
+#| label: tbl-lr
+#| output: asis
+print("| quantity | value |")
+print("|---|---|")
+print(f"| LR observed statistic $\\Lambda$ | {lr['observed_stat']:.2f} |")
+print(f"| LR $p$-value | {lr['p_value']:.1f} (rejects NHPP at $\\alpha = {lr['alpha']}$) |")
+print(f"| bootstrap replicates | {lr['n_reps']} |")
+print(f"| held-out $\\ell_{{\\text{{Hawkes}}}}$ | {ho['hawkes']:.2f} |")
+print(f"| held-out $\\ell_{{\\text{{NHPP}}}}$ | {ho['nhpp']:.2f} |")
+print(f"| held-out advantage | $\\approx$ {ho['nhpp'] - ho['hawkes']:.0f} nats (Hawkes wins) |")
+```
+
+## The four-criterion gate
+
+```{python}
+#| label: tbl-gate
+#| output: asis
+print("| criterion | value | pass? |")
+print("|---|---|---|")
+print(f"| LR rejects NHPP ($\\alpha = {gc['lr_alpha']}$) | $\\Lambda = {lr['observed_stat']:.1f}$, $p = {lr['p_value']:.1f}$ | {'PASS' if gc['lr_rejects'] else 'FAIL'} |")
+print(f"| $\\eta$ floor met ($\\eta \\ge {gc['eta_floor_threshold']}$) | $\\eta = {eta:.3f}$ | {'PASS' if gc['eta_floor_met'] else 'FAIL'} |")
+print(f"| branching CI excludes zero | lower $= {fit['branching_ratio_ci']['lower']}$ | {'PASS' if gc['branching_ci_excludes_zero'] else 'FAIL'} |")
+print(f"| held-out KS passes ($\\alpha = {gc['ks_alpha']}$, min-leg) | leg-0 $p = {leg0_p:.4f}$ | {'**FAIL**' if not gc['ks_held_out_passes'] else 'PASS'} |")
+print()
+print(f"**`gate_passes = {str(fit['gate_passes']).upper()}`** (3 of 4). The lone failure is the held-out KS criterion.")
+```
+
+## The KS knife-edge
+
+The held-out time-rescaling KS test is the single criterion that does not pass.
+The labeling matters and is stated precisely:
+
+- **Leg 0:** p-value $p = 0.0474$ (KS statistic $D = 0.148$, $n = 83$).
+- **Leg 1:** p-value $p = 0.0564$ ($n = 79$).
+- **Aggregator:** the pre-registered **min-leg** rule takes the smaller leg
+  p-value, $p = 0.0474 < 0.05$, so `ks_held_out_passes = FALSE`.
+
+The miss is $0.0026$ below the $\alpha = 0.05$ threshold — a knife-edge. We print
+the p-value labeled as a p-value: $p = 0.0474$ is *not* the KS statistic (the
+statistic is $D = 0.148$). The full unrounded leg-0 p-value is
+$0.047350333810196134$.[^ksfull]
+
+[^ksfull]: Full precision from `fit_report.json`: leg-0 `p_value = 0.047350333810196134`,
+`ks_statistic = 0.14799982742727918`; leg-1 `p_value = 0.05643942824856608`. The
+report uses the single canonical rounding $p = 0.0474$ everywhere.
+
+## Convex-dominance conditions and the firing condition
+
+Separately from the four-criterion *verdict* gate, all **four convex-dominance
+conditions** pass, indicating that the *shape* of the optimal hedge is convex
+(fat tails and self-excitation dominate a linear hedge):
+
+```{python}
+#| label: tbl-convex
+#| output: asis
+print("| convex-dominance condition | evidence | pass? |")
+print("|---|---|---|")
+vv = gate["vol_of_vol_gt_zero"]["evidence"]["per_leg"]["leg_0"]["vol_of_vol"]
+sk = gate["positive_skew_fat_tails"]["evidence"]["per_leg"]["leg_0"]["skew"]
+ek = gate["positive_skew_fat_tails"]["evidence"]["per_leg"]["leg_0"]["excess_kurt"]
+br = gate["hawkes_self_excitation"]["evidence"]["branching_ratio"]
+print(f"| vol-of-vol $> 0$ | leg-0 vol-of-vol $= {vv:.3f}$ | {'PASS' if gate['vol_of_vol_gt_zero']['passed'] else 'FAIL'} |")
+print(f"| positive skew + fat tails | skew $= {sk:.3f}$, excess kurt $= {ek:.3f}$ | {'PASS' if gate['positive_skew_fat_tails']['passed'] else 'FAIL'} |")
+print(f"| Hawkes self-excitation ($\\eta \\ge 0.2$) | $\\eta = {br:.3f}$ | {'PASS' if gate['hawkes_self_excitation']['passed'] else 'FAIL'} |")
+print(f"| USDT-depeg basis jump | literature-range, $N = 64$ LHS, 0 flips | {'PASS' if gate['usdt_depeg_basis_jump']['passed'] else 'FAIL'} |")
+print()
+print(f"`any_condition_passed = {str(gate['any_condition_passed']).lower()}` (all four pass). "
+      f"The hedge SHAPE is convexity-justified. The PRICED strip is a separate question (below).")
+```
+
+The data demand convexity, but the precise Carr–Madan strip (@eq-carrmadan) is
+not calibratable: the empirical joint distribution is degenerate at the held-out
+overlap ($n_{\min} = 79 \le 101$, the DEPEND-01 lag-radius floor), so the joint
+characteristic function $\psi$ cannot be estimated and the strip integral cannot
+be formed. The run therefore derives
+`firing_condition = null_strip_unavailable` — convexity-justified,
+calibration-caveated. The detailed evidence block follows.
+
+{{< include _templates/_evidence_branches.qmd >}}
+
+# Anti-fishing provenance
+
+Because the KS miss is only $0.0026$ from passing, the temptation to narrow the
+verdict is real. We document, per the halt disposition memo, the **nine post-hoc
+changes considered and rejected** — none applied:
+
+1. Relaxing the KS $\alpha$ from 0.05 to clear leg-0 $p = 0.0474$ — **not done**.
+2. Switching the KS aggregator from min-leg to leg-average / max-leg / single-leg.
+   The leg-average $\approx 0.0519$ *would* "pass" — **explicitly not taken**; the
+   min-leg aggregator is locked.
+3. Changing the held-out split fraction (0.2) or the temporal-block definition.
+4. Dropping or down-weighting the failing leg (leg-0).
+5. Switching the residual test (KS $\to$ Anderson–Darling / Cramér–von Mises /
+   Ljung–Box) to find one that passes.
+6. Re-seeding or re-fitting to perturb the held-out KS p across the 0.05 line.
+7. Adding "one more robustness" KS variant.
+8. Relabeling `gate_passes = FALSE` as any softened or positive-leaning verdict
+   (the disposition memo enumerates four such forbidden relabelings) — **not done**;
+   the verdict reads `FALSE`, full stop.
+9. Footnoting the KS miss to present the result as confirmatory.
+
+The refusal to narrow is a **credibility asset**, not a weakness to bury. A 3/4
+that survives this list is worth more than a manufactured 4/4.
+
+# Spot-check
+
+Five panel rows, drawn by a seed deterministically derived from the run_id
+(`int(sha256("bdaf5c7ba5a2")[:8], 16)`), anchor the panel to on-chain Celo
+transactions. The seed is recorded so a fresh clone re-derives the identical
+rows — no cherry-picking. The 832 raw rows reduce to 778 arrival events after
+the PANEL-04 filter.
+
+```{python}
+#| label: tbl-spotcheck
+#| output: asis
+try:
+    from abrigo_x402.report.spot_check import seeded_spot_check
+    panel = Path("../data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/67378253_67896653.parquet")
+    sc = seeded_spot_check(RUN_ID, panel)
+    print(f"Seed: `{sc['seed']}` · panel rows: {sc['panel_rows']} (→ 778 arrival events)")
+    print()
+    print("| row | block | Blockscout tx |")
+    print("|---|---|---|")
+    for r in sc["rows"]:
+        print(f"| {r['row_index']} | {r['blockNumber']} | [`{r['txHash'][:18]}…`]({r['url']}) |")
+except Exception as e:  # pragma: no cover — spot-check is provenance, not a gate
+    print(f"*(spot-check table unavailable at render time: {e})*")
+```
+
+# Cost-prior sensitivity
+
+The pre-registered sensitivity sweep re-evaluates the four convex-dominance
+conditions across the locked grid
+$\text{rate\_per\_event} \in \{1, 5, 10\}$ and
+$\text{USD\_per\_query} \in \{2.5\!\times\!10^{-6}, 5\!\times\!10^{-6}, 7.5\!\times\!10^{-6}\}$
+— nine cells. The metric is the four **qualitative booleans**, not a dollar
+margin (no cost-leg model exists, and a dollar-$\Delta$ is blocked by the
+degenerate joint distribution).
+
+```{python}
+#| label: tbl-sweep
+#| output: asis
+n_cells = len(sweep["grid"])
+n_pass = sum(1 for c in sweep["grid"] if c["any_condition_passed"])
+print(f"All **{n_pass}/{n_cells}** cells report `any_condition_passed = true`. "
+      f"`conditions_cost_prior_invariant = {str(sweep['conditions_cost_prior_invariant']).lower()}`.")
+print()
+print("| rate_per_event | USD_per_query | any condition passed? |")
+print("|---|---|---|")
+for c in sweep["grid"]:
+    print(f"| {c['rate_per_event']} | {c['USD_per_query']:.1e} | {str(c['any_condition_passed']).lower()} |")
+```
+
+The conditions are **invariant** to the cost priors across the entire grid. This
+is the honest finding: the convex-dominance call is **convexity-driven, not
+cost-prior-driven** — the four conditions derive from the DGP density, not from
+the cost leg. Caveat: the cost leg is **modeled, not paid** (no x402-on-Celo
+settlement exists yet per the pre-registration), so the sweep is partly
+stipulative. Note that cost-prior invariance is *not* itself a pass of the
+verdict gate (which remains 3/4); the two are kept distinct.
+
+# Convexity-justified, calibration-caveated — what unlocks certification
+
+The two findings must not be conflated:
+
+- **Convexity-justified.** The hedge *shape* is robust: all four convex-dominance
+  conditions pass, so fat tails and $\eta \approx 0.6$ self-excitation dominate
+  the linear hedge. The data demand convexity.
+- **Calibration-caveated.** The *priced* Carr–Madan strip (@eq-carrmadan) is not
+  emittable: the joint distribution is degenerate at $n_{\min} = 79 < 101$, so
+  $\psi$ is uncalibratable. This is `null_strip_unavailable`, **not** "no hedge."
+
+Two routes unlock certification in a future iteration (v2), each with an honest
+tradeoff:
+
+1. **Power-law kernel.** Replacing the exponential kernel with a power-law
+   ($\phi(u) \propto u^{-(1+\theta)}$) introduces long memory and likely fixes
+   the held-out KS by capturing the slow-decaying autocorrelation the
+   exponential kernel under-fits. The cost: a power-law tail is *extrapolated*
+   from $n \approx 700$ events, which is thin for tail inference. Better science,
+   but a heavier identification burden at this sample size.
+2. **More data.** A longer or denser panel cleans the held-out KS by reducing
+   finite-sample noise and lifts $n_{\min}$ above the joint-distribution floor,
+   making $\psi$ estimable. Cleaner, but slow on free-tier resources.
+
+Both are **named, not executed** — deferred to Iteration 2 / DGP-V2-01.
+
+# Conclusion and reproducibility
+
+Iteration 1 ships a validated method and an honest 3/4. The pipeline works
+end-to-end on free-tier data, corrected a false null, and produced a faithful
+near-miss verdict on real cKES/USDT data:
+`gate_passes = FALSE` (3/4), `firing_condition = null_strip_unavailable`. The
+descriptive findings — $\eta \approx 0.600$, LR rejects NHPP, held-out Hawkes
+reversal, all four convex-dominance conditions — are real and fully reportable;
+the verdict remains gate-did-not-pass.
+
+Every number in this report is read from the on-disk `bdaf5c7ba5a2/` artifacts;
+the fit is never recomputed here. Inputs and derived artifacts are pinned by
+sha256 in [`reports/MANIFEST.md`](MANIFEST.md); run `make verify-reproducibility`
+to recompute-and-match, and `make report-ichi` to re-render this document.
+
+## References {.unnumbered}
+
+- Brown, E. N., Barbieri, R., Ventura, V., Kass, R. E., & Frank, L. M. (2002).
+  The time-rescaling theorem and its application to neural spike train data
+  analysis. *Neural Computation*, 14(2), 325–346.
+- Carr, P., & Madan, D. (1998). Towards a theory of volatility trading. In
+  *Volatility: New Estimation Techniques for Pricing Derivatives*.
+- Daw, A., & Pender, J. (2017). Queues driven by Hawkes processes. *Stochastic
+  Systems*.
+- Filimonov, V., & Sornette, D. (2014). Apparent criticality and calibration
+  issues in the Hawkes self-excited point process model. *Quantitative Finance*.
+- Kirchner, M. (2015). Hawkes and INAR($\infty$) processes. *Stochastic
+  Processes and their Applications*.
+- Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of MLE and LR tests
+  under nonstandard conditions. *JASA*, 82(398), 605–610.

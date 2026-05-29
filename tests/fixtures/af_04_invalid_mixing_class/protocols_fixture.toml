@@ -1,0 +1,9 @@
+# Synthetic fixture — invalid mixing_class value to trigger AF-04
+[protocol]
+name = "test"
+chain_id = 42220
+data_cost_class = "indexer-analytics-queries"
+
+[protocol.anchor_pool]
+address = "0x0000000000000000000000000000000000000000"
+mixing_class = "this-class-does-not-exist-in-schema-enum"

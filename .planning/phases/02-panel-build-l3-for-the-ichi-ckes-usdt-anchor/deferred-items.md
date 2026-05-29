@@ -1,0 +1,16 @@
+# Phase 2 Deferred Items
+
+Items discovered out-of-scope during Phase 2 plan execution. Logged per execute-plan scope-boundary rule.
+
+## From Plan 02-01
+
+- **Plan 02-05 territory**: `analysis/tests/test_revenue_leg.py::test_zero_for_one_swap_fee_on_token0` fails with `polars.InvalidOperationError` on Decimal/Int multiply path inside the Q96-tick-math implementation (`analysis/src/abrigo_x402/revenue_leg.py`). Pre-existing failure on disk from parallel-wave Plan 02-05 in-flight work (commit `58acc8f` test RED — no GREEN commit landed yet). NOT a 02-01 regression; ingest.py + protocol_spec.py do NOT import revenue_leg. Resolution: Plan 02-05 executor lands the GREEN commit for `compute_swap_fee`. Affects: full-suite `uv run pytest` is currently red; per-plan suites for 02-01 (`tests/test_ingest.py tests/test_protocol_spec.py`) remain 14/14 green.
+
+## From Plan 02-02
+
+- **Plan 02-05 territory (same failure as 02-01)**: `test_revenue_leg.py::test_zero_for_one_swap_fee_on_token0` still failing with `polars.exceptions.InvalidOperationError: floor_div operation not supported for dtype decimal[38,0]` on `[(col("_amt0_dec")) * 100] // 999900`. NOT a 02-02 regression — decoders.py does not import or affect revenue_leg.py. Per-plan suite `tests/test_decoders.py` = 10/10 green. Hint for Plan 02-05 GREEN: polars 1.41.0 needs `.cast(pl.Int128)` before floor-div on decimal columns, OR use Decimal-typed lit operand + `/` followed by `.floor()`.
+
+## From Plan 02-10
+
+- **Cost-ledger path mismatch**: `fetch/src/cost-ledger.ts` has `DEFAULT_LEDGER = 'data/raw/_cost_ledger.jsonl'`. When the driver runs from the `fetch/` workspace, this resolves to `fetch/data/raw/_cost_ledger.jsonl` — but `.gitignore` line 47-49 documents `data/raw/_cost_ledger.jsonl` (repo-root) as the canonical un-ignored path. Plan 02-10's resumption run landed ≥100 real Forno entries at `fetch/data/raw/_cost_ledger.jsonl`, which IS the correct ledger functionally (DEMAND-01 records every paid endpoint) but ISN'T at the convention path. Resolution candidates: (a) absolutize the default in cost-ledger.ts via REPO_ROOT discovery, (b) update .gitignore to negate `fetch/data/raw/_cost_ledger.jsonl` too. Not blocking SC-1 (functional contract satisfied); cleanup belongs to a later cost-ledger plumbing plan.
+- **CIP-64 fee-Transfer coverage gap**: Plan 02-10 dropped the per-tx Transfer-companion pull (Blockscout IP-cap; option 1 per user direction). `phantom_filter` covers the pattern via synthetic + 1 real CIP-64 dispatcher fixture, but the 30-day real-data panel has no Transfer-side observations. If Phase 3 NHPP / Hawkes diagnostics surface a CIP-64 fee-Transfer bias, revisit via Forno `eth_getLogs` (uncapped) instead of Blockscout per-tx.

@@ -1,0 +1,36 @@
+# fetch/tests/fixtures/test_fixture.toml
+# Synthetic protocol-spec fixture for the protocol-agnostic loader test
+# (Plan 01-01 Task 2) and the protocol-agnosticism scan test (Plan 01-05).
+#
+# Deliberately does NOT use `name = "ichi"` or `name = "steer"` so that any
+# hard-coded protocol-name branch in fetch/src/ would fail this fixture's
+# parse — proving the loader has no special-cases for the v1 substrate.
+#
+# Field values are all synthetic 0xdEAD-prefixed addresses + a fee_tier
+# (7777) that is NOT a standard Uniswap V3 tier (100/500/3000/10000). The
+# zod schema mirror does NOT enum-restrict fee_tier — any integer is legal —
+# so a non-standard value loads successfully if the loader has no
+# magic-number branch.
+
+[protocol]
+name = "synthetic-test"
+chain_id = 42220
+factory_address = "0xdEAD000000000000000000000000000000beef00"
+data_cost_class = "indexer-analytics-queries"
+panel_construction = "single-vault"
+iteration = 99
+cold_backfill_from_block = 0
+
+[protocol.anchor_pool]
+address = "0xdEAD000000000000000000000000000000beef01"
+token0  = "0xdEAD000000000000000000000000000000beef02"
+token1  = "0xdEAD000000000000000000000000000000beef03"
+fee_tier = 7777
+mixing_class = "mento-native"
+
+[protocol.vaults.synthetic_vault_1]
+address = "0xdEAD000000000000000000000000000000beef10"
+address_resolution_status = "verified"
+active = true
+mixing_class = "mento-native"
+pool_address = "0xdEAD000000000000000000000000000000beef01"

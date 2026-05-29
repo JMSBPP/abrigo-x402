@@ -1,0 +1,22 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x0000000000000000000000000000000000000000",
+  "blockRange": [0, 100],
+  "fetchTimestamp": "2026-05-27T00:00:00+00:00",
+  "dataHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "gitCommit": "0000000000000000000000000000000000000000",
+  "run_id": "000000000000",
+  "vol_of_vol_gt_zero": {"passed": false, "evidence": {"statistic": 0.0}},
+  "positive_skew_fat_tails": {"passed": false, "evidence": {"skew_leg_0": 0.1, "kurt_leg_0": 3.0}},
+  "hawkes_self_excitation": {"passed": false, "evidence": {"branching_ratio": 0.3, "eta_floor_met": false}},
+  "usdt_depeg_basis_jump": {
+    "passed": false,
+    "evidence": {
+      "source": "literature_range_stipulation",
+      "base_triple": {"lambda_J": 0.05, "mu_J": -0.05, "sigma_J": 0.02},
+      "sensitivity_fragile": true,
+      "sensitivity_summary": {"n_samples": 64, "n_flips": 40, "flip_examples": [[0.06, -0.04, 0.018]]}
+    }
+  },
+  "any_condition_passed": false
+}

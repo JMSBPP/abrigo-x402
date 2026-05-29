@@ -1,0 +1,17 @@
+[
+  {
+    "cache_key_hash": "9b3d330b0ed253daf3071b7356f264ddbb3fa732cf3d358fdcb7b883b33da0c9",
+    "chainId": 42220,
+    "contractAddress": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
+    "blockRange": [67378253, 67896653],
+    "fetchTimestamp": "2026-05-26T22:23:57.939141+00:00",
+    "dataHash": "e926eb8355dddcabd35651ec86fbb5a5a67cc0e6c7bf651c52ee74025be7e2d5",
+    "gitCommit": "6ab4a87",
+    "endpoint": "forno",
+    "query_count": 1543,
+    "usdc_cost": "0",
+    "paid_real": false,
+    "protocol": "ichi",
+    "fetcher_version": "0.1.0"
+  }
+]

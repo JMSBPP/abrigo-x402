@@ -3,10 +3,10 @@ node_modules/
 .pnpm-store/
 .turbo/
 
-# Foundry / forge
-out/
-cache/
-broadcast/
+# Foundry / forge (anchor to repo root so it doesn't shadow fetch/src/cache/)
+/out/
+/cache/
+/broadcast/
 
 # Hardhat
 artifacts/
@@ -34,3 +34,36 @@ __pycache__/
 dist/
 build/
 *.log
+
+# Phase 1 — fetched data is content-addressed under data/raw/<protocol>/.
+# Ignore everything under data/raw/ EXCEPT the cost-ledger and manifest
+# (those are the load-bearing audit trail; everything else is reproducible
+# from cache_key_hash = sha256(canonical(chainId, contractAddress, blockRange))).
+data/raw/*
+data/raw/*/
+!data/raw/manifest.json
+!data/raw/_cost_ledger.jsonl
+!data/raw/_cost_ledger.parquet
+
+# Phase 5 REPORT-04: commit the 128KB ICHI cKES/USDT panel parquet as the
+# fresh-clone reproducibility INPUT. The JSONL source cache is NOT tracked, so
+# cli.py materialize-on-absence is impossible offline; committing the panel is
+# the chosen path. Scoped re-include chain (only the parquet; JSONL siblings stay ignored).
+!data/raw/ichi/
+data/raw/ichi/*
+!data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/
+data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/*
+!data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/67378253_67896653.parquet
+
+# Vitest cwd is fetch/ — cost-ledger tests use relative `data/raw/*.test.jsonl`
+# paths which resolve to fetch/data/raw/. These are test scratch artifacts;
+# the real cost-ledger lives at repo-root data/raw/_cost_ledger.jsonl above.
+fetch/data/
+
+# Phase 2 Plan 02-08 fixture generator (one-off; outputs are committed,
+# the generator script itself is reproducible scaffolding only).
+analysis/tests/fixtures/_gen_n100.py
+
+# Phase 04.1.1-01-v2 fixture regenerator (one-off; output parquet + manifest
+# are committed, the generator script itself is reproducible scaffolding only).
+analysis/tests/fixtures/_gen_synthetic_hawkes_eta_05_v2.py

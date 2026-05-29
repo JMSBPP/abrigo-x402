@@ -1,0 +1,88 @@
+Phase 04.1.1 Plan 03 — Production-rep on the corrected scipy_canonical_ll estimator
+Real ICHI cKES/USDT anchor pool. Recorded VERBATIM from fit_report.json — as-observed, no editorializing.
+========================================================================================
+
+run_id ........................ bdaf5c7ba5a2
+  (distinct from the LS-degenerate ae9e3ba17900 AND the stale pre-02b wiring-artifact 000c1cdce376)
+provenance ..................... gitCommit=880ef381a37c  dataHash=a72a4eeaf280  tick_lib_version=0.8.0.2
+panel .......................... data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/67378253_67896653.parquet
+                                 (sha256 a72a4eeaf2805aaf6b89b993e25d6b9012b8a97d507ca7e40a2dac68ee9f412a)
+total_events_per_leg ........... [382, 396]   (n=778 pooled; above the Q-9 floor of 300/leg)
+bootstrap wall-clock ........... ~213s (~3.5 min) — Option A in effect (tick-LS null replicates); NOT the
+                                 ~143-min all-scipy projection. Tractable.
+
+--- HAWKES (canonical estimator) ---
+hawkes_mv_params.fit_method_used ............ scipy_canonical_ll
+hawkes_mv_params.decays (AIC-min beta) ...... 0.001   (1/beta = 1000s; between 665s pooled and ~1300s per-leg inter-arrival)
+hawkes_mv_params.branching_ratio (eta) ...... 0.5999724484494755
+    >>> eta is a LOWER BOUND (~13% downward finite-sample bias at n~700 per DIAGNOSTIC Q1/Q3;
+        true eta is AT LEAST ~0.60, plausibly higher). Diagnostic Q2 predicted ~0.628 at this beta.
+decay_aic_table (all 6 DECAY_GRID points):
+    0.0001 : Infinity
+    0.001  : 9800.777895341975    <-- AIC-min (selected)
+    0.01   : 9833.858970125077
+    0.1    : 9937.64886015439
+    1.0    : 10077.411008982841
+    10.0   : 10117.489472382835
+input_diagnostics.hawkes_fit_method_used .... scipy_canonical_ll
+
+--- BRANCHING-RATIO CI (genuine constrained-MLE, NOT the retracted projection trick) ---
+branching_ratio_ci.method ..... constrained_mle_profile
+branching_ratio_ci.eta_hat .... 0.5999724484494755
+branching_ratio_ci.lower ...... 0.001    (> 0 -> branching_ci_excludes_zero = true)
+branching_ratio_ci.upper ...... 0.95
+branching_ratio_ci.ci_width ... 0.949
+branching_ratio_ci.alpha ...... 0.05
+    NOTE (as-observed): the constrained-MLE chi2(1) inversion clamps to the eta-grid bounds
+    [1e-3, 0.95] (02c grid-floor 1e-3..0.95); the interval is wide but its lower bound 0.001 > 0,
+    so the branching_ci_excludes_zero criterion is satisfied. Recorded verbatim, not narrowed.
+
+--- LR TEST (bootstrap, alpha=0.01, Option A) ---
+lr_test.observed_stat ......... 561.2948088026606
+    >>> FINITE, O(10^2). The prior 6.05M LS-params-into-canonical-LL pathology is RESOLVED
+        (02c common-t0 LL fix). No epoch-scaling regression.
+lr_test.p_value ............... 0.0
+lr_test.rejects_at_alpha ...... True
+lr_test.n_reps ................ 1000   (AF-04 production lock honoured)
+lr_test.n_successful_bootstrap  1000
+lr_test.n_failed .............. 0
+lr_test.alpha ................. 0.01
+lr_test.seed .................. 783429751
+
+--- HELD-OUT KS (time-rescaling, alpha=0.05) ---
+ks_rescaled_time.p_value ...... 0.047350333810196134   (combined = min across legs)
+ks_rescaled_time.ks_alpha ..... 0.05
+  per_leg[0]: ks_statistic=0.14799982742727918  n_events=83  p_value=0.047350333810196134
+  per_leg[1]: ks_statistic=0.1508553262160821   n_events=79  p_value=0.05643942824856608
+    NOTE (as-observed): leg-0 p=0.0474 sits JUST below 0.05; leg-1 p=0.0564 is above. The conservative
+    min aggregator => combined 0.0474 <= 0.05 => ks_held_out_passes = false.
+
+--- HELD-OUT LOGLIK (corrected fit) ---
+held_out_loglik.nhpp .......... -1320.6281331371827
+held_out_loglik.hawkes ........ -1206.2319733635582
+    (Hawkes now WINS out-of-sample by ~114 nats — reversed from the LS-degenerate ae9e3ba17900,
+     where NHPP won by ~1005 nats.)
+
+--- FOUR-CRITERION GATE (gate_criteria, as-observed) ---
+lr_rejects ................... true    (observed_stat 561.29, p=0.0 < alpha=0.01)
+eta_floor_met ................ true    (eta=0.600 >= 0.2 floor)
+ks_held_out_passes ........... false   (combined KS p=0.0474 <= 0.05)
+branching_ci_excludes_zero ... true    (CI lower=0.001 > 0)
+(stationary) ................. true    (both legs)
+gate_passes .................. false   (AND of the four criteria; KS fails -> composite false)
+
+--- VERDICT (purely descriptive of the four booleans) ---
+gate_passes=false: lr_rejects=true, eta_floor_met=true, ks_held_out_passes=false, branching_ci_excludes_zero=true.
+3 of the 4 Hawkes-positive criteria hold on the corrected estimator; the held-out time-rescaling KS is the
+single failing criterion (leg-0 p=0.0474, marginally below the 0.05 threshold). gate_passes is therefore false.
+
+firing_condition NOT pre-committed; the four-criterion gate decides; LR + KS were re-established on the
+corrected fit (LR observed_stat finite at 561.29 and rejecting; KS marginally failing) and the verdict is
+whatever the booleans say (may be positive OR null). The firing_condition itself is DERIVED by
+decide_firing_condition in the Plan 04.1.1-04 hedge rerun (NOT asserted here). Because lr_rejects=true on the
+corrected fit, the prior LS-degenerate firing_condition=null_lr (from ae9e3ba17900, p=0.58) is NOT carried
+forward — but which firing_condition the corrected fit produces is left for Plan 04 to derive, not pre-stated
+here.
+
+No "positive result" or "null result" is asserted as a foregone conclusion independent of the four booleans.
+ae9e3ba17900 is preserved unchanged (still fit_method_used=least-squares).

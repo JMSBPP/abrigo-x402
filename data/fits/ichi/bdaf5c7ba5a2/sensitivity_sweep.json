@@ -1,0 +1,152 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
+  "blockRange": [
+    67378253,
+    67896653
+  ],
+  "dataHash": "a72a4eeaf2805aaf6b89b993e25d6b9012b8a97d507ca7e40a2dac68ee9f412a",
+  "gitCommit": "03132cd",
+  "run_id": "bdaf5c7ba5a2",
+  "grid": [
+    {
+      "rate_per_event": 1,
+      "USD_per_query": 2.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 1,
+      "USD_per_query": 5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 1,
+      "USD_per_query": 7.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 5,
+      "USD_per_query": 2.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 5,
+      "USD_per_query": 5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 5,
+      "USD_per_query": 7.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 10,
+      "USD_per_query": 2.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 10,
+      "USD_per_query": 5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    },
+    {
+      "rate_per_event": 10,
+      "USD_per_query": 7.5e-06,
+      "conditions": {
+        "vol_of_vol_gt_zero": true,
+        "positive_skew_fat_tails": true,
+        "hawkes_self_excitation": true,
+        "usdt_depeg_basis_jump": true
+      },
+      "any_condition_passed": true,
+      "firing_condition": "null_strip_unavailable",
+      "evaluated_once": true,
+      "broadcast_to_grid": true,
+      "depends_on_cost_priors": false
+    }
+  ],
+  "all_cells_any_condition_passed": true,
+  "conditions_cost_prior_invariant": true,
+  "gate_source": "gate_report.json",
+  "caveat": "cost leg modeled-not-paid (no x402-on-Celo settlement exists per PRE_REGISTRATION); the 4 convex-dominance conditions derive from the DGP density and are cost-prior-invariant -> dominance is convexity-driven, not cost-prior-driven."
+}

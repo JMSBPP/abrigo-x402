@@ -1,0 +1,55 @@
+# @x402 v2.13 exports — captured 2026-05-26T11:06:33Z
+
+## @x402/fetch
+decodePaymentResponseHeader
+wrapFetchWithPayment
+wrapFetchWithPaymentFromConfig
+x402Client
+x402HTTPClient
+
+## @x402/core
+x402Version
+
+## @x402/evm
+BATCH_SETTLEMENT_ADDRESS
+BATCH_SETTLEMENT_DOMAIN
+BATCH_SETTLEMENT_SCHEME
+BatchSettlementEvmScheme
+DEFAULT_STABLECOINS
+ERC3009_DEPOSIT_COLLECTOR_ADDRESS
+ExactEvmScheme
+PERMIT2_ADDRESS
+UptoEvmScheme
+authorizationTypes
+claimBatchTypes
+createPermit2ApprovalTx
+eip3009ABI
+erc20AllowanceAbi
+getDefaultAsset
+getPermit2AllowanceReadParams
+isBatchSettlementClaimPayload
+isBatchSettlementDepositPayload
+isBatchSettlementEnrichedRefundPayload
+isBatchSettlementRefundPayload
+isBatchSettlementSettlePayload
+isBatchSettlementVoucherPayload
+isEIP3009Payload
+isPermit2Payload
+isUptoPermit2Payload
+permit2WitnessTypes
+refundTypes
+toClientEvmSigner
+toFacilitatorEvmSigner
+uptoPermit2WitnessTypes
+voucherTypes
+x402ExactPermit2ProxyABI
+x402ExactPermit2ProxyAddress
+x402UptoPermit2ProxyABI
+x402UptoPermit2ProxyAddress
+
+## @x402/evm/exact/client (subpath)
+ExactEvmScheme
+createPermit2ApprovalTx
+erc20AllowanceAbi
+getPermit2AllowanceReadParams
+registerExactEvmScheme

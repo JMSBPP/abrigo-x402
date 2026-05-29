@@ -1,0 +1,62 @@
+# .pre-commit-config.yaml — abrigo-x402
+#
+# Three-layer GOV-03 enforcement per Phase 0 SC-4:
+#   (a) AF-01..AF-12 anti-feature lint
+#   (b) 2-way review-trail enforcement (paired _reality_checker.md + _code_reviewer.md with ## VERDICT)
+#   (c) make schema-frozen-check (rejects protocols/_schema.toml diff after Phase-0 baseline)
+#
+# Deploy via: `pre-commit install` (Plan 07).
+
+repos:
+  - repo: local
+    hooks:
+      - id: af-lint
+        name: "AF-01..AF-12 anti-feature lint gate (GOV-03)"
+        entry: bash scripts/pre-commit/af_lint.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: review-trail
+        name: "2-way review-trail enforcement (PLAN.md + ROADMAP.md require paired reviews with ## VERDICT)"
+        entry: bash scripts/pre-commit/review_trail.sh
+        language: system
+        pass_filenames: false
+        files: '^\.planning/.*PLAN\.md$|^\.planning/ROADMAP\.md$'
+
+      - id: schema-frozen
+        name: "Schema-frozen check (reject diff to protocols/_schema.toml after Phase-0 baseline)"
+        entry: bash scripts/pre-commit/schema_frozen.sh
+        language: system
+        pass_filenames: false
+        files: '^protocols/_schema\.toml$'
+
+      # Phase 4 gates — Plan 04-00 introduces; load-bearing for HEDGE-01/02/03 invariants.
+
+      - id: sc-2-usdc-literal-gate
+        name: "SC-2 grep gate (no usdc literals outside comments in hedge/falsification.py)"
+        entry: bash -c '! grep -i "^[^#]*usdc" analysis/src/abrigo_x402/hedge/falsification.py'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: carr-madan-anti-pattern-gate
+        name: "Carr-Madan integration anti-pattern gate (no scipy.integrate.quad / np.trapz in carr_madan_strip.py)"
+        entry: bash -c '! grep -E "scipy\.integrate\.quad|scipy\.integrate\.fixed_quad|scipy\.integrate\.romberg|np\.trapz" analysis/src/abrigo_x402/hedge/carr_madan_strip.py 2>/dev/null'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: canonical-ll-gate
+        name: "Canonical-LL contract gate (no loglik_in_sample_raw in hedge/*)"
+        entry: bash -c '! grep -rE "loglik_in_sample_raw" analysis/src/abrigo_x402/hedge/ 2>/dev/null'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: hardcoded-jump-params-gate
+        name: "Hardcoded jump-diffusion params gate (params only live in usdt_depeg.py + notes/usdt_depeg_calibration.md)"
+        entry: bash -c '! grep -rE "lambda_J\s*=\s*0\.|mu_J\s*=\s*-?0\.|sigma_J\s*=\s*0\." analysis/src/abrigo_x402/hedge/falsification.py analysis/src/abrigo_x402/hedge/carr_madan_strip.py 2>/dev/null'
+        language: system
+        pass_filenames: false
+        always_run: true

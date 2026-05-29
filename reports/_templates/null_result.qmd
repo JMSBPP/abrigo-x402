@@ -1,0 +1,54 @@
+---
+title: "HEDGE-05 Null Result"
+format:
+  pdf:
+    documentclass: article
+    include-in-header:
+      text: |
+        \pdfinfo{
+          /HEDGE05Marker (HEDGE05-NULL-RESULT-V1)
+        }
+execute:
+  freeze: false
+  cache: false
+params:
+  firing_condition: null  # "null_cost" | "null_lr" | "null_convex" | "null_strip_unavailable"
+---
+
+# HEDGE-05 NULL RESULT — `r params$firing_condition`
+
+<!-- Dual signature: visible H1 above + \pdfinfo HEDGE05-NULL-RESULT-V1 marker in PDF metadata. -->
+<!-- Greppable via: pdftotext reports/ichi.pdf - | grep "HEDGE-05 NULL RESULT" -->
+<!-- AND: pdfinfo reports/ichi.pdf | grep "HEDGE05Marker" -->
+
+```{python}
+#| label: load-substrate
+import json
+from pathlib import Path
+
+firing_condition = "{{< meta params.firing_condition >}}"
+# Substrate loaded by render_null_result_pdf at invocation time via --param + injected files.
+```
+
+::: {.callout-note}
+## Firing Condition
+
+This null-result PDF was generated because firing condition **`{python} firing_condition`** tripped.
+:::
+
+## Evidence Block
+
+{{< include _evidence_branches.qmd >}}
+
+<!-- Wave 2 (Plan 04-08) implements the four conditional branches via Quarto conditional content
+     keyed off `params$firing_condition`:
+       - null_cost: cost-leg bound memo verdict=FAIL evidence
+       - null_lr: DGP-03 LR test p-value + n_reps + held-out comparison
+       - null_convex: four-condition gate report with all `passed: false`
+       - null_strip_unavailable: strip_degenerate.json + recommended_method (COS/PROJ)
+     Wave 0 scaffolds only the dual-signature shell. -->
+
+## Pre-Registration Reference
+
+This null result is a valid completion per [PRE_REGISTRATION.md §Decision Rules](../../notes/PRE_REGISTRATION.md#decision-rules).
+Null results are explicitly publishable per AF-03 discipline.

@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "source": "blockscout-v1-getlogs",
+    "url": "https://celo.blockscout.com/api?module=logs&action=getLogs",
+    "captured_at": "2026-05-26T18:05:00Z",
+    "head_block_at_capture": 67918258,
+    "filter": {
+      "address": "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+      "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+      "topic2": "0x000000000000000000000000000000000000000000000000000000000ce106a5"
+    },
+    "adapter": "0x000000000000000000000000000000000ce106a5",
+    "adapter_identity": "Celo CIP-64 gas-fee dispatcher (protocol-reserved pseudo-address; EOA-like; no code)",
+    "status": "captured",
+    "architectural_note": "RESEARCH §G's pre-CIP-64 FeeCurrencyWrapper at 0x0e2a3e05...c6f72 is retired (zero Transfer activity confirmed). CIP-64 native fee-currency support routes all USDT gas-fee Transfers through 0x000...Ce106A5, which then redistributes to 0xcD437...8778 (FeeHandler) and 0x42...0011 (OP-Stack SequencerFeeVault). See phantom_filter.py docstring."
+  },
+  "txHash": "0x41a425582618efc57c412f090d87bf53a4af3867b43601b16e2fe836c1d1f7b5",
+  "blockNumber": 67918154,
+  "logs": [
+    {
+      "address": "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e",
+      "blockNumber": "0x40c55ca",
+      "data": "0x0000000000000000000000000000000000000000000000000000000000001d33",
+      "gasPrice": "0x3949aac91",
+      "gasUsed": "0x60ca3",
+      "logIndex": "0x9",
+      "timeStamp": "0x6a15de20",
+      "topics": [
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "0x00000000000000000000000071fb1bbf0bca90695c82e59fc8ceb69d5f11481d",
+        "0x000000000000000000000000000000000000000000000000000000000ce106a5",
+        null
+      ],
+      "transactionHash": "0x41a425582618efc57c412f090d87bf53a4af3867b43601b16e2fe836c1d1f7b5",
+      "transactionIndex": "0x3"
+    }
+  ],
+  "decoded_value_wei": 7475,
+  "decoded_value_usdt": 0.007475,
+  "note": "EOA 0x71fb1bbf0bca90695c82e59fc8ceb69d5f11481d paid 0.007475 USDT in gas via CIP-64. Transfer routes EOA -> 0x000...Ce106A5 (dispatcher). The phantom filter MUST drop this row because the dispatcher is not a swap counterparty."
+}

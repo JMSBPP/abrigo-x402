@@ -1,0 +1,18 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
+  "blockRange": [
+    67378253,
+    67896653
+  ],
+  "fetchTimestamp": "2026-05-29T14:40:58.790619+00:00",
+  "dataHash": "a72a4eeaf2805aaf6b89b993e25d6b9012b8a97d507ca7e40a2dac68ee9f412a",
+  "gitCommit": "03132cd",
+  "run_id": "bdaf5c7ba5a2",
+  "independence_price": NaN,
+  "fitted_joint_price": NaN,
+  "comonotone_price": NaN,
+  "divergence_pct": NaN,
+  "divergence_flag": false,
+  "comonotone_method": "empirical_body_parametric_tail"
+}
