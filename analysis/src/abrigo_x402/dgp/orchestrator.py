@@ -284,11 +284,19 @@ def run_fit(
     hawkes_train = fit_hawkes_expkern(
         split.train_leg_0, split.train_leg_1, decays=decays
     )
+    # The train-fit AIC-selected beta is the single coherent kernel scale for ALL four gate
+    # criteria (LR leg, CI, KS, eta-floor). Defined here so the LR observed fit can be pinned
+    # to it (Plan 04.1.1-02c); reused at the held-out-LL section below (NOT re-derived).
+    hawkes_decays_t = float(hawkes_train["decays"])
 
     # Step 5 — bootstrap LR on FULL panel (the LR statistic is the observed-data
     # 2*(LL_hawkes - LL_nhpp) and the bootstrap null simulates from the FULL-
     # panel NHPP rate; both are panel-level — train/test split is unrelated to
     # the bootstrap rig per lr_test.py contract).
+    # Plan 04.1.1-02c (NEEDS WORK #1): thread the train-fit AIC-selected beta into the LR
+    # observed fit so the LR leg and the headline CI/KS/eta-floor legs share one coherent
+    # (beta, eta). Without this the LR re-runs its own free-beta AIC grid and may select a
+    # different beta than hawkes_train.
     lr_result = parametric_bootstrap_lr(
         leg_0,
         leg_1,
@@ -297,6 +305,7 @@ def run_fit(
         window_end=window_end,
         n_reps=bootstrap_reps,
         alpha=LR_ALPHA,
+        hawkes_decays=hawkes_decays_t,
     )
 
     # Step 6 — held-out log-likelihoods. CRITICAL: both must be on the same
@@ -315,7 +324,7 @@ def run_fit(
     )
     hawkes_baseline = np.asarray(hawkes_train["baseline"], dtype=np.float64)
     hawkes_adjacency = np.asarray(hawkes_train["adjacency"], dtype=np.float64)
-    hawkes_decays_t = float(hawkes_train["decays"])
+    # hawkes_decays_t defined at the train fit above (single coherent beta; not re-derived).
     hawkes_held_out_ll = compute_held_out_loglik_hawkes(
         hawkes_baseline,
         hawkes_adjacency,

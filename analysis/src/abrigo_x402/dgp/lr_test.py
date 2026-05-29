@@ -249,6 +249,7 @@ def parametric_bootstrap_lr(
     n_reps: int = PRODUCTION_N_REPS,
     alpha: float = DEFAULT_ALPHA,
     diagnostic_plot_path: str | os.PathLike | None = None,
+    hawkes_decays: float | None = None,
 ) -> dict:
     """Boundary-correct parametric bootstrap LR test for NHPP-vs-Hawkes.
 
@@ -271,6 +272,10 @@ def parametric_bootstrap_lr(
         n_reps: bootstrap replicates. Production lock = 1000 (AF-04). Tests use 30..200.
         alpha: rejection threshold. PRE_REGISTRATION lock = 0.01.
         diagnostic_plot_path: if provided, write the histogram PNG to this path (SC-3).
+        hawkes_decays: Plan 04.1.1-02c — if not None, pin the OBSERVED Hawkes fit to this
+            AIC-selected beta (the orchestrator headline beta `hawkes_decays_t`) so the four
+            gate criteria are evaluated at one coherent (beta, eta). Default None keeps the
+            free-beta AIC grid (back-compat for existing callers/tests).
 
     Returns:
         dict with keys:
@@ -289,7 +294,13 @@ def parametric_bootstrap_lr(
 
     # 1. Fit BOTH models on the observed data.
     nhpp_obs = fit_nhpp_inar(leg_0_times, leg_1_times, window_start, window_end)
-    hawkes_obs = fit_hawkes_expkern(leg_0_times, leg_1_times)
+    # Plan 04.1.1-02c (NEEDS WORK #1): pin the observed Hawkes fit to the orchestrator's
+    # AIC-selected beta when threaded, so the LR leg and the headline CI/KS/eta-floor legs
+    # share one coherent (beta, eta). Default None keeps the free-beta AIC grid (back-compat).
+    if hawkes_decays is not None:
+        hawkes_obs = fit_hawkes_expkern(leg_0_times, leg_1_times, decays=float(hawkes_decays))
+    else:
+        hawkes_obs = fit_hawkes_expkern(leg_0_times, leg_1_times)
     # Both LL on the same probability space — continuous-time point-process LL via the
     # closed-form Hawkes formula (see _nhpp_pointprocess_loglik docstring). This is the
     # Rule-1 fix that makes the LR statistic dimensionally well-formed.
@@ -312,13 +323,30 @@ def parametric_bootstrap_lr(
     decays_obs = float(hawkes_obs["decays"])
     hawkes_baseline_obs = np.asarray(hawkes_obs["baseline"], dtype=np.float64)
     hawkes_adjacency_obs = np.asarray(hawkes_obs["adjacency"], dtype=np.float64)
+    # Plan 04.1.1-02c (THE BLOCKER): score BOTH legs on a COMMON t0=0 origin. The canonical
+    # LL integral term is baseline·t_end; the observed legs arrive as ABSOLUTE epoch
+    # timestamps (~1.7e9) but the fits (fit_hawkes_expkern -> _fit_at_decay) rescale to t0=0
+    # internally, so scoring on absolute time inflates the integral against t_end~1.7e9 (the
+    # spurious 6.05M observed_stat — DIAGNOSTIC §Q4). Shift the observed legs to t0=0 so the
+    # SCORING origin matches the FIT origin. The log-intensity term is shift-invariant
+    # (inter-event differences only); the NHPP baseline is events/sec (origin-invariant) and
+    # its integral uses the same (t_end - t_start) span preserved by the shift.
+    t0_obs = float(min(leg_0_times.min(), leg_1_times.min()))
+    obs0 = (leg_0_times - t0_obs).astype(np.float64)
+    obs1 = (leg_1_times - t0_obs).astype(np.float64)
     ll_nhpp_obs = _nhpp_pointprocess_loglik(
-        nhpp_obs, leg_0_times, leg_1_times, decays_obs,
+        nhpp_obs, obs0, obs1, decays_obs,
     )
     ll_hawkes_obs = _hawkes_loglik_vectorized(
-        hawkes_baseline_obs, hawkes_adjacency_obs, decays_obs, leg_0_times, leg_1_times,
+        hawkes_baseline_obs, hawkes_adjacency_obs, decays_obs, obs0, obs1,
     )
     lr_observed = 2.0 * (ll_hawkes_obs - ll_nhpp_obs)
+    if not np.isfinite(lr_observed):
+        raise RuntimeError(
+            f"observed LR statistic is non-finite ({lr_observed}) after the common-t0 "
+            f"correction; ll_hawkes_obs={ll_hawkes_obs}, ll_nhpp_obs={ll_nhpp_obs} "
+            f"(Plan 04.1.1-02c finite-observed-stat guard)"
+        )
 
     # 2. Parametric bootstrap UNDER THE NULL (NHPP, NOT Hawkes — Pitfall 2).
     #
@@ -378,15 +406,22 @@ def parametric_bootstrap_lr(
             # same scale as the scipy-observed LR.
             hawkes_b = _fit_hawkes_ls_for_null(sim_0_abs, sim_1_abs, decays=hawkes_decays_pinned)
             decays_b = float(hawkes_b["decays"])
+            # Plan 04.1.1-02c (THE BLOCKER): the LS null fit (_fit_hawkes_ls_for_null)
+            # rescales to t0=0 internally, so the LL SCORING must also be at t0=0 — score
+            # both null legs on a common t0=0 origin, matching the observed leg above. This
+            # removes the epoch-inflated integral term (baseline·t_end with t_end~window_end).
+            t0_b = float(min(sim_0_abs.min(), sim_1_abs.min()))
+            s0_b = (sim_0_abs - t0_b).astype(np.float64)
+            s1_b = (sim_1_abs - t0_b).astype(np.float64)
             ll_nhpp_b = _nhpp_pointprocess_loglik(
-                nhpp_b, sim_0_abs, sim_1_abs, decays_b,
+                nhpp_b, s0_b, s1_b, decays_b,
             )
             ll_hawkes_b = _hawkes_loglik_vectorized(
                 np.asarray(hawkes_b["baseline"], dtype=np.float64),
                 np.asarray(hawkes_b["adjacency"], dtype=np.float64),
                 decays_b,
-                sim_0_abs,
-                sim_1_abs,
+                s0_b,
+                s1_b,
             )
             if not (np.isfinite(ll_nhpp_b) and np.isfinite(ll_hawkes_b)):
                 n_failed += 1
@@ -443,4 +478,5 @@ def parametric_bootstrap_lr(
         "n_failed": int(n_failed),
         "seed": int(seed),
         "alpha": float(alpha),
+        "observed_stat_origin": "t0_zero",
     }
