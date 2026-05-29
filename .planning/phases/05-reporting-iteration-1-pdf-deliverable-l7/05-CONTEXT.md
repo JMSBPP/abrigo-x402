@@ -30,9 +30,11 @@ Ship the Iteration-1 PDF deliverable `reports/ichi.pdf` (Quarto) with: (REPORT-0
 - **No silent markdown fallback** — markdown-only output is rejected; the PDF is the mandated deliverable (SC-1).
 
 ### Sensitivity sweep presentation (REPORT-03)
-- **Primary metric tracked across the 3×3 grid = convex-dominance Δ** (cost-of-convexity vs linear hedge) under `{rate_per_event × 0.5, 1.0, 1.5}` × `{USD_per_query × 0.5, 1.0, 1.5}`. Shows how the instrument-choice call (convex beats linear) survives ±50% cost-prior perturbation.
-- Underlying `sensitivity_sweep.json` lives at `data/fits/ichi/bdaf5c7ba5a2/sensitivity_sweep.json` with downstream estimates RE-RUN per cell (not approximated/interpolated), per SC-3.
-- Caveat to surface: the cost leg is MODELED not paid (x402-on-Celo settlement non-existent per PRE_REGISTRATION), so the dominance margin is partly stipulative — state this honestly.
+- **SUPERSEDES the earlier "convex-dominance Δ" choice** — research found no cost-leg model exists in `analysis/src/` and a dollar-Δ is blocked by the degenerate joint_dist (n=79). **Primary metric = the 4 QUALITATIVE convex-dominance conditions** (vol-of-vol>0, skew/kurtosis fat-tails, η ≥ threshold, USDT-depeg jump) from `gate_report.json`, plus the `firing_condition`, re-evaluated across the grid. Answers: does the convex-demand call (all 4 conditions) survive ±cost-prior perturbation? Computable from existing hedge/gate machinery; no new cost model; honest under the degeneracy. Booleans, NOT a dollar margin — state this framing explicitly.
+- **GRID (AF-03 lock):** the PRE-REGISTERED grid, NOT symmetric ±50% on both axes — `rate_per_event ∈ {1, 5, 10}` (pre-reg §Prior Parameters locked grid) × `USD_per_query ∈ {2.5e-6, 5e-6, 7.5e-6}` (pre-reg ±50%). Do NOT substitute (2.5,5,7.5) for rate_per_event — that violates the lock.
+- Underlying `sensitivity_sweep.json` lives at `data/fits/ichi/bdaf5c7ba5a2/sensitivity_sweep.json`; each cell RE-EVALUATES the conditions via the existing gate machinery (not approximated/interpolated), per SC-3.
+- **NO new cost-leg model, NO dominance-Δ implementation, NO κ index** (AF-12 + CLAUDE.md non-negotiable). If a cell's condition set is invariant to the cost priors (likely, since the conditions derive from the DGP density not the cost leg), report that invariance honestly as the finding.
+- Caveat to surface: the cost leg is MODELED not paid (x402-on-Celo settlement non-existent per PRE_REGISTRATION).
 
 ### Spot-check + reproducibility (REPORT-02 / REPORT-04)
 - **5 rows selected by seeded uniform random**, seed derived from run_id `bdaf5c7ba5a2`, drawn from the 778-event panel. Deterministic + re-derivable; the seed is recorded in MANIFEST.md so a fresh clone draws the same 5 rows. No cherry-picking.
