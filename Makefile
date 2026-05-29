@@ -175,8 +175,9 @@ render-null-result-pdf:
 		echo "Usage: make render-null-result-pdf FIRING={null_cost|null_lr|null_convex|null_strip_unavailable}"; \
 		exit 1; \
 	fi
+	@mkdir -p reports/_diagnostics
 	cd reports && quarto render _templates/null_result.qmd --no-cache \
-		--execute-param firing_condition:$$FIRING --output ichi.pdf
+		--execute-param firing_condition:$$FIRING --output _diagnostics/null_result_$$FIRING.pdf
 
 # Phase 5 REPORT-01 — render the Iteration-1 deliverable. quarto is an operator
 # build prerequisite (NOT auto-installed); only TinyTeX self-installs. Plan 05-03
@@ -188,8 +189,10 @@ report-ichi:
 	@command -v quarto >/dev/null 2>&1 || { echo "report-ichi: FAIL — quarto binary required (build prerequisite, not auto-installed)"; exit 1; }
 	@quarto install tinytex 2>/dev/null || true
 	@test -f reports/ichi.qmd || { echo "report-ichi: FAIL — reports/ichi.qmd absent (Plan 05-03 authors it)"; exit 1; }
+	@echo "report-ichi: logging per-row Blockscout spot-check HTTP status (SC-2, network-optional)..."
+	@cd analysis && uv run python -c "from abrigo_x402.report.spot_check import seeded_spot_check, verify_url_status; from pathlib import Path; r=seeded_spot_check('bdaf5c7ba5a2', Path('../data/raw/ichi/0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F/67378253_67896653.parquet')); [print(verify_url_status(x['url'])) for x in r['rows']]" || echo "report-ichi: spot-check curl logging unavailable (continuing)"
 	@rm -f reports/ichi.pdf
-	cd reports && quarto render ichi.qmd --to pdf --output ichi.pdf
+	cd reports && quarto render ichi.qmd --to pdf --execute-param firing_condition=null_strip_unavailable --output ichi.pdf
 	@test -f reports/ichi.pdf || { echo "report-ichi: FAIL — no PDF emitted (markdown fallback rejected)"; exit 1; }
 	@SIZE=$$(wc -c < reports/ichi.pdf); [ "$$SIZE" -gt 51200 ] || { echo "report-ichi: FAIL — PDF $${SIZE}B < 50KB (SC-1)"; exit 1; }
 	@SIZE=$$(wc -c < reports/ichi.pdf); echo "report-ichi: PASS — reports/ichi.pdf ($${SIZE}B)"
