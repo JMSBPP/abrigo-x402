@@ -299,3 +299,35 @@ grep -rnE '"ichi"|/ichi/|raw/ichi|fits/ichi' analysis/src fetch/src \
 (System `grep` is ugrep 7.5.0, GNU-compatible for these flags.) As of Plan 06-01 HEAD this command returns 0 lines on the working tree.
 
 **AF-12 OUT-OF-SCOPE.** This note changes NO numeric threshold (α, η-floor, REPRO-03 30k–100k band, Q-7, Q-9 trigger all locked), introduces NO new requirement, and does NOT re-scope REPRO-02 / REPRO-03 / REPRO-04. It re-scopes ONLY REPRO-01's acceptance proxy to its SC-5 algorithmic-leak intent + the scoped grep above. Recorded BEFORE the Phase 6 leak-gate verdict (AF-12, not silent).
+
+---
+
+## Phase 6 — Steer cost-leg STRADDLE decision rule (REPRO-03, pre-registered BEFORE the check)
+
+Amendment date: 2026-05-29. Append-only (Plan 06-02 Task 1). This section records the explicit, greppable **STRADDLE decision rule** for the Steer cost leg, committed BEFORE `scripts/cost_leg_check.py` is run and BEFORE `notes/steer_cost_leg_bound.md` (the verdict artifact) is committed. The AF-03 commit-ordering invariant requires this rule's commit to PRECEDE the verdict commit (verifiable via `git log --oneline -- notes/PRE_REGISTRATION.md notes/steer_cost_leg_bound.md`). It refines §REPRO-03 Threshold above into a single binary adjudication for the Steer surface; it changes NO numeric threshold.
+
+**The rule (verbatim, greppable).** A STRADDLE — the primary-source band is **not strictly ABOVE** the 100k/mo Graph free-tier lower bound — means the cost leg **FAILS**, which fires HEDGE-05 condition (a) `null_cost`. Concretely: verdict = `FAIL` unless `celo_attributable_queries_per_mo_lower_bound` is STRICTLY greater than `demand_window_lower_bound_queries_per_mo` (100k). A band that includes the 100k line or sits below it (the Steer 30k–100k case) is `not strictly above` 100k → `FAIL` → `null_cost`.
+
+**Applied to the pre-committed band AS-IS (AF-03).** The rule is applied to the EXISTING pre-committed `30000`–`100000` band recorded in `protocols/steer.toml [protocol.repro_03_verdict]` verbatim. There is **NO re-estimation, NO fresh enumeration to narrow the band, NO recomputation of demand** in Phase 6. Phase 6 only OBSERVES the verdict the pre-committed band yields under this pre-registered rule. Re-estimating demand to chase a PASS/FAIL outcome would be the exact AF-03 spec-swap-after-seeing-results violation this discipline forbids.
+
+**Steer is the intended D-08 negative control.** Per FEATURES.md D-08, the null-result path must be OBSERVED firing at least once for the falsification machinery to be demonstrably real. Steer's `null_cost` firing IS that validation — it is the intended outcome, not a disappointment. "Null results are valid completions, not failures" (HEDGE-05).
+
+**Resolution-on-fail policy (recorded, NOT executed here).** Iteration 2's resolution on the Steer null is to **SUBSTITUTE a replacement candidate** — but that candidate is **NOT named and NOT executed in this milestone**; it is a future-milestone decision. Phase 6 ships the Steer null-result deliverable and records the disposition as "substitute pending (future milestone)." **AF-03 guardrail (mandatory, recorded so it is not lost):** any future substitute candidate MUST be pre-registered BEFORE its own data is seen — choosing a substitute after observing Steer's null without pre-registration would be candidate-shopping, forbidden.
+
+**AF-12 OUT-OF-SCOPE for this section:** changes NO numeric threshold (the 30k–100k band, the 100k free-tier line, α, η-floor, Q-7, Q-9 trigger all stay locked); names NO substitute candidate; authors NO Q9 module; introduces NO κ index / no closed-form `f(κ)`; introduces NO new firing condition (it WIRES the existing `null_cost` path only); does NOT narrow/relabel the null as near-miss or partial-positive.
+
+Consumers: `scripts/cost_leg_check.py` (implements this rule, does not redefine it) → `notes/steer_cost_leg_bound.md` (`verdict: FAIL`, `firing_condition: null_cost`) → `decide_firing_condition` (`_parse_cost_leg_bound_verdict` reads `verdict == FAIL` → `null_cost`).
+
+## Phase 6 — Q-9 unified-panel fallback: DEFERRED with signal-scope caveat (REPRO-04)
+
+Amendment date: 2026-05-29. Append-only (Plan 06-02 Task 1). This section pre-registers — BEFORE the Steer fit runs — the disposition of the Q-9 unified-panel fallback. It refines §Q-9 Fallback Pre-Registration above; it changes NO numeric trigger threshold (the `300` sample floor, `0.4` CI-width floor, `1000` permutation reps, `p>0.05` pooling threshold all stay locked).
+
+**V3-anchor-only path is honored.** `protocols/steer.toml` records `panel_construction = "v3-anchor-only"` with `swaps_per_30d_observed = 600` on the cCOP/USDT V3 anchor pool. The V3-only observed ~600 swaps/30d is **2.0× the 300-event Hawkes identifiability floor** (`above_hawkes_floor = true`), so Q-9 switch-trigger condition 1 (sample `< 300` OR profile-likelihood CI width `> 0.4`) most likely does NOT fire on the sample-size leg.
+
+**The SC-3 dead-code modules were never built.** The Phase-0 SC-3 obligation to carry the V3+V4+Broker unified-panel pooling code + the cross-class permutation test as dead-code-exercised modules in `analysis/src/abrigo_x402/.../panel/` was NEVER fulfilled — **no `analysis/src/abrigo_x402/panel/` package exists**. This is an honest gap, admitted here before any fit.
+
+**Pre-registered disposition (DEFERRED).** IF both Q-9 switch-trigger conditions DO fire during the Steer fit, the unified-panel fallback is **DEFERRED** — recorded as a documented "fallback-unavailable" note — and is **NOT authored as reactive mid-iteration code**. Authoring the unified-panel/permutation modules now would mutate `analysis/src` and VIOLATE the REPRO-02 empty-diff invariant (measured from baseline sha `9add304…` forward). On this deferral, the V3-only fit is reported with an explicit **signal-scope caveat** (the headline applies to the V3 anchor pool only, not the full V3+V4+Broker class). This is AF-03 clean: pre-registered, admits the gap, recorded before the fit runs.
+
+**ROADMAP SC-5 is SKIPPED (not omitted, not failed).** ROADMAP §Phase 6 SC-5 (the Q-9 pooling test) is required ONLY IF the unified panel mode is selected. On this V3-anchor-only path the unified mode is NOT selected, so SC-5 is **SKIPPED with reason** — and the `q9_pooling_test.json` artifact is therefore **absent by design**, not missing through oversight.
+
+**AF-12 OUT-OF-SCOPE for this section:** authors NO Q9 unified-panel or cross-class-permutation module; changes NO numeric trigger threshold; names NO substitute; edits NO `fetch/src`/`analysis/src` (the deferral is documented in `notes/`, not coded); does NOT relabel a deferred fallback as a completed one.
