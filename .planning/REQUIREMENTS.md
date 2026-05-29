@@ -55,7 +55,7 @@ Requirements for Iteration 1 (ICHI on cKES/USDT) + Iteration 2 (Steer on cCOP/US
 
 ### Reporting (L7)
 
-- [ ] **REPORT-01**: Pipeline must render Iteration-1 deliverable as `reports/ichi.pdf` via Quarto or nbconvert; markdown-only artifacts are not acceptable final deliverables (per memory `feedback_pdf_deliverable.md`)
+- [x] **REPORT-01**: Pipeline must render Iteration-1 deliverable as `reports/ichi.pdf` via Quarto or nbconvert; markdown-only artifacts are not acceptable final deliverables (per memory `feedback_pdf_deliverable.md`)
 - [x] **REPORT-02**: Report must include a spot-check checklist: 5 randomly-chosen panel rows with Blockscout URLs, manually verifiable by the reviewer (per FEATURES.md D-07)
 - [x] **REPORT-03**: Report must include cost-leg prior sensitivity sweep: ±50% perturbation of stipulated `(rate_per_event, USD_per_query)` parameters with all downstream estimates re-run (per FEATURES.md D-09)
 - [x] **REPORT-04**: Report must include reproducibility manifest: subgraph block-pins, `uv.lock`, `package-lock.json`, output checksums (per FEATURES.md TS-14); manifest must be sufficient for a fresh clone to reproduce the headline numbers
