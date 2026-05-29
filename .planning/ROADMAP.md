@@ -270,7 +270,7 @@ Plans:
 | 4. Dependence + Falsification + Strip | 11/11 | Plans Complete (ready for `/gsd:verify-phase 4`)| pending / pending | - |
 | 4.1 Backport block_timestamp + real-panel rerun | 4/4 | Complete    | PASS / PASS | 2026-05-27 |
 | 4.1.1 Restore canonical MLE (LS-fallback degeneracy fix) | 6/6 | Plans Complete (ready for `/gsd:verify-phase 4.1.1`)| PASS / PASS | - |
-| 5. Reporting + Iteration-1 PDF | 0/0 | Not started | pending / pending | - |
+| 5. Reporting + Iteration-1 PDF | 1/5 | In Progress|  | - |
 | 6. Iteration-2 Steer Swap | 0/0 | Not started | pending / pending | - |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
 
