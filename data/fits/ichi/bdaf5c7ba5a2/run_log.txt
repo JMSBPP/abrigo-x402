@@ -1,0 +1,14 @@
+{
+  "run_dir": "../data/fits/ichi/bdaf5c7ba5a2",
+  "firing_condition": "null_strip_unavailable",
+  "artifacts": {
+    "joint_dist": "../data/fits/ichi/bdaf5c7ba5a2/joint_dist.json",
+    "gate_report": "../data/fits/ichi/bdaf5c7ba5a2/gate_report.json",
+    "strip_degenerate": "../data/fits/ichi/bdaf5c7ba5a2/strip_degenerate.json",
+    "stress_report": "../data/fits/ichi/bdaf5c7ba5a2/stress_report.json",
+    "firing_condition": "../data/fits/ichi/bdaf5c7ba5a2/firing_condition.json"
+  },
+  "quarto_skipped": true,
+  "quarto_skipped_reason": "quarto CLI not found on PATH. Install via `quarto install tinytex` or via system package manager (apt/pacman/dnf). See analysis/README.md System Dependencies section."
+}
+hedge.orchestrator.run_hedge completed

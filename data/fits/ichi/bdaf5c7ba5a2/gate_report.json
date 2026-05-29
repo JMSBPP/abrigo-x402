@@ -1,0 +1,76 @@
+{
+  "chainId": 42220,
+  "contractAddress": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
+  "blockRange": [
+    67378253,
+    67896653
+  ],
+  "fetchTimestamp": "2026-05-29T14:40:58.790619+00:00",
+  "dataHash": "a72a4eeaf2805aaf6b89b993e25d6b9012b8a97d507ca7e40a2dac68ee9f412a",
+  "gitCommit": "03132cd",
+  "run_id": "bdaf5c7ba5a2",
+  "vol_of_vol_gt_zero": {
+    "passed": true,
+    "evidence": {
+      "per_leg": {
+        "leg_0": {
+          "vol_of_vol": 1.180302236815738,
+          "rolling_var_mean": 0.8474743194558606,
+          "rolling_var_std": 1.0002758348976477,
+          "window": 10
+        },
+        "leg_1": {
+          "vol_of_vol": 1.3692581008987237,
+          "rolling_var_mean": 1.7423067277800561,
+          "rolling_var_std": 2.385667601263189,
+          "window": 10
+        }
+      },
+      "threshold": 0.6
+    }
+  },
+  "positive_skew_fat_tails": {
+    "passed": true,
+    "evidence": {
+      "per_leg": {
+        "leg_0": {
+          "skew": 1.8485569198465108,
+          "excess_kurt": 3.6020455356905385
+        },
+        "leg_1": {
+          "skew": NaN,
+          "excess_kurt": NaN
+        }
+      },
+      "kurtosis_excess_threshold": 0.0
+    }
+  },
+  "hawkes_self_excitation": {
+    "passed": true,
+    "evidence": {
+      "branching_ratio": 0.5999724484494755,
+      "branching_ratio_floor": 0.2,
+      "eta_floor_met": true,
+      "adjacency_off_diag_max": 0.000298055479248308,
+      "canonical_ll_source": "abrigo_x402.dgp.lr_test._hawkes_loglik_vectorized"
+    }
+  },
+  "usdt_depeg_basis_jump": {
+    "passed": true,
+    "evidence": {
+      "source": "literature_range_stipulation",
+      "base_triple": {
+        "lambda_J": 0.05,
+        "mu_J": -0.05,
+        "sigma_J": 0.02
+      },
+      "sensitivity_fragile": false,
+      "sensitivity_summary": {
+        "n_samples": 64,
+        "n_flips": 0,
+        "flip_examples": []
+      }
+    }
+  },
+  "any_condition_passed": true
+}

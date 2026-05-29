@@ -1,0 +1,59 @@
+# Hedge artifacts manifest — Plan 04.1.1-04
+# run_id: bdaf5c7ba5a2 (corrected scipy_canonical_ll canonical run, supersedes LS ae9e3ba17900)
+# invocation (thread-pinned BLAS): cd analysis && OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+#   uv run python -m abrigo_x402.cli hedge --run-id bdaf5c7ba5a2 --stage all --run-dir-root ../data/fits/ichi
+# emitted under: data/fits/ichi/bdaf5c7ba5a2/
+# date: 2026-05-29 ; gitCommit stamped in artifacts: 03132cd ; dataHash a72a4ee…
+
+## DERIVED firing_condition (decide_firing_condition, NOT pre-committed)
+firing_condition.json :: firing_condition = null_strip_unavailable
+  decided_by = abrigo_x402.hedge.null_result.decide_firing_condition
+  decision-tree trace (4-condition sequential):
+    (a) cost      -> not fired (no cost_leg_bound FAIL supplied)
+    (b) lr        -> NOT fired: lr_test.p_value = 0.0 < 0.05 (LR REJECTS NHPP; Hawkes distinguishable)
+    (c) convex    -> NOT fired: gate_report.any_condition_passed = True (all 4 convex conditions pass)
+    (d) strip     -> FIRED: strip_degenerate.json exists in run_dir -> null_strip_unavailable
+
+## DIVERGENCE vs the old LS run (ae9e3ba17900)
+  OLD (LS, ae9e3ba17900):  firing_condition = null_lr        (LR p=0.58 >= 0.05; condition b fired)
+  NEW (canonical, bdaf):   firing_condition = null_strip_unavailable (LR p=0.0 rejects; condition d fires)
+  -> The firing_condition DIFFERS. The LS-fallback null_lr was an artifact (LR did not reject because
+     the LS-into-canonical-LL pathology + kernel-blind β=0.1 understated η). On the corrected estimator
+     the LR REJECTS (observed_stat=561.29, p=0.0), so null_lr is no longer carried forward.
+     The new firing is null_strip_unavailable: the convex SHAPE is justified (gate all-4 pass) but the
+     Carr-Madan strip is not emittable on the n<101 degenerate joint_dist. Convexity-justified,
+     calibration-caveated.
+
+## 6-artifact set (4 primary + 2 supporting)
+joint_dist.json :: empirical_copula.family = degenerate
+  degenerate_reason = insufficient_sample: n_min=79 <= 2*max_lag+1 = 101 (DEPEND-01 lag-radius floor)
+  (Rule-3 Plan 04.1-03 n_min guard fired on the held-out residual count; emitted with all REQUIRED_JOINT_DIST_KEYS)
+gate_report.json :: any_condition_passed = True (4 of 4 convex-dominance conditions pass)
+  vol_of_vol_gt_zero       = True (leg_0 vol_of_vol=1.180)
+  positive_skew_fat_tails  = True (leg_0 skew=1.849, excess_kurt=3.602)
+  hawkes_self_excitation   = True (branching_ratio=0.600 >= floor 0.2)
+  usdt_depeg_basis_jump    = True (literature_range_stipulation; λ_J=0.05, μ_J=-0.05)
+strip_degenerate.json :: char_func_source = build_failed ; reason = build_failed_upstream
+  char_func_build_error = "unrecognized copula family: 'degenerate'"
+  (downstream of the degenerate joint_dist; recommended_method=none; strip_degenerate=True)
+stress_report.json :: divergence_pct = NaN ; divergence_flag = False
+  (degenerate stress path; comonotone_method=empirical_body_parametric_tail; prices all NaN)
+firing_condition.json :: firing_condition = null_strip_unavailable (see above)
+run_log.txt :: carries sentinel "hedge.orchestrator.run_hedge completed"
+  quarto_skipped = True (quarto CLI not on PATH; Rule-3 null-stage sentinel fired; firing_condition still written)
+
+## Framing (per CONTEXT v2 + DISPOSITION_MEMO)
+The convex instrument SHAPE is ROBUST: η≈0.600, LR rejects NHPP (p=0.0), held-out Hawkes beats NHPP
+by ~114 nats, all 4 gate convex-dominance conditions pass -> fat tails / self-excitation -> convex
+dominates linear. The strip's precise CALIBRATION is unavailable on this panel (held-out n_min=79 < 101
+degenerate joint_dist -> Carr-Madan build_failed_upstream). Result: convexity-justified, calibration-caveated.
+The four-criterion VERDICT gate remains gate_passes=FALSE (3/4; KS held-out leg-0 p=0.0474 < 0.05 knife-edge
+miss). Verdict recorded AS-OBSERVED, NOT flipped (see DISPOSITION_MEMO_04_1_1_ks_halt.md, committed 03132cd).
+
+## Invariants honoured
+- NO source edits: git diff HEAD -- analysis/ scripts/ == empty (0 lines).
+- Rule-3 Plan 04.1-03 patches (36881ea) PRESERVED: n_min<=101 degenerate-joint_dist guard + quarto_skipped
+  null-stage sentinel both greppable (12 hits) and fired this run.
+- ae9e3ba17900 UNTOUCHED: firing_condition still null_lr (least-squares baseline).
+- Pattern I thread-pinning on the invocation (OMP/MKL/OpenBLAS/NumExpr = 1).
+- firing_condition DERIVED, NOT pre-committed, NOT tuned.
