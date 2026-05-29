@@ -97,17 +97,12 @@
   2. Every output artifact (parquet, fit_report.json scaffolds, plots) carries the metadata header `{chainId, contractAddress, blockRange, fetchTimestamp, dataHash, gitCommit}`; a build script `make lint-artifacts` greps each output file and exits non-zero if any header field is missing.
   3. FX-rate snap unit test: given a synthetic cKES→USDm transfer event at a fixed block, `revenue_leg.snap_fx(event, block)` calls the Mento broker mid-rate at that block and returns a rate with explicit `(source, block, mid_rate, provenance_url)` provenance; USDT/USD is treated as a separate column, never collapsed to 1.0.
   4. Phantom-transfer filter unit test: a fixture transaction containing one real cKES Swap + one USDC fee-abstraction Transfer (`from = 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B`) results in exactly one row in the panel (the Swap); the fee-abstraction Transfer is excluded; the test fails if the filter is bypassed.
-**Plans**: 10 plans (Wave 0: 00 scaffolding + fixtures + sidecar scaffolds + schema-probe; Wave 1: 01 ingest+protocol_spec (PANEL-01), 02 decoders (PANEL-01 ext), 03 phantom_filter (PANEL-04), 04 vault state TS sidecar + Python reader (PANEL-01), 05 revenue_leg Q96 LP-fee (PANEL-01), 06 Mento FX sidecar + Python reader (PANEL-03), 07 provenance + lint-artifacts (PANEL-02); Wave 2: 08 panel.py orchestrator + DEMAND-01 enforce; Wave 3: 09 acceptance gate)
-- [x] 02-00-PLAN.md — pytest config + module skeletons + conftest + fixtures dir + TS sidecar scaffolds + schema-probe for [panel] finality_lag_blocks + Mento exchangeId Forno lookup + ICHI vault ABI capture + real phantom-transfer tx capture (Wave 0 scaffold) ✓ commits 07edf46+d418a5a+36f298b
-- [ ] 02-01-PLAN.md — ingest.load_jsonl + apply_finality_cutoff + protocol_spec.load_protocol (PANEL-01)
-- [ ] 02-02-PLAN.md — decoders for Uniswap V3 Swap/Mint/Burn + ICHI Deposit/Withdraw (PANEL-01)
-- [ ] 02-03-PLAN.md — phantom_filter.exclude_adapters with synthetic + real captured fixtures (PANEL-04)
-- [ ] 02-04-PLAN.md — TS vault state sidecar (multicall + per-block memo) + Python vault_state.attach_in_range (PANEL-01)
-- [ ] 02-05-PLAN.md — Q96 LP-fee decomposition compute_swap_fee (PANEL-01 revenue leg)
-- [ ] 02-06-PLAN.md — Mento broker historical-block TS sidecar + Python fx_snap.attach_rates + notes/fx_snap_decision.md (PANEL-03)
-- [ ] 02-07-PLAN.md — provenance.with_header + assert_has_header + Makefile lint-artifacts extension (PANEL-02)
-- [ ] 02-08-PLAN.md — panel.py end-to-end orchestrator + 100-block synthetic e2e test + DEMAND-01 enforce assertion (PANEL-01..04 + DEMAND-01)
-- [ ] 02-09-PLAN.md — Phase 2 acceptance gate + 02-VERIFICATION-pre.md (acceptance grid: PANEL-01..04 + DEMAND-01 + ROADMAP SC-1..4)
+**Plans**: 5 plans in 4 waves (Wave 0: 00 Nyquist test scaffolds + Makefile targets + defensive .gitignore; Wave 1: 01 sensitivity sweep REPORT-03, 02 spot-check + reproducibility manifest REPORT-02/04 — parallel; Wave 2: 03 report writeup + render REPORT-01; Wave 3: 04 numbers-match consult + acceptance grid + cycle-closure PR). Note: the earlier 10-plan "02-*" list here was a copy-paste artifact of Phase 2 — superseded.
+- [ ] 05-00-PLAN.md — Wave-0 scaffold: 3 skip-marked test files (REPORT-02/03/04) + report-ichi & verify-reproducibility Makefile targets + defensive .gitignore exception [DevOps Automator]
+- [ ] 05-01-PLAN.md — sensitivity_sweep.json: 9-cell qualitative convex-dominance sweep over the pre-reg-locked {1,5,10}×{2.5e-6,5e-6,7.5e-6} grid; no cost-model/Δ/κ (REPORT-03) [Analytics Reporter]
+- [ ] 05-02-PLAN.md — seeded 5-row Blockscout spot-check + reports/MANIFEST.md + verify-reproducibility recompute-and-match; correct lockfiles analysis/uv.lock+pnpm-lock.yaml (REPORT-02/04) [DevOps Automator]
+- [ ] 05-03-PLAN.md — reports/ichi.qmd research-paper near-miss deliverable (typeset equations, honest 3/4, 3-run methodology, anti-fishing provenance) + make report-ichi render + AF-03 verdict-not-narrowed test (REPORT-01) [Technical Writer + latex-econ-model/notation-clean/latex-doc/read-paper]
+- [ ] 05-04-PLAN.md — numbers-match consult + 05-VERIFICATION-pre.md acceptance grid + MANIFEST PDF pin + cycle-closure (push origin → PR upstream, merge user-gated) (REPORT-01..04) [Analytics Reporter + DevOps Automator]
 
 ### Phase 3: DGP Estimation (L4) with Boundary-Correct LR Test
 **Goal**: Fit NHPP (Kirchner INAR(p)) and bivariate Hawkes (tick with full off-diagonal excitation matrix), then run the boundary-correct bootstrap LR test, time-rescaling KS test, held-out temporal evaluation, and profile-likelihood branching-ratio CIs — producing `fit_report.json` that survives a metadata audit.
