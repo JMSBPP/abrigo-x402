@@ -7,25 +7,23 @@ os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
-"""Phase 5 REPORT-02 — Blockscout 5-row spot-check scaffold (Wave-0 RED/skip).
+"""Phase 5 REPORT-02 — Blockscout 5-row spot-check (Plan 05-02, Wave 1 GREEN).
 
 The canonical run being reported is run_id ``bdaf5c7ba5a2`` (Phase 04.1.1).
 The 5 spot-check rows are selected by a *seeded* uniform draw whose seed is
-DERIVED FROM the run_id (e.g. ``int(sha256(b"bdaf5c7ba5a2").hexdigest()[:8], 16)``)
-so a fresh clone re-draws the identical 5 rows from the 778-event panel — no
-cherry-picking, fully re-derivable, and the seed is pinned in reports/MANIFEST.md.
+DERIVED FROM the run_id (``int(sha256(b"bdaf5c7ba5a2").hexdigest()[:8], 16)``)
+so a fresh clone re-draws the identical 5 rows from the 832-row panel parquet
+(which retains ``txHash``; 832 raw rows → 778 arrival events after the PANEL-04
+phantom-transfer filter — draw from the 832-row parquet). No cherry-picking,
+fully re-derivable, and the seed is pinned in reports/MANIFEST.md.
 
 Each selected row yields a Celo Blockscout tx URL of the form
 ``https://celo.blockscout.com/tx/0x<64-hex>``. HTTP-200 verification is a
 build-time curl that LOGS per-row status (network-optional: offline → "000"
 mapped to "unverified (no network)") rather than failing the build (SC-2).
-
-Wave 1 (Plan 05-02) implements ``abrigo_x402.report.spot_check``; these stubs
-are xfail(strict=False) so the suite stays green at scaffold time.
 """
+import re
 from pathlib import Path
-
-import pytest
 
 # CWD-independent panel path resolution (MINOR fix shared with 05-01/05-02):
 # parents[2] of analysis/tests/test_spot_check.py is the repo root.
@@ -36,47 +34,54 @@ PANEL_PATH = (
 )
 RUN_ID = "bdaf5c7ba5a2"
 
+URL_RE = re.compile(r"^https://celo\.blockscout\.com/tx/0x[0-9a-fA-F]{64}$")
 
-@pytest.mark.xfail(
-    reason="Wave 1 (Plan 05-02) implements abrigo_x402.report.spot_check",
-    strict=False,
-)
+
 def test_seeded_draw_deterministic():
-    """Two calls with the same run_id-derived seed return the same 5 row indices."""
+    """``seeded_spot_check`` returns 5 distinct rows; two calls return identical
+    row indices + txHashes (deterministic via numpy default_rng); panel_rows==832."""
     from abrigo_x402.report.spot_check import seeded_spot_check
 
-    draw_a = seeded_spot_check(run_id=RUN_ID, panel_path=PANEL_PATH)
-    draw_b = seeded_spot_check(run_id=RUN_ID, panel_path=PANEL_PATH)
-    assert [r["row_index"] for r in draw_a] == [r["row_index"] for r in draw_b]
-    assert len(draw_a) == 5
+    a = seeded_spot_check(RUN_ID, PANEL_PATH)
+    b = seeded_spot_check(RUN_ID, PANEL_PATH)
+
+    assert a["panel_rows"] == 832
+    assert len(a["rows"]) == 5
+    # distinct row indices
+    assert len({r["row_index"] for r in a["rows"]}) == 5
+    # determinism across calls
+    assert [r["row_index"] for r in a["rows"]] == [r["row_index"] for r in b["rows"]]
+    assert [r["txHash"] for r in a["rows"]] == [r["txHash"] for r in b["rows"]]
 
 
-@pytest.mark.xfail(
-    reason="Wave 1 (Plan 05-02) implements abrigo_x402.report.spot_check",
-    strict=False,
-)
 def test_blockscout_urls_wellformed():
-    """Each spot-check row carries a well-formed Celo Blockscout tx URL."""
-    import re
+    """Each returned url matches the Celo Blockscout tx URL form."""
+    from abrigo_x402.report.spot_check import seeded_spot_check
+
+    result = seeded_spot_check(RUN_ID, PANEL_PATH)
+    for row in result["rows"]:
+        assert URL_RE.match(row["url"]), row["url"]
+
+
+def test_seed_recorded():
+    """The returned object exposes the integer seed used (== sha256(run_id)[:8])
+    so MANIFEST.md can record it."""
+    import hashlib
 
     from abrigo_x402.report.spot_check import seeded_spot_check
 
-    pattern = re.compile(r"^https://celo\.blockscout\.com/tx/0x[0-9a-fA-F]{64}$")
-    rows = seeded_spot_check(run_id=RUN_ID, panel_path=PANEL_PATH)
-    for row in rows:
-        assert pattern.match(row["blockscout_url"]), row["blockscout_url"]
+    result = seeded_spot_check(RUN_ID, PANEL_PATH)
+    expected = int(hashlib.sha256(RUN_ID.encode()).hexdigest()[:8], 16)
+    assert result["seed"] == expected
+    assert isinstance(result["seed"], int)
 
 
-@pytest.mark.xfail(
-    reason="Wave 1 (Plan 05-02) implements abrigo_x402.report.spot_check",
-    strict=False,
-)
 def test_curl_logging_network_optional():
-    """The curl-logging helper returns a per-row status string and never raises
-    offline (curl exit / status "000" → "unverified (no network)")."""
-    from abrigo_x402.report.spot_check import log_http_status
+    """``verify_url_status`` returns a string and never raises; a forced-offline
+    result ("000") maps to the honest unverified label."""
+    from abrigo_x402.report.spot_check import verify_url_status
 
-    status = log_http_status("https://celo.blockscout.com/tx/0x" + "0" * 64)
+    status = verify_url_status("https://celo.blockscout.com/tx/0x" + "0" * 64)
     assert isinstance(status, str)
-    # Offline: status code "000" maps to the honest unverified label.
-    assert status == "unverified (no network)" or status.isdigit()
+    # Either an HTTP-status line or the offline label — never an exception.
+    assert "unverified (no network)" in status or "HTTP" in status
