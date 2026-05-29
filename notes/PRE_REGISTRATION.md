@@ -268,3 +268,34 @@ Consumers: `analysis/src/abrigo_x402/dgp/lr_test.py` (common-t0 LL + `hawkes_dec
 ---
 
 *Phase 04.1.1 (v2) supersession committed 2026-05-28. The v1 LL-fit bands are retracted per the independent diagnostic; the Phase-0 verdict gate is unchanged. Plan 04.1.1-02b adds the `orchestrator.run_fit` free-β rewire to the authorized expansion set; Plan 04.1.1-02c adds the LR common-`t0` time-origin fix + β coherence + scipy stationarity rejection + CI grid-floor fix as implementation-correctness enforcement of already-locked conditions; the verdict gate remains unchanged.*
+
+---
+
+## Phase 6 — REPRO-01 scoped-grep re-scope (AF-12 transparency note)
+
+Amendment date: 2026-05-29. Append-only. This note re-scopes REPRO-01's literal-`ichi`-grep acceptance to its load-bearing INTENT, BEFORE any Phase 6 leak-gate verdict is claimed. It is recorded here so the narrowing is transparent, not silent (AF-12 discipline). It changes NO numeric threshold and introduces NO new requirement.
+
+**What REPRO-01 says vs. what it means.** REPRO-01 (`.planning/REQUIREMENTS.md`) is written as: "a `grep -r "ichi" fetch/src analysis/src` must return zero hits before Iteration 2 starts." Taken literally, that all-hits grep is an OVER-STRICT proxy: the tree carries ~dozens of `ichi` hits that are (a) docstrings/comments citing ICHI as the Iteration-1 worked EXAMPLE, (b) CLI-overridable defaults (`--protocol-toml protocols/ichi.toml`, `data/fits/ichi`, `reports/ichi.pdf`) that a Steer run simply overrides, and (c) references to `protocols/ichi.toml` (the protocol-spec layer is the file class that is SUPPOSED to differ between iterations). None of these are algorithmic protocol-coupling.
+
+**The authoritative gate is SC-5, not the literal grep.** The load-bearing algorithmic-leak gate is the SC-5 protocol-agnosticism lint (`fetch/tests/protocol-agnostic.test.ts`, run via `pnpm test protocol-agnostic`): it rejects protocol-name conditional branches (`if config.name == "ichi"`), hardcoded factory-address literals, and magic fee-tier literals — i.e. the patterns that would make the pipeline behave differently per protocol. REPRO-01's INTENT is satisfied by BOTH of:
+1. the SC-5 lint passing (`pnpm test protocol-agnostic`), AND
+2. a SCOPED `ichi` grep over `fetch/src analysis/src` that returns ZERO hits after the genuine functional couplings were scrubbed/generalized in Plan 06-01 Task 2, and that excludes comments/docstrings + the CLI-overridable defaults + the `protocols/ichi.toml` spec-layer references.
+
+**Genuine functional couplings scrubbed in Plan 06-01 (Task 2), making the scoped grep clean:**
+- `analysis/src/abrigo_x402/cli.py` materialize namespace: `data/raw/ichi/<pool>/` → `data/raw/<protocol>/<pool>/` derived from `spec.protocol.name`.
+- `scripts/lint_artifacts.py`: `ICHI_PANEL_REQUIRED_COLUMNS` → `LP_AGGREGATOR_PANEL_REQUIRED_COLUMNS`; `lint_ichi_panel_columns` → `lint_panel_columns`; the `"data/raw/ichi" in str(p)` column-lint guard → `re.search(r"data/raw/[^/]+/", str(p))` so any `data/raw/<protocol>/` panel (Steer included) is column-linted.
+- `analysis/src/abrigo_x402/hedge/null_result.py` renderer: scrubbed to carry no `ichi`/`steer` identifier (generic args only).
+
+**Permitted (explicitly in-scope for the scoped grep's exclusion).** Bare comment/docstring ICHI references that cite Iteration 1 as the worked example; the CLI-overridable defaults; and `protocols/ichi.toml` references. These are NOT algorithmic couplings and do NOT change pipeline behavior on a Steer config swap.
+
+**EXACT scoped-grep command (M5 — byte-identical to the recipe Plan 06-02 wires into `make leak-check`).** The Phase 6 leak gate runs this command and asserts ZERO matching lines:
+
+```
+grep -rnE '"ichi"|/ichi/|raw/ichi|fits/ichi' analysis/src fetch/src \
+  | grep -vE 'data/fits/ichi|reports/ichi\.pdf|protocols/ichi\.toml' \
+  | grep -vE ':[0-9]+:[[:space:]]*(#|//|\*|/\*)'
+```
+
+(System `grep` is ugrep 7.5.0, GNU-compatible for these flags.) As of Plan 06-01 HEAD this command returns 0 lines on the working tree.
+
+**AF-12 OUT-OF-SCOPE.** This note changes NO numeric threshold (α, η-floor, REPRO-03 30k–100k band, Q-7, Q-9 trigger all locked), introduces NO new requirement, and does NOT re-scope REPRO-02 / REPRO-03 / REPRO-04. It re-scopes ONLY REPRO-01's acceptance proxy to its SC-5 algorithmic-leak intent + the scoped grep above. Recorded BEFORE the Phase 6 leak-gate verdict (AF-12, not silent).
