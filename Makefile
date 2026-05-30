@@ -99,7 +99,23 @@ verify-reproducibility:
 	    pdfinfo "$$PDF" 2>/dev/null | grep -q "HEDGE05" || { echo "PDF-FAIL: HEDGE05 marker absent from PDF metadata"; exit 1; }; \
 	  else echo "NOTE: pdfinfo absent — HEDGE05 marker check skipped"; fi; \
 	  echo "OK (content: size+verdict+marker, AF-03): $$PDF"; \
-	  echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + PDF content-check)"'
+	  SPDF=reports/steer_null_result.pdf; \
+	  if [ ! -f "$$SPDF" ]; then \
+	    echo "PENDING (content-checked): $$SPDF not rendered — iteration-1-only checkout (NOTE: a Makefile skip does NOT mean Phase 6 passes; 06-VERIFICATION-pre.md gates verification_pass on the steer PDF actually existing)"; \
+	    echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + ichi PDF content-check; steer PDF PENDING)"; exit 0; fi; \
+	  SSZ=$$(wc -c < "$$SPDF"); [ "$$SSZ" -gt 51200 ] || { echo "STEER-PDF-FAIL: $$SPDF $${SSZ}B < 50KB"; exit 1; }; \
+	  if command -v pdftotext >/dev/null 2>&1; then \
+	    ST=$$(pdftotext "$$SPDF" - 2>/dev/null); \
+	    printf "%s" "$$ST" | grep -q "null_cost" || { echo "STEER-PDF-FAIL: firing_condition null_cost string absent"; exit 1; }; \
+	    printf "%s" "$$ST" | grep -Eiq "cost.?leg|straddle" || { echo "STEER-PDF-FAIL: cost-leg/STRADDLE evidence string absent"; exit 1; }; \
+	    for bad in "pass with caveat" "near-miss positive" "directionally positive" "exploratory positive" "positive result"; do \
+	      printf "%s" "$$ST" | grep -qi "$$bad" && { echo "STEER-PDF-FAIL: forbidden narrowing string present: $$bad"; exit 1; } || true; done; \
+	  else echo "NOTE: pdftotext absent — steer PDF verdict-text check skipped (size-only)"; fi; \
+	  if command -v pdfinfo >/dev/null 2>&1; then \
+	    pdfinfo -custom "$$SPDF" 2>/dev/null | grep -q "HEDGE05" || { echo "STEER-PDF-FAIL: HEDGE05 marker absent from PDF metadata (pdfinfo -custom)"; exit 1; }; \
+	  else echo "NOTE: pdfinfo absent — steer HEDGE05 marker check skipped"; fi; \
+	  echo "OK (content: size+null_cost+HEDGE05+cost-leg, AF-03 no-narrowing): $$SPDF"; \
+	  echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + ichi + steer PDF content-check)"'
 
 # -------- Phase 1 targets --------
 

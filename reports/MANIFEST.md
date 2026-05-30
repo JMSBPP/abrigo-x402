@@ -78,6 +78,36 @@ grep + `pdfinfo` marker grep), soft-degrading to size-only if poppler is absent,
 and treats an absent PDF as PENDING (run `make report-ichi`). The deterministic
 inputs/artifacts above remain strict sha256 byte-pins.
 
+### Deliverable — `reports/steer_null_result.pdf` (Iteration-2; CONTENT-checked, NOT byte-pinned)
+
+The Iteration-2 Steer cCOP/USDT null-result deliverable (Phase 6, run_id
+`0dc5bee374b6`, firing_condition `null_cost` — the FEATURES.md D-08 negative
+control fired AS-OBSERVED) is verified by CONTENT, not by sha256, for the SAME
+reason as `reports/ichi.pdf`: a rendered PDF embeds the pdfTeX `/Producer` +
+`/PTEX.Fullbanner` engine banner that `SOURCE_DATE_EPOCH` cannot neutralize, so
+the sha differs across TeX toolchains (the Phase-5 B1 lesson — byte-pinning a
+PDF MISMATCH-FAILs a legitimately re-rendered clone). The reproducibility
+CONTRACT for the steer PDF is:
+
+- present and > 50 KB (observed 145942 B),
+- carries the machine-readable `HEDGE05-NULL-RESULT-V1` marker (PDF custom
+  metadata field `HEDGE05Marker`, read via `pdfinfo -custom` — the generic
+  null-result renderer writes the marker as a custom field, not the `Keywords`
+  field the ichi `ichi.qmd` template uses),
+- contains the `null_cost` firing-condition headline (observed x3 in the body)
+  + a cost-leg / STRADDLE evidence string, and NONE of the AF-03 forbidden
+  narrowing strings (`pass with caveat`, `near-miss positive`,
+  `directionally positive`, `exploratory positive`, `positive result`).
+
+`make verify-reproducibility` enforces exactly this additively after the ichi
+PDF check (size + `pdftotext null_cost`/cost-leg grep + `pdfinfo -custom`
+HEDGE05 marker grep + the shared 5-string forbidden-narrowing loop),
+soft-degrading to size-only if poppler is absent. An absent steer PDF is
+PENDING (iteration-1-only checkout) — but a Makefile PENDING does NOT mark
+Phase 6 as passing: `06-VERIFICATION-pre.md` gates `verification_pass` on the
+steer PDF actually existing + > 50 KB + `null_cost` observed + the REPRO-02
+empty-diff holding.
+
 ## Provenance (non-checksummed)
 
 - **Subgraph block-pins:** blockRange = [67378253, 67896653], chainId = 42220 (Celo) — from `fit_report.json`.
