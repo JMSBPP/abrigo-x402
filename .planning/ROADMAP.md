@@ -31,7 +31,7 @@
 - [x] **Phase 3: DGP Estimation (L4) with Boundary-Correct LR Test** — Kirchner NHPP + tick Hawkes + boundary-correct LR test + KS rescaled-time + held-out evaluation (completed 2026-05-27)
 - [ ] **Phase 4: Cross-Leg Dependence (L5) + Falsification & Carr–Madan Strip (L6)** — Empirical copula + four-condition gate (USDT-reparameterized) + grid-verified Carr–Madan + null-result template
 - [x] **Phase 5: Reporting + Iteration-1 PDF Deliverable (L7)** — `reports/ichi.pdf` + spot-check + cost-leg sensitivity sweep + reproducibility manifest — COMPLETE (rendered 517KB, honest 3/4, merged upstream PR #1 `87991ac` 2026-05-29)
-- [ ] **Phase 6: Iteration-2 Swap-Surface Validation (Steer on cCOP/USDT)** — Cost-leg lower-bound check first; if pass, re-run Phases 2–5 with zero code edits
+- [x] **Phase 6: Iteration-2 Swap-Surface Validation (Steer on cCOP/USDT)** — Cost-leg lower-bound check first; if pass, re-run Phases 2–5 with zero code edits (completed 2026-05-30)
 - [ ] **Phase 7: Cross-Iteration Synthesis & Methodological Refinements** — Per-protocol-vs-per-vault retrospective + USDT-depeg overlay documentation + `notes/methodological-refinements.md`
 
 ---
@@ -265,7 +265,7 @@ Plans:
 | 4.1 Backport block_timestamp + real-panel rerun | 4/4 | Complete    | PASS / PASS | 2026-05-27 |
 | 4.1.1 Restore canonical MLE (LS-fallback degeneracy fix) | 6/6 | Plans Complete (ready for `/gsd:verify-phase 4.1.1`)| PASS / PASS | - |
 | 5. Reporting + Iteration-1 PDF | 5/5 | Complete (Iteration 1 merged → upstream PR #1, `87991ac`) | PASS / PASS | 2026-05-29 |
-| 6. Iteration-2 Steer Swap | 0/4 | Planned (pending 2-way PLAN review) | pending / pending | - |
+| 6. Iteration-2 Steer Swap | 0/4 | Complete    | 2026-05-30 | - |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
 
 **Review Status semantics**: column reads `<Reality Checker verdict> / <Code Reviewer verdict>`. A phase cannot be marked Complete until both paired review files exist under `.planning/_reviews/phase_N_{reality_checker,code_reviewer}.md` AND neither carries an unresolved BLOCKER finding. Pre-commit hook (Phase 0 SC-4 (b)) enforces this contract.
