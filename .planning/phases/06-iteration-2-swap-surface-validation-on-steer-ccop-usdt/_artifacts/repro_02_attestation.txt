@@ -1,0 +1,92 @@
+REPRO-02 EMPTY-DIFF ATTESTATION — Phase 6 (Iteration-2 Steer cCOP/USDT)
+=======================================================================
+Authored: 2026-05-29 by Plan 06-04 Task 1 (Model QA Specialist charter).
+Honest pass — NOT a dressed-up window. The diff base is READ FROM THE PINNED
+FILE Plan 01 Task 3 wrote, not grepped from a SUMMARY (M3).
+
+NOTE ON PATHS (latent-path-bug correction): the 06-04 plan text references
+`_artifacts/repro_02_baseline_sha.txt` as a repo-root path. There is NO
+repo-root `_artifacts/` directory. The pinned sha file lives at the PHASE-DIR
+path below; every command here uses that path so it is reproducible.
+
+-----------------------------------------------------------------------
+1. REPRO-02 BASELINE SHA (the diff base)
+-----------------------------------------------------------------------
+File:  .planning/phases/06-iteration-2-swap-surface-validation-on-steer-ccop-usdt/_artifacts/repro_02_baseline_sha.txt
+Value: 9add304fda4f7946e1720588a83acb52e413f424   (single 40-char line; matches ^[0-9a-f]{40}$)
+
+This is the POST-baseline-fix HEAD declared by Plan 06-01 Task 3 — the
+re-baselined HEAD AFTER the three generic, leak-clean baseline-maintenance
+commits landed (renderer -P->-M fix, materialize data/raw/<protocol>/
+namespace, AF-12 REPRO-01 scoped-grep re-scope). It is NOT the PR#1 merge
+marker 87991ac; per the DevOps review, 87991ac..HEAD is EMPTY today and goes
+NON-empty only after Plan 01's source edits land, so the empty-diff would be
+meaningless against 87991ac. The base MUST be the post-Plan-01 sha for the
+empty-diff to mean "no frozen-source edits during the iteration-2 window."
+
+Iteration-1-complete marker (CLAUDE.md cycle-closure anchor):
+  87991ac  Merge pull request #1 from JMSBPP/phase-05-iteration-1-pdf
+
+-----------------------------------------------------------------------
+2. EMPTY-DIFF COMMAND + RESULT (REPRO-02 honest pass)
+-----------------------------------------------------------------------
+Command:
+  BASE=$(cat .planning/phases/06-iteration-2-swap-surface-validation-on-steer-ccop-usdt/_artifacts/repro_02_baseline_sha.txt)
+  git diff "$BASE" HEAD -- fetch/src analysis/src
+
+Result:  (no output) — EMPTY.
+Quiet form: `git diff --quiet "$BASE" HEAD -- fetch/src analysis/src` -> exit 0.
+
+HEAD at attestation time: 71e2f832dfd23dd06b4335599a66fb321843a057 (71e2f83)
+
+VERDICT: REPRO-02 PASS — zero edits to fetch/src or analysis/src across the
+iteration-1-complete -> iteration-2-complete window. The frozen-dir invariant
+held under a LIVE config-swap run (Plan 06-03 run_id 0dc5bee374b6).
+
+-----------------------------------------------------------------------
+3. AF-03 COMMIT-ORDERING PROOF (rule predates verdict + run)
+-----------------------------------------------------------------------
+git log --oneline -- notes/PRE_REGISTRATION.md notes/steer_cost_leg_bound.md
+  (top entries, newest first):
+    0475bed feat(06-02): cost_leg_check.py applies pre-registered straddle rule -> verdict FAIL
+    fc6eec0 docs(pre-reg:06): pre-register Steer cost-leg STRADDLE rule + Q9-fallback-deferred (AF-03, before verdict)
+    9add304 docs(06-01): AF-12 note re-scoping REPRO-01 to SC-5 intent + exact scoped-grep
+
+Timestamps (git show -s --format='%h %ci %s'):
+    fc6eec0  2026-05-29 18:30:06 -0400  pre-reg STRADDLE rule (Plan 02 Task 1)
+    0475bed  2026-05-29 18:30:13 -0400  cost-leg verdict FAIL emission (Plan 02 Task 2)
+    a8f0ef0  2026-05-29 18:35:44 -0400  iteration-2-full recipe + scoped leak-check
+    33f3e00  2026-05-29 19:17:16 -0400  Steer config-swap run (fetch+materialize+fit)
+    3c01427  2026-05-29 19:19:48 -0400  hedge + reports/steer_null_result.pdf
+
+ORDERING: the straddle-rule pre-reg (fc6eec0) AND the REPRO-01 re-scope note
+(9add304, Plan 01 Task 3) PREDATE the cost-leg verdict emission (0475bed) and
+the Steer run/hedge commits (33f3e00, 3c01427). AF-03 satisfied — the rule was
+fixed before the verdict and before any Steer data drove the pipeline.
+
+VERDICT: AF-03 ORDERING PASS.
+
+-----------------------------------------------------------------------
+4. REPRO-01 TWO-LAYER GATE
+-----------------------------------------------------------------------
+Layer 1 (scoped-ichi Makefile complement):  `make leak-check` -> exit 0
+  Output: "PASS: leak-check clean"
+  (grep emits stderr "binary file matches" noise on __pycache__/*.pyc; the
+   leak-check logic inspects only the textual grep output and exits 0.)
+  Scoped genuine-coupling grep (text-only) -> 0 hits: no "ichi" functional
+  coupling in fetch/src or analysis/src outside the CLI-overridable defaults
+  (data/fits/ichi, reports/ichi.pdf) + the protocols/ichi.toml spec reference.
+
+Layer 2 (authoritative protocol-agnosticism contract test):
+  `cd fetch && pnpm test protocol-agnostic` -> exit 0
+  Result: Test Files 1 passed (1); Tests 6 passed (6).
+
+VERDICT: REPRO-01 PASS (both layers).
+
+-----------------------------------------------------------------------
+SUMMARY
+-----------------------------------------------------------------------
+REPRO-02 empty-diff:  PASS (EMPTY; base 9add304, HEAD 71e2f83)
+AF-03 ordering:       PASS (rule fc6eec0 + re-scope 9add304 predate verdict 0475bed + run 33f3e00/3c01427)
+REPRO-01 layer 1:     PASS (make leak-check exit 0)
+REPRO-01 layer 2:     PASS (pnpm test protocol-agnostic, 6 passed)
