@@ -19,13 +19,25 @@ freeze: false / cache: false; --no-cache is the additional CLI guard.
 """
 from __future__ import annotations
 
+import os
 import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import yaml
 
 HEDGE05_SIGNATURE: str = "HEDGE05-NULL-RESULT-V1"
+
+# Repo root, anchored from this module's on-disk location (verified depth):
+#   analysis/src/abrigo_x402/hedge/null_result.py
+#   parents[0]=hedge parents[1]=abrigo_x402 parents[2]=src parents[3]=analysis
+#   parents[4]=<repo root>
+# render_null_result_pdf resolves the template + output dir against this AND runs
+# quarto with cwd=REPO_ROOT, so the renderer is CWD-independent (the prior bug:
+# resolving the default relative template against the pytest/analysis CWD).
+REPO_ROOT: Path = Path(__file__).resolve().parents[4]
 
 # CONTEXT.md firing-condition (b) threshold -- α=0.05 for LR-indistinguishable.
 DGP_INDISTINGUISHABLE_ALPHA: float = 0.05
@@ -100,7 +112,7 @@ def decide_firing_condition(
         Path to notes/<protocol>_cost_leg_bound.md (or a fixture analogue).
         None disables condition 1.
     run_dir : Path | None
-        Phase 4 run_dir (data/fits/ichi/<run_id>/). None disables condition 4.
+        Phase 4 run_dir (data/fits/<protocol>/<run_id>/). None disables condition 4.
 
     Returns
     -------
@@ -135,15 +147,31 @@ def render_null_result_pdf(
     firing_condition: str,
     fit_report: dict,
     gate_report: dict,
-    output_path: Path = Path("reports/ichi.pdf"),
+    output_path: Path = Path("reports/null_result.pdf"),
     template: Path = Path("reports/_templates/null_result.qmd"),
 ) -> Path:
-    """Invoke `quarto render <template> --no-cache --to pdf -P firing_condition:<X>`.
+    """Invoke `quarto render <template> --no-cache --to pdf -M firing_condition:<X>`.
 
     Per RESEARCH Pitfall 3, `--no-cache` is non-negotiable: Quarto's chunk
     caching + freeze defaults can produce a stale-but-byte-identical PDF
     across two different `firing_condition` inputs, which would silently
     defeat SC-5 byte-identity reasoning at the audit-gate.
+
+    The firing condition is passed as TOP-LEVEL pandoc metadata via the `-M`
+    flag and ALSO exported as the `HEDGE05_FIRING_CONDITION` environment
+    variable. The markdown H1 reads the metadata via a `{{< meta
+    firing_condition >}}` shortcode (no execute-param dependency); the
+    executable evidence chunks — where the shortcode would survive verbatim —
+    read the env var. Both channels carry the same value, so the title AND the
+    evidence body show the firing condition (the body is not blank).
+
+    The template is resolved against REPO_ROOT (the default is repo-relative);
+    quarto runs with cwd = the template's directory and a bare relative
+    `--output` (the proven Phase-5 deliverable render pattern) so the
+    `{{< include _evidence_branches.qmd >}}` partial resolves and quarto's
+    absolute-output-dir path-join bug is avoided. The rendered PDF is then
+    moved to `output_path`. The renderer is CWD-independent (works from the
+    repo root, from analysis/, or from a pytest tmp CWD).
 
     The visible H1 + `\\pdfinfo HEDGE05-NULL-RESULT-V1` injection both live
     in the template; this function does not touch the PDF post-render.
@@ -183,17 +211,56 @@ def render_null_result_pdf(
             f"got {firing_condition!r}"
         )
     output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Resolve the template against REPO_ROOT (the default is repo-relative);
+    # an absolute template path passed by a caller is honoured as-is.
+    template = Path(template)
+    template_abs = template if template.is_absolute() else (REPO_ROOT / template)
+    template_abs = template_abs.resolve()
+    # Resolve the destination against REPO_ROOT for repo-relative paths; absolute
+    # output paths (e.g. a pytest tmp_path) are honoured as-is.
+    out_parent = output_path.parent
+    out_dir_abs = out_parent if out_parent.is_absolute() else (REPO_ROOT / out_parent)
+    out_dir_abs = out_dir_abs.resolve()
+    out_dir_abs.mkdir(parents=True, exist_ok=True)
+    dest_pdf = out_dir_abs / output_path.name
+
+    # Render with cwd = the template's directory and a bare relative --output
+    # (the proven Phase-5 deliverable pattern: `cd reports && quarto render ...
+    # --output <name>`). This (a) lets the `{{< include _evidence_branches.qmd >}}`
+    # partial resolve relative to the template, and (b) avoids quarto's absolute
+    # `--output-dir` safeMoveSync path-join bug. The rendered PDF lands next to
+    # the template and is moved to dest_pdf afterwards.
+    template_dir = template_abs.parent
+    rendered_name = template_abs.with_suffix(".pdf").name  # e.g. null_result.pdf
+    rendered_pdf = template_dir / rendered_name
+
+    # QUARTO_PYTHON pins the interpreter that has the jupyter stack + abrigo_x402
+    # (the proven Phase-5 deliverable pattern); the bare system python lacks nbformat.
+    env = dict(os.environ)
+    env.setdefault("QUARTO_PYTHON", sys.executable)
+    # Quarto substitutes `{{< meta firing_condition >}}` shortcodes in MARKDOWN
+    # (the H1 title) but NOT inside executable `{python}` cell source — there the
+    # shortcode would survive verbatim and every evidence branch would mis-match,
+    # rendering a blank body (the B1 trap). So the evidence chunks read the firing
+    # condition from this environment variable, which the engine inherits. Both
+    # channels carry the SAME value, so the title and the body agree.
+    env["HEDGE05_FIRING_CONDITION"] = firing_condition
+
     cmd = [
-        "quarto", "render", str(template),
+        "quarto", "render", template_abs.name,
         "--no-cache",
         "--to", "pdf",
-        "-P", f"firing_condition:{firing_condition}",
-        "--output", output_path.name,
-        "--output-dir", str(output_path.parent),
+        "-M", f"firing_condition:{firing_condition}",
+        "--output", rendered_name,
     ]
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(
+            cmd, check=True, capture_output=True, text=True,
+            cwd=template_dir, env=env,
+        )
+        # Move the rendered PDF to the requested destination (no-op if same path).
+        if rendered_pdf.resolve() != dest_pdf.resolve():
+            shutil.move(str(rendered_pdf), str(dest_pdf))
     except FileNotFoundError as e:
         raise RuntimeError(
             "quarto CLI not found on PATH. Install via `quarto install tinytex` "

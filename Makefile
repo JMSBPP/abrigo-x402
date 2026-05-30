@@ -1,12 +1,17 @@
 # Makefile — abrigo-x402
 #
 # Phase 0 targets: schema-frozen-check
-# Phase 6+ forward-looking targets: leak-check, iteration-2-full (stubs)
+# Phase 6 targets: leak-check (scoped-ichi layer), iteration-2-full (deterministic recipe)
 
 .PHONY: schema-frozen-check leak-check verify-reproducibility help \
         fetch-ichi lint-artifacts verify-cache-idempotency schema-probe \
         render-lr-diagnostic render-null-result-pdf render-strip-diagnostic \
-        phase-4-acceptance report-ichi
+        phase-4-acceptance report-ichi iteration-2-full
+
+# Pattern I — thread-pinned BLAS prefix. Pinned single-threaded BLAS BEFORE any
+# numpy/statsmodels/scipy import so the AIC selection (and SC-5 byte-identity) is
+# deterministic. Prepended to every Python invocation in iteration-2-full.
+BLAS = OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 
 help:
 	@echo "Available targets:"
@@ -94,7 +99,23 @@ verify-reproducibility:
 	    pdfinfo "$$PDF" 2>/dev/null | grep -q "HEDGE05" || { echo "PDF-FAIL: HEDGE05 marker absent from PDF metadata"; exit 1; }; \
 	  else echo "NOTE: pdfinfo absent — HEDGE05 marker check skipped"; fi; \
 	  echo "OK (content: size+verdict+marker, AF-03): $$PDF"; \
-	  echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + PDF content-check)"'
+	  SPDF=reports/steer_null_result.pdf; \
+	  if [ ! -f "$$SPDF" ]; then \
+	    echo "PENDING (content-checked): $$SPDF not rendered — iteration-1-only checkout (NOTE: a Makefile skip does NOT mean Phase 6 passes; 06-VERIFICATION-pre.md gates verification_pass on the steer PDF actually existing)"; \
+	    echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + ichi PDF content-check; steer PDF PENDING)"; exit 0; fi; \
+	  SSZ=$$(wc -c < "$$SPDF"); [ "$$SSZ" -gt 51200 ] || { echo "STEER-PDF-FAIL: $$SPDF $${SSZ}B < 50KB"; exit 1; }; \
+	  if command -v pdftotext >/dev/null 2>&1; then \
+	    ST=$$(pdftotext "$$SPDF" - 2>/dev/null); \
+	    printf "%s" "$$ST" | grep -q "null_cost" || { echo "STEER-PDF-FAIL: firing_condition null_cost string absent"; exit 1; }; \
+	    printf "%s" "$$ST" | grep -Eiq "cost.?leg|straddle" || { echo "STEER-PDF-FAIL: cost-leg/STRADDLE evidence string absent"; exit 1; }; \
+	    for bad in "pass with caveat" "near-miss positive" "directionally positive" "exploratory positive" "positive result"; do \
+	      printf "%s" "$$ST" | grep -qi "$$bad" && { echo "STEER-PDF-FAIL: forbidden narrowing string present: $$bad"; exit 1; } || true; done; \
+	  else echo "NOTE: pdftotext absent — steer PDF verdict-text check skipped (size-only)"; fi; \
+	  if command -v pdfinfo >/dev/null 2>&1; then \
+	    pdfinfo -custom "$$SPDF" 2>/dev/null | grep -q "HEDGE05" || { echo "STEER-PDF-FAIL: HEDGE05 marker absent from PDF metadata (pdfinfo -custom)"; exit 1; }; \
+	  else echo "NOTE: pdfinfo absent — steer HEDGE05 marker check skipped"; fi; \
+	  echo "OK (content: size+null_cost+HEDGE05+cost-leg, AF-03 no-narrowing): $$SPDF"; \
+	  echo "verify-reproducibility: PASS ($$OKS/$$PINS sha pins + ichi + steer PDF content-check)"'
 
 # -------- Phase 1 targets --------
 
@@ -158,6 +179,13 @@ schema-probe:
 #   1. Protocol-name branches    (`if config.name === "ichi"`, etc.)
 #   2. Protocol factory addresses inlined in source
 #   3. Uniswap V3 magic fee tiers inlined as literals
+#   4. (Plan 06-02 / REPRO-01 scoped layer) genuine functional `ichi` couplings
+#      in fetch/src + analysis/src, EXCLUDING comments/docstrings + the
+#      CLI-overridable defaults (data/fits/ichi, reports/ichi.pdf) + the
+#      protocols/ichi.toml spec-layer reference. The command below is
+#      BYTE-IDENTICAL to the string pinned in notes/PRE_REGISTRATION.md
+#      §"Phase 6 — REPRO-01 scoped-grep re-scope" (M5). Any genuine coupling
+#      that survived the Plan 01 scrub exits 1 with the offending lines.
 leak-check:
 	@bash -c 'set -euo pipefail; \
 	  if [ ! -d fetch/src ]; then \
@@ -170,6 +198,10 @@ leak-check:
 	  if [ -n "$$ADDRS" ]; then echo "LEAK: protocol factory addr in fetch/src"; echo "$$ADDRS"; exit 1; fi; \
 	  FEES=$$(grep -rEn "\bfee\s*[:=]\s*(0\.0001|100|500|3000|10000)\b" fetch/src 2>/dev/null || true); \
 	  if [ -n "$$FEES" ]; then echo "LEAK: magic fee-tier literal in fetch/src"; echo "$$FEES"; exit 1; fi; \
+	  ICHI=$$(grep -rnE '\''"ichi"|/ichi/|raw/ichi|fits/ichi'\'' analysis/src fetch/src \
+	    | grep -vE '\''data/fits/ichi|reports/ichi\.pdf|protocols/ichi\.toml'\'' \
+	    | grep -vE '\'':[0-9]+:[[:space:]]*(#|//|\*|/\*)'\'' || true); \
+	  if [ -n "$$ICHI" ]; then echo "LEAK: scoped ichi coupling in analysis/src or fetch/src (REPRO-01)"; echo "$$ICHI"; exit 1; fi; \
 	  echo "PASS: leak-check clean"'
 
 # Phase 3 Plan 03-03 — DGP-03 bootstrap LR null-distribution diagnostic.
@@ -190,17 +222,29 @@ print(f'render-lr-diagnostic: PASS ({r[\"n_successful_bootstrap\"]}/{r[\"n_reps\
 
 # -------- Phase 4 targets --------
 
-# Render the null-result PDF for a given firing condition. Wave 2 wires the full
-# substrate-injection path; Wave 0 scaffolds the target so the command surface is
-# present for plan-04-08 to land against.
+# Render the null-result PDF for a given firing condition. Plan 06-02 drops the
+# papermill per-parameter flag in favour of `-M firing_condition:` (the
+# Plan 01 renderer fix: the H1 reads the meta shortcode, the executable evidence
+# chunks read the HEDGE05_FIRING_CONDITION env var). Mirrors report-ichi's
+# SOURCE_DATE_EPOCH + QUARTO_PYTHON determinism; renders from the template dir
+# (the proven cd-into-dir + bare --output pattern, no absolute --output-dir).
 render-null-result-pdf:
 	@if [ -z "$$FIRING" ]; then \
 		echo "Usage: make render-null-result-pdf FIRING={null_cost|null_lr|null_convex|null_strip_unavailable}"; \
 		exit 1; \
 	fi
+	@command -v quarto >/dev/null 2>&1 || { echo "render-null-result-pdf: FAIL — quarto binary required (build prerequisite, not auto-installed)"; exit 1; }
+	@quarto install tinytex 2>/dev/null || true
 	@mkdir -p reports/_diagnostics
-	cd reports && quarto render _templates/null_result.qmd --no-cache \
-		--execute-param firing_condition:$$FIRING --output _diagnostics/null_result_$$FIRING.pdf
+	VENV_PY=$$(cd analysis && uv run python -c 'import sys; print(sys.executable)'); \
+		cd reports && SOURCE_DATE_EPOCH=1780012800 FORCE_SOURCE_DATE=1 QUARTO_PYTHON="$$VENV_PY" \
+		HEDGE05_FIRING_CONDITION=$$FIRING \
+		quarto render _templates/null_result.qmd --no-cache \
+		-M firing_condition:$$FIRING --output null_result_$$FIRING.pdf
+	@for cand in reports/null_result_$$FIRING.pdf reports/_templates/null_result_$$FIRING.pdf null_result_$$FIRING.pdf; do \
+		[ -f "$$cand" ] && mv "$$cand" reports/_diagnostics/null_result_$$FIRING.pdf && break; \
+	done
+	@test -f reports/_diagnostics/null_result_$$FIRING.pdf && echo "render-null-result-pdf: PASS — reports/_diagnostics/null_result_$$FIRING.pdf ($$(wc -c < reports/_diagnostics/null_result_$$FIRING.pdf)B)" || { echo "render-null-result-pdf: FAIL — no PDF emitted"; exit 1; }
 
 # Phase 5 REPORT-01 — render the Iteration-1 deliverable. quarto is an operator
 # build prerequisite (NOT auto-installed); only TinyTeX self-installs. Plan 05-03
@@ -221,7 +265,7 @@ report-ichi:
 	# every re-render). 1780012800 = 2026-05-29T00:00:00Z, matching the qmd frontmatter
 	# date. QUARTO_PYTHON pins the analysis venv interpreter (has the jupyter stack +
 	# abrigo_x402); the system python lacks both. firing_condition comes from the qmd
-	# frontmatter params default (no --execute-param → no papermill dependency).
+	# frontmatter params default (no per-parameter papermill flag → no papermill dependency).
 	VENV_PY=$$(cd analysis && uv run python -c 'import sys; print(sys.executable)'); \
 		cd reports && SOURCE_DATE_EPOCH=1780012800 FORCE_SOURCE_DATE=1 QUARTO_PYTHON="$$VENV_PY" \
 		quarto render ichi.qmd --to pdf --output ichi.pdf
@@ -261,3 +305,32 @@ phase-4-acceptance:
 	@! grep -E "port from Hernandez Cruz" notes/usdt_depeg_calibration.md 2>/dev/null || true
 	$(MAKE) lint-artifacts
 	@echo "=== Phase 4 acceptance: PASS ==="
+
+# -------- Phase 6 (Iteration-2) target --------
+
+# iteration-2-full — the Iteration-2 Steer cCOP/USDT re-run as a DETERMINISTIC
+# command sequence (NOT "echo OR invoke"). STEP 1 is ALWAYS the cost-leg check
+# (REPRO-03 first step), which runs BEFORE any Steer fetch (AF-03 ordering: the
+# pre-registered straddle rule is observed before the demand-band-derived
+# verdict drives the pipeline). The block-range / run-id env vars
+# (STEER_FROM / STEER_TO / STEER_RANGE / STEER_RUN) are supplied by the operator
+# at invocation; Plan 06-03 records the concrete values. The recipe does NOT
+# branch on env availability — it is a literal sequence. Every Python line is
+# prefixed with the Pattern-I $(BLAS) single-threaded BLAS env.
+iteration-2-full:
+	@echo "iteration-2-full: STEP 1 — cost-leg check FIRST (REPRO-03 first-step, AF-03 ordering)"
+	python scripts/cost_leg_check.py --protocol protocols/steer.toml --out notes/steer_cost_leg_bound.md
+	@echo "iteration-2-full: STEP 2 — fetch Steer cCOP/USDT V3 anchor pool"
+	pnpm -C fetch fetch steer --pool 0x2AC5baA668A8A58FD0e302B9896717484fd217B0 --from $$STEER_FROM --to $$STEER_TO
+	@echo "iteration-2-full: STEP 3 — materialize panel (-> data/raw/steer/)"
+	cd analysis && $(BLAS) uv run python -m abrigo_x402.cli materialize --pool 0x2AC5baA668A8A58FD0e302B9896717484fd217B0 --from-block $$STEER_FROM --to-block $$STEER_TO --protocol-toml ../protocols/steer.toml
+	@echo "iteration-2-full: STEP 4 — fit (-> data/fits/steer/)"
+	cd analysis && $(BLAS) uv run python -m abrigo_x402.cli fit --pool 0x2AC5baA668A8A58FD0e302B9896717484fd217B0 --panel-path ../data/raw/steer/0x2AC5baA668A8A58FD0e302B9896717484fd217B0/$$STEER_RANGE.parquet --out-dir ../data/fits/steer
+	@echo "iteration-2-full: STEP 5 — hedge + render null PDF (null_cost from inside the run)"
+	# HEDGE05_RUN_DIR + HEDGE05_COST_LEG_BOUND (absolute) enrich the null_cost
+	# evidence branch with the cost-leg verdict + DGP-support tables + REPRO-02
+	# attestation. The frozen render_null_result_pdf only forwards the firing
+	# condition; these env vars are read defensively by reports/_templates/_evidence_branches.qmd
+	# (absent -> prose-only fallback). cli.py hedge inherits os.environ, so the
+	# render subprocess sees them.
+	cd analysis && HEDGE05_RUN_DIR="$(CURDIR)/data/fits/steer/$$STEER_RUN" HEDGE05_COST_LEG_BOUND="$(CURDIR)/notes/steer_cost_leg_bound.md" $(BLAS) uv run python -m abrigo_x402.cli hedge --run-id $$STEER_RUN --stage all --run-dir-root ../data/fits/steer --cost-leg-bound ../notes/steer_cost_leg_bound.md --reports-pdf ../reports/steer_null_result.pdf

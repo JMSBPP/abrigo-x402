@@ -3,6 +3,10 @@ title: "HEDGE-05 Null Result"
 format:
   pdf:
     documentclass: article
+    # \pdfinfo is a pdfTeX primitive — pin pdflatex (matching the proven
+    # reports/ichi.qmd) so the HEDGE05 marker injection works under TeX Live
+    # 2026, whose default LuaHBTeX engine leaves \pdfinfo undefined.
+    pdf-engine: pdflatex
     include-in-header:
       text: |
         \pdfinfo{
@@ -15,7 +19,7 @@ params:
   firing_condition: null  # "null_cost" | "null_lr" | "null_convex" | "null_strip_unavailable"
 ---
 
-# HEDGE-05 NULL RESULT — `r params$firing_condition`
+# HEDGE-05 NULL RESULT — {{< meta firing_condition >}}
 
 <!-- Dual signature: visible H1 above + \pdfinfo HEDGE05-NULL-RESULT-V1 marker in PDF metadata. -->
 <!-- Greppable via: pdftotext reports/ichi.pdf - | grep "HEDGE-05 NULL RESULT" -->
@@ -23,11 +27,19 @@ params:
 
 ```{python}
 #| label: load-substrate
+#| echo: false
 import json
+import os
 from pathlib import Path
 
-firing_condition = "{{< meta params.firing_condition >}}"
-# Substrate loaded by render_null_result_pdf at invocation time via --param + injected files.
+# firing_condition is supplied by render_null_result_pdf via the
+# HEDGE05_FIRING_CONDITION environment variable (the engine inherits the
+# subprocess env). The markdown title reads the same value through the
+# top-level `{{< meta firing_condition >}}` shortcode (`-M firing_condition:X`),
+# so the title and the body agree. Shortcodes do NOT expand inside executable
+# `{python}` cell source, hence the env-var channel for the body.
+firing_condition = os.environ.get("HEDGE05_FIRING_CONDITION", "")
+# Substrate loaded by render_null_result_pdf at invocation time via injected files.
 ```
 
 ::: {.callout-note}
@@ -40,13 +52,13 @@ This null-result PDF was generated because firing condition **`{python} firing_c
 
 {{< include _evidence_branches.qmd >}}
 
-<!-- Wave 2 (Plan 04-08) implements the four conditional branches via Quarto conditional content
-     keyed off `params$firing_condition`:
+<!-- _evidence_branches.qmd implements the four conditional branches, keyed off
+     the firing_condition value (read from the HEDGE05_FIRING_CONDITION env var
+     in the evidence chunk):
        - null_cost: cost-leg bound memo verdict=FAIL evidence
        - null_lr: DGP-03 LR test p-value + n_reps + held-out comparison
        - null_convex: four-condition gate report with all `passed: false`
-       - null_strip_unavailable: strip_degenerate.json + recommended_method (COS/PROJ)
-     Wave 0 scaffolds only the dual-signature shell. -->
+       - null_strip_unavailable: strip_degenerate.json + recommended_method (COS/PROJ) -->
 
 ## Pre-Registration Reference
 

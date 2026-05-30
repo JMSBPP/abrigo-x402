@@ -35,6 +35,17 @@ hedge_05_fires = true  # memo-only null at Phase 0; no Phase 1-5 cycle for Iter-
 panel_construction = "v3-anchor-only"  # Per notes/Q9_DECISION.md primary decision (@ 5782527)
 iteration = 2
 
+# Cold-backfill anchor block for the Phase-2 materialize step. Per-protocol
+# field (NOT in protocols/_schema.toml — same precedent as ichi.toml @ L38;
+# the frozen ProtocolSpec pydantic model in analysis/src REQUIRES it with no
+# default, so the config-swap re-run cannot validate steer.toml without it).
+# Conservative pre-deployment lower bound: ~3 months (Celo ~1s/block) before
+# the live Forno head observed during this plan (head≈68,193,880 on 2026-05-29):
+#   68,193,880 - (90 * 24 * 3600) ≈ 60,417,880 → rounded down to 60,000,000,
+# matching the ichi.toml conservative-floor convention. This is config-only;
+# it does NOT change any frozen source and does NOT touch _schema.toml.
+cold_backfill_from_block = 60000000
+
 [protocol.repro_03_verdict]
 # Structured record of the Phase-0 REPRO-03 pre-validation outcome.
 # Phase 6 (if ever launched) reads this section to confirm the

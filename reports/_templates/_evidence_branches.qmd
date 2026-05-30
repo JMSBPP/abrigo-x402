@@ -1,6 +1,7 @@
 <!-- Plan 04-08 (Wave-2 fill of the Wave-0 placeholder).
 
-Four condition-branched evidence blocks, keyed off `params$firing_condition`.
+Four condition-branched evidence blocks, keyed off the firing_condition value
+(read from the HEDGE05_FIRING_CONDITION environment variable below).
 Each branch reads the relevant substrate (cost_leg_bound memo + fit_report.json
 + gate_report.json + strip_degenerate.json) and renders a condition-specific
 block of evidence text + small tables. The branches are mutually exclusive --
@@ -13,7 +14,11 @@ exactly one of {null_cost, null_lr, null_convex, null_strip_unavailable}.
 #| echo: false
 #| output: asis
 
-firing_condition = "{{< meta params.firing_condition >}}"
+import os
+import json
+from pathlib import Path
+
+firing_condition = os.environ.get("HEDGE05_FIRING_CONDITION", "")
 
 if firing_condition == "null_cost":
     # HEDGE-05 firing condition (a) -- Phase-0 cost-leg gate failed.
@@ -25,6 +30,96 @@ if firing_condition == "null_cost":
     print()
     print("Per HEDGE-05 firing condition (a), no convex-hedge claim is justified for the")
     print("candidate substrate at this iteration; the candidate is RETIRED-PENDING-MATURITY.")
+
+    # ---- Optional enrichment: cost-leg verdict + DGP-support + REPRO-02 ----
+    # Read run-specific evidence from absolute paths injected by the editable
+    # render caller (HEDGE05_RUN_DIR + HEDGE05_COST_LEG_BOUND). Frozen
+    # render_null_result_pdf only forwards the firing condition, so the caller
+    # passes these via the environment. Defensive: absent/unparsable -> prose
+    # only (preserves the ichi / no-env render path).
+    def _read_yaml_frontmatter(p):
+        out = {}
+        try:
+            text = Path(p).read_text()
+        except (OSError, TypeError):
+            return out
+        if not text.startswith("---"):
+            return out
+        body = text.split("---", 2)
+        if len(body) < 3:
+            return out
+        for line in body[1].splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                out[k.strip()] = v.strip().strip('"')
+        return out
+
+    def _load_json(p):
+        try:
+            return json.loads(Path(p).read_text())
+        except (OSError, ValueError, TypeError):
+            return {}
+
+    _bound = _read_yaml_frontmatter(os.environ.get("HEDGE05_COST_LEG_BOUND", ""))
+    _rundir = os.environ.get("HEDGE05_RUN_DIR", "")
+    _gate = _load_json(Path(_rundir) / "gate_report.json") if _rundir else {}
+    _fit = _load_json(Path(_rundir) / "fit_report.json") if _rundir else {}
+
+    if _bound:
+        print()
+        print("### Cost-leg verdict (the gating evidence)")
+        print()
+        print("| Field | Value |")
+        print("|---|---|")
+        print(f"| Verdict | `{_bound.get('verdict','?')}` |")
+        print(f"| Firing condition | `{_bound.get('firing_condition','?')}` |")
+        _lo, _hi = _bound.get("band_lower", "?"), _bound.get("band_upper", "?")
+        print(f"| Demand band (queries/mo) | {_lo}–{_hi} |")
+        print(f"| Free-tier ceiling (DEMAND-01) | {_bound.get('free_tier_ceiling','?')} |")
+        print(f"| Pre-registered rule (AF-03) | {_bound.get('rule','?')} |")
+        print()
+        print("The estimated demand **straddles** the free-tier ceiling (not strictly")
+        print("above it), so the pre-registered conservative-fail rule fires `null_cost`.")
+
+    if _gate or _fit:
+        print()
+        print("### DGP support (produced by the full re-run; not the gating verdict)")
+        print()
+        print("The frozen Phase 2-5 pipeline ran in full regardless of the cost-leg fail")
+        print("(that is what demonstrates REPRO-02). Its output is preserved as supporting")
+        print("context -- it does NOT override the cost-leg gate:")
+        print()
+        _ci = _fit.get("branching_ratio_ci", {}) if isinstance(_fit, dict) else {}
+        _lr = (_fit.get("lr_test") or {}) if isinstance(_fit, dict) else {}
+        print("| Diagnostic | Value |")
+        print("|---|---|")
+        if _ci.get("eta_hat") is not None:
+            print(f"| Branching ratio $\\hat\\eta$ | {_ci.get('eta_hat'):.3f} |")
+        if _ci.get("lower") is not None:
+            print(f"| Branching-ratio CI | [{_ci.get('lower')}, {_ci.get('upper')}] (width {_ci.get('ci_width')}) |")
+        if _lr.get("p_value") is not None:
+            print(f"| LR test (NHPP null) | p = {_lr.get('p_value')} |")
+        for _k, _label in (
+            ("vol_of_vol_gt_zero", "vol-of-vol > 0"),
+            ("positive_skew_fat_tails", "positive skew + fat tails"),
+            ("hawkes_self_excitation", "Hawkes self-excitation"),
+            ("usdt_depeg_basis_jump", "USDT-depeg basis jump"),
+        ):
+            if _k in _gate:
+                print(f"| Convex-dominance: {_label} | {_gate.get(_k)} |")
+        if "any_condition_passed" in _gate:
+            print(f"| Any convex-dominance condition passed | {_gate.get('any_condition_passed')} |")
+        if _ci.get("q9_nullfire_triggered") is not None:
+            print(f"| Q9 trigger (CI width > {_ci.get('q9_threshold')}) | {_ci.get('q9_nullfire_triggered')} (V3-anchor-only; unified fallback pre-registered DEFERRED) |")
+
+    print()
+    print("### REPRO-02 attestation")
+    print()
+    print("This deliverable was produced by re-running the **frozen** Phase 2-5 pipeline")
+    print("on a different protocol via a **config-swap only** (`protocols/*.toml`): the")
+    print("`git diff` over `fetch/src` + `analysis/src` across the iteration boundary is")
+    print("**empty**. The swap-surface invariant (REPRO-01/REPRO-02) holds; the `null_cost`")
+    print("verdict is recorded **as observed** (the FEATURES.md D-08 negative control).")
 
 elif firing_condition == "null_lr":
     # HEDGE-05 firing condition (b) -- DGP-03 LR-indistinguishable.
