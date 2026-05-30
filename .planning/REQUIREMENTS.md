@@ -142,7 +142,7 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | REPORT-03 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Complete (05-01) |
 | REPORT-04 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
 | REPRO-01 | Phase 6 | Leak-check CI gate active continuously after Phase 1 | Pending |
-| REPRO-02 | Phase 6 | — | Pending |
+| REPRO-02 | Phase 6 | — | Complete (Plan 06-03 — frozen Phase 2-5 pipeline ran on `protocols/steer.toml` via config-swap; run_id `0dc5bee374b6`; `git diff 9add304 HEAD -- fetch/src analysis/src` EMPTY under a live run) |
 | REPRO-03 | Phase 6 (first step) | HEDGE-05 firing condition on failure | Pending |
 | REPRO-04 | Phase 0 (decision artifact) | Enforcement in Phase 6 (panel construction follows the lock) | Complete (Plan 00-03 `5782527` + Plan 00-01 `6cd61ed`) |
 
