@@ -265,7 +265,7 @@ Plans:
 | 4.1 Backport block_timestamp + real-panel rerun | 4/4 | Complete    | PASS / PASS | 2026-05-27 |
 | 4.1.1 Restore canonical MLE (LS-fallback degeneracy fix) | 6/6 | Plans Complete (ready for `/gsd:verify-phase 4.1.1`)| PASS / PASS | - |
 | 5. Reporting + Iteration-1 PDF | 5/5 | Complete (Iteration 1 merged → upstream PR #1, `87991ac`) | PASS / PASS | 2026-05-29 |
-| 6. Iteration-2 Steer Swap | 0/4 | Complete    | 2026-05-30 | - |
+| 6. Iteration-2 Steer Swap | 4/4 | Complete (REPRO-01..04 + HEDGE-05; null_cost observed, REPRO-02 empty-diff held) | PASS / PASS | 2026-05-30 |
 | 7. Cross-Iteration Synthesis (procedural, non-gating) | 0/0 | Not started | pending / pending | - |
 
 **Review Status semantics**: column reads `<Reality Checker verdict> / <Code Reviewer verdict>`. A phase cannot be marked Complete until both paired review files exist under `.planning/_reviews/phase_N_{reality_checker,code_reviewer}.md` AND neither carries an unresolved BLOCKER finding. Pre-commit hook (Phase 0 SC-4 (b)) enforces this contract.
