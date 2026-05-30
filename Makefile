@@ -327,4 +327,10 @@ iteration-2-full:
 	@echo "iteration-2-full: STEP 4 — fit (-> data/fits/steer/)"
 	cd analysis && $(BLAS) uv run python -m abrigo_x402.cli fit --pool 0x2AC5baA668A8A58FD0e302B9896717484fd217B0 --panel-path ../data/raw/steer/0x2AC5baA668A8A58FD0e302B9896717484fd217B0/$$STEER_RANGE.parquet --out-dir ../data/fits/steer
 	@echo "iteration-2-full: STEP 5 — hedge + render null PDF (null_cost from inside the run)"
-	cd analysis && $(BLAS) uv run python -m abrigo_x402.cli hedge --run-id $$STEER_RUN --stage all --run-dir-root ../data/fits/steer --cost-leg-bound ../notes/steer_cost_leg_bound.md --reports-pdf ../reports/steer_null_result.pdf
+	# HEDGE05_RUN_DIR + HEDGE05_COST_LEG_BOUND (absolute) enrich the null_cost
+	# evidence branch with the cost-leg verdict + DGP-support tables + REPRO-02
+	# attestation. The frozen render_null_result_pdf only forwards the firing
+	# condition; these env vars are read defensively by reports/_templates/_evidence_branches.qmd
+	# (absent -> prose-only fallback). cli.py hedge inherits os.environ, so the
+	# render subprocess sees them.
+	cd analysis && HEDGE05_RUN_DIR="$(CURDIR)/data/fits/steer/$$STEER_RUN" HEDGE05_COST_LEG_BOUND="$(CURDIR)/notes/steer_cost_leg_bound.md" $(BLAS) uv run python -m abrigo_x402.cli hedge --run-id $$STEER_RUN --stage all --run-dir-root ../data/fits/steer --cost-leg-bound ../notes/steer_cost_leg_bound.md --reports-pdf ../reports/steer_null_result.pdf
