@@ -141,9 +141,9 @@ Each v1 requirement is mapped to exactly one phase as its primary phase (the pha
 | REPORT-02 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
 | REPORT-03 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Complete (05-01) |
 | REPORT-04 | Phase 5 | Re-fires for Iteration 2 in Phase 6 | Pending |
-| REPRO-01 | Phase 6 | Leak-check CI gate active continuously after Phase 1 | Pending |
+| REPRO-01 | Phase 6 | Leak-check CI gate active continuously after Phase 1 | Complete (Plan 06-04 — two-layer gate attested: `make leak-check` exit 0 "PASS: leak-check clean" + `cd fetch && pnpm test protocol-agnostic` 6 passed; scoped genuine-coupling grep 0 hits; recorded in `_artifacts/repro_02_attestation.txt` + 06-VERIFICATION-pre.md Row 1) |
 | REPRO-02 | Phase 6 | — | Complete (Plan 06-03 — frozen Phase 2-5 pipeline ran on `protocols/steer.toml` via config-swap; run_id `0dc5bee374b6`; `git diff 9add304 HEAD -- fetch/src analysis/src` EMPTY under a live run) |
-| REPRO-03 | Phase 6 (first step) | HEDGE-05 firing condition on failure | Pending |
+| REPRO-03 | Phase 6 (first step) | HEDGE-05 firing condition on failure | Complete (Plan 06-02 cost_leg_check.py STEP 1 of iteration-2-full + pre-registered STRADDLE rule `fc6eec0` before verdict `0475bed`; Plan 06-04 attested AF-03 ordering: pre-reg + REPRO-01 re-scope `9add304` predate verdict + run `33f3e00/3c01427`; `notes/steer_cost_leg_bound.md` verdict FAIL → `null_cost`; 06-VERIFICATION-pre.md Row 3) |
 | REPRO-04 | Phase 0 (decision artifact) | Enforcement in Phase 6 (panel construction follows the lock) | Complete (Plan 00-03 `5782527` + Plan 00-01 `6cd61ed`) |
 
 **Coverage:**
